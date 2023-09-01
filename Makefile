@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -Werror -pedantic -g -std=c23 -D__USE_MINGW_ANSI_STDIO=1
+CFLAGS = -Wall -Wextra -Werror -pedantic -g -std=c2x -D__USE_MINGW_ANSI_STDIO=1
 
 sources = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(sources))
