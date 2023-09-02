@@ -7,8 +7,8 @@
 
 int main(void) {
     struct ir_block *block = allocate_block(0);
-    write_immediate(block, OP_PUSH, 1);
-    write_immediate(block, OP_PUSH, 2);
+    write_immediate(block, OP_PUSH, 34);
+    write_immediate(block, OP_PUSH, 35);
     write_simple(block, OP_ADD);
     write_simple(block, OP_PRINT);
     interpret(block);
