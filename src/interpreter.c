@@ -28,7 +28,12 @@ enum interpret_result interpret(struct ir_block *block) {
             push(stack, a + b);
             break;
         }
-        case OP_PRINT:
+        case OP_MULT: {
+            stack_word b = pop(stack);
+            stack_word a = pop(stack);
+            push(stack, a * b);
+            break;
+        }        case OP_PRINT:
             printf("%"PRIsw"\n", pop(stack));
             break;
         }

@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -8,7 +7,7 @@
 
 
 int main(void) {
-    const char *code = "34 35 +\nprint";
+    const char *code = "34 35 + 2 *";
     struct ir_block *block = allocate_block(0);
     /*
     write_immediate(block, OP_PUSH, 34);

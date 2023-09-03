@@ -6,7 +6,8 @@ enum token_type {
     TOKEN_SYMBOL,
     TOKEN_PLUS,
     TOKEN_PRINT,
-
+    TOKEN_STAR,
+    
     TOKEN_EOT,
 };
 

@@ -47,6 +47,7 @@ static enum token_type check_keyword(struct lexer *lexer, int start, int length,
 static enum token_type symbol_type(struct lexer *lexer) {
     switch (lexer->start[0]) {
     case '+': return check_keyword(lexer, 1, 0, "", TOKEN_PLUS);
+    case '*': return check_keyword(lexer, 1, 0, "", TOKEN_STAR);
     case 'p': return check_keyword(lexer, 1, 4, "rint", TOKEN_PRINT);
     }
     return TOKEN_SYMBOL;

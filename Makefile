@@ -17,7 +17,7 @@ bin/%.o : src/%.c
 $(objects): | bin
 
 bin:
-	mkdir bin
+	mkdir -p bin
 
 $(out): $(objects)
 	$(CC) $(CFLAGS) -o $(out) $(objects)

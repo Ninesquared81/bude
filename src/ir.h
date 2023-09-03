@@ -8,6 +8,7 @@ enum opcode {
     OP_PUSH,
     OP_POP,
     OP_ADD,
+    OP_MULT,
     OP_PRINT,
 };
 

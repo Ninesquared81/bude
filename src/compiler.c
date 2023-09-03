@@ -28,6 +28,9 @@ void compile(const char *restrict src, struct ir_block *block) {
         case TOKEN_SYMBOL:
             assert(0 && "Not implemented");
             break;
+        case TOKEN_STAR:
+            write_simple(block, OP_MULT);
+            break;
         default:
             assert(0 && "Unrecognized token");
             break;
