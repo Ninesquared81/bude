@@ -4,9 +4,13 @@
 enum token_type {
     TOKEN_INT,
     TOKEN_SYMBOL,
+    TOKEN_MINUS,
     TOKEN_PLUS,
+    TOKEN_POP,
     TOKEN_PRINT,
+    TOKEN_SLASH_PERCENT,
     TOKEN_STAR,
+    TOKEN_SWAP,
     
     TOKEN_EOT,
 };

@@ -7,36 +7,38 @@
 
 
 static int immediate_instruction(const char *name, struct ir_block *block, int offset) {
-    int opcode = block->code[offset];
-    int operand = block->code[offset + 1];
-    int padding = strlen(name) - 16;  // Negative.
-    assert(padding < 0);
-    printf("%s:%*d 0x%02x\n", name, padding, opcode, operand);
+    printf("%-16s 0x%02x\n", name, block->code[offset + 1]);
     return offset + 2;
 }
 
-static int simple_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%s:%d\n", name, block->code[offset]);
+static int simple_instruction(const char *name, int offset) {
+    printf("%s\n", name);
     return offset + 1;
 }
 
 static int disassemble_instruction(struct ir_block *block, int offset) {
-    printf("%04d ", offset);
-
     uint8_t instruction = block->code[offset];
+    printf("%04d [%03d] ", offset, instruction);
+
     switch (instruction) {
     case OP_PUSH:
         return immediate_instruction("OP_PUSH", block, offset);
     case OP_POP:
-        return simple_instruction("OP_POP", block, offset);
+        return simple_instruction("OP_POP", offset);
     case OP_ADD:
-        return simple_instruction("OP_ADD", block, offset);
+        return simple_instruction("OP_ADD", offset);
+    case OP_DIVMOD:
+        return simple_instruction("OP_DIVMOD", offset);
     case OP_MULT:
-        return simple_instruction("OP_MULT", block, offset);
+        return simple_instruction("OP_MULT", offset);
     case OP_PRINT:
-        return simple_instruction("OP_PRINT", block, offset);
+        return simple_instruction("OP_PRINT", offset);
+    case OP_SUB:
+        return simple_instruction("OP_SUB", offset);
+    case OP_SWAP:
+        return simple_instruction("OP_SWAP", offset);
     default:
-        printf("Unknown opcode: %d\n", instruction);
+        printf("<Unknown opcode>\n");
         return offset + 1;
     }
 }

@@ -18,7 +18,7 @@ void push(struct stack *stack, stack_word value) {
 
 stack_word pop(struct stack *stack) {
     if (stack->top == &stack->elements[0]) {
-        fprintf(stderr, "Stack underflow");
+        fprintf(stderr, "Stack underflow\n");
         exit(1);
     }
     return *--stack->top;

@@ -8,8 +8,11 @@ enum opcode {
     OP_PUSH,
     OP_POP,
     OP_ADD,
+    OP_DIVMOD,
     OP_MULT,
     OP_PRINT,
+    OP_SUB,
+    OP_SWAP,
 };
 
 struct ir_block {
