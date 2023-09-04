@@ -4,28 +4,38 @@
 
 #include "ir.h"
 
+#ifndef BLOCK_INIT_SIZE
+#define BLOCK_INIT_SIZE 128
+#endif
 
-struct ir_block *allocate_block(int size) {
-    assert(size >= 0);
-    struct ir_block *block = malloc(sizeof *block + size);
-    block->capacity = size;
+void init_block(struct ir_block *block) {
+    block->code = malloc(BLOCK_INIT_SIZE * sizeof *block->code);
+    if (block->code == NULL) {
+        fprintf(stderr, "malloc failed!\n");
+        exit(1);
+    }
+    block->capacity = BLOCK_INIT_SIZE;
     block->count = 0;
-    return block;
 }
 
 void free_block(struct ir_block *block) {
-    free(block);
+    free(block->code);
+    block->code = NULL;
+    block->capacity = 0;
+    block->count = 0;
 }
 
 static struct ir_block *grow_block(struct ir_block *block) {
     int old_capacity = block->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : 8;
-    if ((block = realloc(block, sizeof *block + new_capacity)) == NULL) {
+    void *new_code = realloc(block->code, sizeof *block + new_capacity);
+    if (new_code == NULL) {
         /* Technically, this could leak memory, but any OS worth its salt
            will free all our memory when we exit. */
         fprintf(stderr, "realloc failed!\n");
         exit(1);
     }
+    block->code = new_code;
     block->capacity = new_capacity;
     return block;
 }
