@@ -98,6 +98,9 @@ static void compile_expr(struct compiler *compiler) {
         case TOKEN_MINUS:
             write_simple(block, OP_SUB);
             break;
+        case TOKEN_NOT:
+            write_simple(block, OP_NOT);
+            break;
         case TOKEN_PLUS:
             write_simple(block, OP_ADD);
             break;

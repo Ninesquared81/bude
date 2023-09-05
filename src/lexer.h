@@ -12,6 +12,7 @@ enum token_type {
     TOKEN_END,
     TOKEN_IF,
     TOKEN_MINUS,
+    TOKEN_NOT,
     TOKEN_PLUS,
     TOKEN_POP,
     TOKEN_PRINT,

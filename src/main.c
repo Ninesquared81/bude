@@ -21,13 +21,14 @@ static void parse_args(int argc, char *argv[], char *inbuf) {
     }
     if (argc > 2) {
         fprintf(stderr, "Warning: excess arguments discarded.\nUsage: ");
+        print_usage(stderr, name);
     }
     FILE *file = fopen(argv[1], "r");
     if (file == NULL) {
         perror("Could not open file");
         exit(1);
     }
-    fread(inbuf, sizeof *inbuf, INPUT_BUFFER_SIZE, file);
+    size_t length = fread(inbuf, sizeof *inbuf, INPUT_BUFFER_SIZE - 1, file);
     if (ferror(file)) {
         perror("Error reading file");
         exit(1);
@@ -36,6 +37,7 @@ static void parse_args(int argc, char *argv[], char *inbuf) {
         perror("File too large");
         exit(1);
     }
+    inbuf[length] = '\0';  // Set null byte.
     fclose(file);
 }
 
@@ -49,12 +51,6 @@ int main(int argc, char *argv[]) {
 
     struct ir_block block;
     init_block(&block);
-    /*
-    write_immediate(block, OP_PUSH, 34);
-    write_immediate(block, OP_PUSH, 35);
-    write_simple(block, OP_ADD);
-    write_simple(block, OP_PRINT);
-    */
     compile(inbuf, &block);
     free(inbuf);
 
