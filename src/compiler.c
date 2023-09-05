@@ -48,24 +48,37 @@ static struct token peek(struct compiler *compiler) {
 
 static void compile_expr(struct compiler *compiler);
 
+static void patch_jump(struct compiler *compiler, int offset, int jump) {
+    if (jump < INT16_MIN || jump > INT16_MAX) {
+        fprintf(stderr, "Jump too big.\n");
+        exit(1);
+    }
+    overwrite_s16(compiler->block, offset, jump);
+}
+
 static void compile_conditional(struct compiler *compiler) {
     advance(compiler);  // Consume the `if` token.
     compile_expr(compiler);  // Condition.
     expect(compiler, TOKEN_THEN, "Expect `then` after `if` condition.");
 
-    write_simple(compiler->block, OP_NOT);  // Invert the condition so it jumps if false.
-
     int start = compiler->block->count;  // Offset of the jump instruction.
-    write_immediate_s16(compiler->block, OP_JUMP_COND, 0);
-    compile_expr(compiler);  // Body.
+    write_immediate_s16(compiler->block, OP_JUMP_NCOND, 0);  // Jump if false (i.e. zero).
+    compile_expr(compiler);  // Then body.
 
-    int jump = compiler->block->count - start -1;  // Point to instruction just before.
-    if (jump < INT16_MIN || jump > INT16_MAX) {
-        fprintf(stderr, "Jump too big.\n");
-        exit(1);
+    int else_start = compiler->block->count;
+    bool has_else = match(compiler, TOKEN_ELSE);
+    if (has_else) {
+        write_immediate_s16(compiler->block, OP_JUMP, 0);
     }
 
-    overwrite_s16(compiler->block, start + 1, jump);
+    int jump = compiler->block->count - start - 1;  // Point to instruction just before.
+    patch_jump(compiler, start + 1, jump);
+
+    if (has_else) {
+        compile_expr(compiler);  // Else body.
+        int else_jump = compiler->block->count - else_start - 1;
+        patch_jump(compiler, else_start + 1, else_jump);
+    }
 }
 
 static void compile_expr(struct compiler *compiler) {

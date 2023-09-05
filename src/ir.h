@@ -5,12 +5,14 @@
 
 
 enum opcode {
+    OP_NOP,
     OP_PUSH,
     OP_POP,
     OP_ADD,
     OP_DIVMOD,
     OP_JUMP,
     OP_JUMP_COND,
+    OP_JUMP_NCOND,
     OP_MULT,
     OP_NOT,
     OP_PRINT,

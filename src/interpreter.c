@@ -32,6 +32,9 @@ enum interpret_result interpret(struct ir_block *block) {
     for (int ip = 0; ip < block->count; ++ip) {
         enum opcode instruction = block->code[ip];
         switch (instruction) {
+        case OP_NOP:
+            // Do nothing.
+            break;
         case OP_PUSH: {
             int8_t value = u8_to_s8(block->code[++ip]);
             push(stack, s64_to_u64(value));
@@ -49,8 +52,20 @@ enum interpret_result interpret(struct ir_block *block) {
             bool condition = pop(stack);
             if (condition) {
                 jump(block, offset, &ip);
-            } else {
+            }
+            else {
                 ip += 2;  // Consume the operand.
+            }
+            break;
+        }
+        case OP_JUMP_NCOND: {
+            int offset = read_s16(block, ip + 1);
+            bool condition = pop(stack);
+            if (!condition) {
+                jump(block, offset, &ip);
+            }
+            else {
+                ip += 2;
             }
             break;
         }

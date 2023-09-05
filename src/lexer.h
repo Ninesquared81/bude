@@ -7,6 +7,8 @@ enum token_type {
     TOKEN_SYMBOL,
 
     // Keywords.
+    TOKEN_ELIF,
+    TOKEN_ELSE,
     TOKEN_END,
     TOKEN_IF,
     TOKEN_MINUS,
