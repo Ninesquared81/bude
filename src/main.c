@@ -7,7 +7,7 @@
 
 
 int main(void) {
-    const char *code = "34 35 + 2 * 42 pop 72 53 - /% swap print print";
+    const char *code = "if 1 then 42 print end";
     struct ir_block block;
     init_block(&block);
     /*

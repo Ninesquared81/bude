@@ -2,8 +2,13 @@
 #define LEXER_H
 
 enum token_type {
+    // Literals.
     TOKEN_INT,
     TOKEN_SYMBOL,
+
+    // Keywords.
+    TOKEN_END,
+    TOKEN_IF,
     TOKEN_MINUS,
     TOKEN_PLUS,
     TOKEN_POP,
@@ -11,7 +16,9 @@ enum token_type {
     TOKEN_SLASH_PERCENT,
     TOKEN_STAR,
     TOKEN_SWAP,
-    
+    TOKEN_THEN,
+
+    // Special.
     TOKEN_EOT,
 };
 

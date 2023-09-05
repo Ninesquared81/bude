@@ -11,6 +11,12 @@ static int immediate_instruction(const char *name, struct ir_block *block, int o
     return offset + 2;
 }
 
+static int jump_instruction(const char *name, struct ir_block *block, int offset) {
+    int jump = read_s16(block, offset + 1);
+    printf("%-16s %-5d (%d -> %d)\n", name, jump, offset, offset + jump);
+    return offset + 3;
+}
+
 static int simple_instruction(const char *name, int offset) {
     printf("%s\n", name);
     return offset + 1;
@@ -29,8 +35,14 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return simple_instruction("OP_ADD", offset);
     case OP_DIVMOD:
         return simple_instruction("OP_DIVMOD", offset);
+    case OP_JUMP:
+        return jump_instruction("OP_JUMP", block, offset);
+    case OP_JUMP_COND:
+        return jump_instruction("OP_JUMP_COND", block, offset);
     case OP_MULT:
         return simple_instruction("OP_MULT", offset);
+    case OP_NOT:
+        return simple_instruction("OP_NOT", offset);
     case OP_PRINT:
         return simple_instruction("OP_PRINT", offset);
     case OP_SUB:

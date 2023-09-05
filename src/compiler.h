@@ -4,7 +4,7 @@
 #include "ir.h"
 
 
-void compile(const char *restrict src, struct ir_block *block);
+void compile(const char *src, struct ir_block *block);
 
 #endif
 
