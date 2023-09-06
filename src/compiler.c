@@ -81,10 +81,40 @@ static void compile_conditional(struct compiler *compiler) {
     }
 }
 
+static void compile_loop(struct compiler *compiler) {
+    advance(compiler);  // Consume `while` token.
+    int condition_start = compiler->block->count;
+    compile_expr(compiler);  // Condition.
+    expect(compiler, TOKEN_DO, "Expect `do` after `while` condition.");
+
+    int body_start = compiler->block->count;
+    write_immediate_s16(compiler->block, OP_JUMP_NCOND, 0);
+    compile_expr(compiler);  // Loop body.
+
+    /*   [if]
+     * +-> condition
+     * | [then]
+     * |   OP_JUMP_NCOND -+
+     * |   body           |
+     * +-- OP_JUMP        |
+     *   [end]            |
+     *     ... <----------+
+     */
+
+    int loop_jump = condition_start - compiler->block->count - 1;  // Negative.
+    write_immediate_s16(compiler->block, OP_JUMP, loop_jump);
+
+    int exit_jump = compiler->block->count - body_start - 1;  // Positive.
+    patch_jump(compiler, body_start + 1, exit_jump);
+}
+
 static void compile_expr(struct compiler *compiler) {
     struct ir_block *block = compiler->block;
     for (struct token token = peek(compiler); token.type != TOKEN_EOT; token = advance(compiler)) {
         switch (token.type) {
+        case TOKEN_DUPE:
+            write_simple(compiler->block, OP_DUPE);
+            break;
         case TOKEN_IF:
             compile_conditional(compiler);
             break;
@@ -122,8 +152,11 @@ static void compile_expr(struct compiler *compiler) {
         case TOKEN_SYMBOL:
             assert(0 && "Not implemented");
             break;
+        case TOKEN_WHILE:
+            compile_loop(compiler);
+            break;
         default:
-            /* Any other token falls through. */
+            /* All other tokens fall through. */
             return;
         }
     }

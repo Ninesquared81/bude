@@ -42,6 +42,12 @@ enum interpret_result interpret(struct ir_block *block) {
         }
         case OP_POP: pop(stack); break;
         case OP_ADD: BIN_OP(+, stack); break;
+        case OP_DUPE: {
+            stack_word a = pop(stack);
+            push(stack, a);
+            push(stack, a);
+            break;
+        }
         case OP_JUMP: {
             int offset = read_s16(block, ip + 1);
             jump(block, offset, &ip);

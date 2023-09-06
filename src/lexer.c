@@ -54,6 +54,14 @@ static enum token_type symbol_type(struct lexer *lexer) {
     case '-': return check_terminal(lexer, 1, TOKEN_MINUS);
     case '*': return check_terminal(lexer, 1, TOKEN_STAR);
     case '/': return check_keyword(lexer, 1, 1, "%", TOKEN_SLASH_PERCENT);
+    case 'd':
+        if (lexer->current - lexer->start > 1) {
+            switch (lexer->start[1]) {
+            case 'o': return check_terminal(lexer, 2, TOKEN_DO);
+            case 'u': return check_keyword(lexer, 2, 2, "pe", TOKEN_DUPE);
+            }
+        }
+        break;
     case 'e':
         if (lexer->current - lexer->start > 1) {
             switch (lexer->start[1]) {
@@ -80,6 +88,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
         break;
     case 's': return check_keyword(lexer, 1, 3, "wap", TOKEN_SWAP);
     case 't': return check_keyword(lexer, 1, 3, "hen", TOKEN_THEN);
+    case 'w': return check_keyword(lexer, 1, 4, "hile", TOKEN_WHILE);
     }
     return TOKEN_SYMBOL;
 }

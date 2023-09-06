@@ -10,6 +10,7 @@ enum opcode {
     OP_POP,
     OP_ADD,
     OP_DIVMOD,
+    OP_DUPE,
     OP_JUMP,
     OP_JUMP_COND,
     OP_JUMP_NCOND,

@@ -7,6 +7,8 @@ enum token_type {
     TOKEN_SYMBOL,
 
     // Keywords.
+    TOKEN_DO,
+    TOKEN_DUPE,
     TOKEN_ELIF,
     TOKEN_ELSE,
     TOKEN_END,
@@ -20,6 +22,7 @@ enum token_type {
     TOKEN_STAR,
     TOKEN_SWAP,
     TOKEN_THEN,
+    TOKEN_WHILE,
 
     // Special.
     TOKEN_EOT,
