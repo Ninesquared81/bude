@@ -1,0 +1,13 @@
+0 1 2 3 4 5
+while
+  if then
+    54
+  else
+    42
+    34 35 + print
+  end
+  6 9 *
+  - not
+do
+  42 print
+end
