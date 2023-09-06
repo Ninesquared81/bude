@@ -4,6 +4,11 @@
 #include <stdint.h>
 
 
+#define IS_JUMP(instruction) (                   \
+        instruction == OP_JUMP       ||          \
+        instruction == OP_JUMP_COND  ||          \
+        instruction == OP_JUMP_NCOND  )
+
 enum opcode {
     OP_NOP,
     OP_PUSH,

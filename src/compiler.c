@@ -59,39 +59,89 @@ static struct token peek(struct compiler *compiler) {
 
 static void compile_expr(struct compiler *compiler);
 
-static void patch_jump(struct compiler *compiler, int offset, int jump) {
+static int start_jump(struct compiler *compiler, enum opcode jump_instruction) {
+    assert(IS_JUMP(jump_instruction));
+    int jump_offset = compiler->block->count;
+    write_immediate_s16(compiler->block, jump_instruction, 0);
+    return jump_offset;
+}
+
+static void patch_jump(struct compiler *compiler, int instruction_offset, int jump) {
     if (jump < INT16_MIN || jump > INT16_MAX) {
         fprintf(stderr, "Jump too big.\n");
         exit(1);
     }
-    overwrite_s16(compiler->block, offset, jump);
+    overwrite_s16(compiler->block, instruction_offset + 1, jump);
 }
 
-static void compile_conditional(struct compiler *compiler) {
-    advance(compiler);  // Consume the `if` token.
+static int compile_conditional(struct compiler *compiler) {
+    advance(compiler);  // Consume the `if`/`elif` token.
     compile_expr(compiler);  // Condition.
-    expect_consume(compiler, TOKEN_THEN, "Expect `then` after `if` condition.");
+    expect_consume(compiler, TOKEN_THEN, "Expect `then` after condition in `if` block.");
 
-    int start = compiler->block->count;  // Offset of the jump instruction.
-    write_immediate_s16(compiler->block, OP_JUMP_NCOND, 0);  // Jump if false (i.e. zero).
+    /*
+     *   [if]
+     *     condition -+
+     *   [then]       | `then_jump`
+     * +-- body  +----+
+     * | [elif]  v
+     * |   condition -+
+     * | [then]       | `then_jump`
+     * +-- body  +----+
+     * | [elif]  v
+     * |   condition -+
+     * | [then]       | `then_jump`
+     * +-- body       |
+     * | [else]       |
+     * |   body <-----+
+     * | [end]
+     * +-> ...
+     * `else_jump`
+     *
+     * if and elif are basically the same
+     *  - compile condition
+     *  - write placeholder jump
+     *  - compile then clause
+     *  - if next token is `elif`, then compile that
+     *  - if the next token is `else`, then compile the else clause
+     *  - expect `end`
+     *  - patch if-jump
+     */
+
+    int start = start_jump(compiler, OP_JUMP_NCOND);  // Offset of the jump instruction.
+
     compile_expr(compiler);  // Then body.
 
-    int else_start = compiler->block->count;
-    bool has_else = match(compiler, TOKEN_ELSE);
-    if (has_else) {
-        write_immediate_s16(compiler->block, OP_JUMP, 0);
+    // Note: these initial values assume no `else` or `elif` clauses.
+    int end_addr = compiler->block->count;
+    int else_start = end_addr;
+
+    if (check(compiler, TOKEN_ELIF)) {
+        start_jump(compiler, OP_JUMP);
+        else_start = compiler->block->count;
+        end_addr = compile_conditional(compiler);
     }
-
-    int jump = compiler->block->count - start - 1;  // Point to instruction just before.
-    patch_jump(compiler, start + 1, jump);
-
-    if (has_else) {
+    else if (match(compiler, TOKEN_ELSE)) {
+        start_jump(compiler, OP_JUMP);
+        else_start = compiler->block->count;
         compile_expr(compiler);  // Else body.
-        int else_jump = compiler->block->count - else_start - 1;
-        patch_jump(compiler, else_start + 1, else_jump);
+        end_addr = compiler->block->count;
+    }
+    else {
+        expect_keep(compiler, TOKEN_END, "Expect `end` after `if` body.");
     }
 
-    expect_keep(compiler, TOKEN_END, "Expect `end` after `if` body.");
+    int jump = else_start - start - 1;
+    patch_jump(compiler, start, jump);
+
+    if (else_start != end_addr) {
+        // We only emit a jump at the end of the `then` clause if we need to.
+        int jump_addr = else_start - 3;
+        int else_jump = end_addr - jump_addr - 1;
+        patch_jump(compiler, jump_addr, else_jump);
+    }
+    
+    return end_addr;
 }
 
 static void compile_loop(struct compiler *compiler) {
@@ -118,7 +168,7 @@ static void compile_loop(struct compiler *compiler) {
     write_immediate_s16(compiler->block, OP_JUMP, loop_jump);
 
     int exit_jump = compiler->block->count - body_start - 1;  // Positive.
-    patch_jump(compiler, body_start + 1, exit_jump);
+    patch_jump(compiler, body_start, exit_jump);
 
     expect_keep(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }
