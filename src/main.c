@@ -26,16 +26,27 @@ static void print_help(FILE *file, const char *name) {
     print_usage(file, name);
     fprintf(file,
             "Positional arguments:\n"
-            "  file:           name of the source code file\n"
+            "  file            name of the source code file\n"
             "Options:\n"
-            "  -d, --dump:     dump the generated ir code and exit\n"
-            "  -h, -?, --help: display this help message and exit\n"
+            "  -d, --dump      dump the generated ir code and exit\n"
+            "  -h, -?, --help  display this help message and exit\n"
+            "  --              treat all following arguments as positional\n"
         );
 }
 
 static void init_cmdopts(struct cmdopts *opts) {
     opts->filename = NULL;
     opts->dump_ir = false;
+}
+
+static void handle_positional_arg(const char *restrict name, struct cmdopts *opts, const char *restrict arg) {
+    if (opts->filename == NULL) {
+        opts->filename = arg;
+    }
+    else {
+        fprintf(stderr, "Warning: extraneous positional argument '%s' ignored.\n", arg);
+        print_usage(stderr, name);
+    }
 }
 
 static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
@@ -46,10 +57,17 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
         print_usage(stderr, name);
         exit(1);
     }
+
+#define BAD_OPTION() do {                            \
+        fprintf(stderr, "Unkown option '%s'.", arg); \
+        print_usage(stderr, name);                   \
+    } while (0)
+
     for (int i = 1; i < argc; ++i) {
         const char *arg = argv[i];
         switch (arg[0]) {
         case '-':
+            // Options.
             switch (arg[1]) {
             case 'd':
                 opts->dump_ir = true;
@@ -58,32 +76,38 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                 print_help(stderr, name);
                 exit(0);
             case '-':
+                if (arg[2] == '\0') {
+                    // End of options.
+                    while (++i < argc) {
+                        arg = argv[i];
+                        handle_positional_arg(name, opts, arg);
+                    }
+                    return;
+                }
                 // Long options.
                 if (strcmp(&arg[2], "dump") == 0) {
                     opts->dump_ir = true;
                 }
-                if (strcmp(&arg[2], "help") == 0) {
+                else if (strcmp(&arg[2], "help") == 0) {
                     print_help(stderr, name);
                     exit(0);
                 }
+                else {
+                    BAD_OPTION();
+                    exit(1);
+                }
                 break;
             default:
-                fprintf(stderr, "Unknown option '%s'.", arg);
-                print_usage(stderr, name);
+                BAD_OPTION();
                 exit(1);
             }
             break;
         default:
-            if (opts->filename == NULL) {
-                opts->filename = arg;
-            }
-            else {
-                fprintf(stderr, "Warning: extraneous positional argument '%s' ignored.\n", arg);
-                print_usage(stderr, name);
-            }
+            handle_positional_arg(name, opts, arg);
             break;
         }
     }
+#undef BAD_OPTION
 }
 
 void load_source(const char *restrict filename, char *restrict inbuf) {
