@@ -91,9 +91,9 @@ static void compile_loop(struct compiler *compiler) {
     write_immediate_s16(compiler->block, OP_JUMP_NCOND, 0);
     compile_expr(compiler);  // Loop body.
 
-    /*   [if]
+    /*   [while]
      * +-> condition
-     * | [then]
+     * | [do]
      * |   OP_JUMP_NCOND -+
      * |   body           |
      * +-- OP_JUMP        |
