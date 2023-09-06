@@ -27,16 +27,27 @@ static struct token advance(struct compiler *compiler) {
     return compiler->current_token;
 }
 
+static bool check(struct compiler *compiler, enum token_type type) {
+    return compiler->current_token.type == type;
+}
+
 static bool match(struct compiler *compiler, enum token_type type) {
-    if (compiler->current_token.type == type) {
+    if (check(compiler, type)) {
         advance(compiler);
         return true;
     }
     return false;
 }
 
-static void expect(struct compiler *compiler, enum token_type type, const char *message) {
+static void expect_consume(struct compiler *compiler, enum token_type type, const char *message) {
     if (!match(compiler, type)) {
+        fprintf(stderr, "Error: %s\n", message);
+        exit(1);
+    }
+}
+
+static void expect_keep(struct compiler *compiler, enum token_type type, const char *message) {
+    if (!check(compiler, type)) {
         fprintf(stderr, "Error: %s\n", message);
         exit(1);
     }
@@ -59,7 +70,7 @@ static void patch_jump(struct compiler *compiler, int offset, int jump) {
 static void compile_conditional(struct compiler *compiler) {
     advance(compiler);  // Consume the `if` token.
     compile_expr(compiler);  // Condition.
-    expect(compiler, TOKEN_THEN, "Expect `then` after `if` condition.");
+    expect_consume(compiler, TOKEN_THEN, "Expect `then` after `if` condition.");
 
     int start = compiler->block->count;  // Offset of the jump instruction.
     write_immediate_s16(compiler->block, OP_JUMP_NCOND, 0);  // Jump if false (i.e. zero).
@@ -79,13 +90,15 @@ static void compile_conditional(struct compiler *compiler) {
         int else_jump = compiler->block->count - else_start - 1;
         patch_jump(compiler, else_start + 1, else_jump);
     }
+
+    expect_keep(compiler, TOKEN_END, "Expect `end` after `if` body.");
 }
 
 static void compile_loop(struct compiler *compiler) {
     advance(compiler);  // Consume `while` token.
     int condition_start = compiler->block->count;
     compile_expr(compiler);  // Condition.
-    expect(compiler, TOKEN_DO, "Expect `do` after `while` condition.");
+    expect_consume(compiler, TOKEN_DO, "Expect `do` after `while` condition.");
 
     int body_start = compiler->block->count;
     write_immediate_s16(compiler->block, OP_JUMP_NCOND, 0);
@@ -106,6 +119,8 @@ static void compile_loop(struct compiler *compiler) {
 
     int exit_jump = compiler->block->count - body_start - 1;  // Positive.
     patch_jump(compiler, body_start + 1, exit_jump);
+
+    expect_keep(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }
 
 static void compile_expr(struct compiler *compiler) {
