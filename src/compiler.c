@@ -231,5 +231,6 @@ void compile(const char *src, struct ir_block *block) {
     struct compiler compiler;
     init_compiler(&compiler, src, block);
     compile_expr(&compiler);
+    write_simple(compiler.block, OP_NOP);
 }
 
