@@ -160,7 +160,7 @@ void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int32_
 }
 
 void overwrite_u8(struct ir_block *block, int start, uint8_t value) {
-    assert(start + 1 < block->count);
+    assert(0 <= start && start + 1 < block->count);
     block->code[start] = value;
 }
 
@@ -169,7 +169,7 @@ void overwrite_s8(struct ir_block *block, int start, int8_t value) {
 }
 
 void overwrite_u16(struct ir_block *block, int start, uint16_t value) {
-    assert(start + 2 < block->count);  // Make sure there's space.
+    assert(0 <= start && start + 2 < block->count);  // Make sure there's space.
     // Note: The IR instruction set is little-endian.
     block->code[start] = value;  // LSB.
     block->code[start + 1] = value >> 8;  // MSB. 
@@ -180,7 +180,7 @@ void overwrite_s16(struct ir_block *block, int start, int16_t value) {
 }
 
 uint8_t read_u8(struct ir_block *block, int index) {
-    assert(index < block->count);
+    assert(0 <= index && index < block->count);
     return block->code[index];
 }
 
@@ -189,7 +189,7 @@ int8_t read_s8(struct ir_block *block, int index) {
 }
 
 uint16_t read_u16(struct ir_block *block, int index) {
-    assert(index + 1 < block->count);
+    assert(0 <= index && index + 1 < block->count);
     return block->code[index] ^ (block->code[index + 1] << 8);
 }
 
@@ -198,7 +198,7 @@ int16_t read_s16(struct ir_block *block, int index) {
 }
 
 uint32_t read_u32(struct ir_block *block, int index) {
-    assert(index + 3 < block->count);
+    assert(0 <= index && index + 3 < block->count);
 
     uint32_t result = block->code[index];
     result ^= block->code[index + 1] << 8;
