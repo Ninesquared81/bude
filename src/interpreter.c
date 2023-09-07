@@ -35,9 +35,43 @@ enum interpret_result interpret(struct ir_block *block) {
         case OP_NOP:
             // Do nothing.
             break;
-        case OP_PUSH: {
-            int8_t value = u8_to_s8(block->code[++ip]);
+        case OP_PUSH8: {
+            ++ip;
+            int8_t value = read_s8(block, ip);
             push(stack, s64_to_u64(value));
+            break;
+        }
+        case OP_PUSH16: {
+            ip += 2;
+            int16_t value = read_s16(block, ip - 1);
+            push(stack, s64_to_u64(value));
+            break;
+        }
+        case OP_PUSH32: {
+            ip += 4;
+            int32_t value = read_s32(block, ip - 3);
+            push(stack, s64_to_u64(value));
+            break;
+        }
+        case OP_LOAD8: {
+            ++ip;
+            uint8_t index = read_u8(block, ip);
+            uint64_t constant = read_constant(block, index);
+            push(stack, constant);
+            break;
+        }
+        case OP_LOAD16: {
+            ip += 2;
+            uint16_t index = read_u16(block, ip - 1);
+            uint64_t constant = read_constant(block, index);
+            push(stack, constant);
+            break;
+        }
+        case OP_LOAD32: {
+            ip += 4;
+            uint32_t index = read_u32(block, ip - 3);
+            uint64_t constant = read_constant(block, index);
+            push(stack, constant);
             break;
         }
         case OP_POP: pop(stack); break;

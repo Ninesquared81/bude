@@ -6,6 +6,7 @@
 #include "compiler.h"
 #include "ir.h"
 #include "lexer.h"
+#include "type_punning.h"
 
 
 struct compiler {
@@ -58,6 +59,20 @@ static struct token peek(struct compiler *compiler) {
 }
 
 static void compile_expr(struct compiler *compiler);
+
+#define IN_RANGE(x, lower, upper) ((lower) <= (x) && (x) <= (upper))
+
+static void compile_integer(struct compiler *compiler) {
+    int64_t integer = strtoll(peek(compiler).start, NULL, 0);
+    if (INT32_MIN <= integer && integer <= INT32_MAX) {
+        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+    }
+    else {
+        int index = write_constant(compiler->block, s64_to_u64(integer));
+        write_immediate_uv(compiler->block, OP_LOAD8, index);
+    }
+
+}
 
 static int start_jump(struct compiler *compiler, enum opcode jump_instruction) {
     assert(IS_JUMP(jump_instruction));
@@ -175,7 +190,9 @@ static void compile_loop(struct compiler *compiler) {
 
 static void compile_expr(struct compiler *compiler) {
     struct ir_block *block = compiler->block;
-    for (struct token token = peek(compiler); token.type != TOKEN_EOT; token = advance(compiler)) {
+    for (struct token token = peek(compiler);
+         token.type != TOKEN_EOT;
+         token = advance(compiler)) {
         switch (token.type) {
         case TOKEN_DUPE:
             write_simple(compiler->block, OP_DUPE);
@@ -183,13 +200,9 @@ static void compile_expr(struct compiler *compiler) {
         case TOKEN_IF:
             compile_conditional(compiler);
             break;
-        case TOKEN_INT: {
-            int64_t integer = strtoll(token.start, NULL, 0);
-            if (INT8_MIN <= integer && integer <= INT8_MAX) {
-                write_immediate_s8(block, OP_PUSH, integer);
-            }
+        case TOKEN_INT:
+            compile_integer(compiler);
             break;
-        }
         case TOKEN_MINUS:
             write_simple(block, OP_SUB);
             break;

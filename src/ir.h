@@ -11,7 +11,12 @@
 
 enum opcode {
     OP_NOP,
-    OP_PUSH,
+    OP_PUSH8,
+    OP_PUSH16,
+    OP_PUSH32,
+    OP_LOAD8,
+    OP_LOAD16,
+    OP_LOAD32,
     OP_POP,
     OP_ADD,
     OP_DIVMOD,
@@ -26,14 +31,23 @@ enum opcode {
     OP_SWAP,
 };
 
+struct constant_table {
+    int capacity;
+    int count;
+    uint64_t *data;
+};
+
 struct ir_block {
     int capacity;
     int count;
     uint8_t *code;
+    struct constant_table constants;
 };
 
 void init_block(struct ir_block *block);
 void free_block(struct ir_block *block);
+void init_constant_table(struct constant_table *table);
+void free_constant_table(struct constant_table *table);
 
 void write_simple(struct ir_block *block, enum opcode instruction);
 
@@ -41,6 +55,12 @@ void write_immediate_u8(struct ir_block *block, enum opcode instruction, uint8_t
 void write_immediate_s8(struct ir_block *block, enum opcode instruction, int8_t operand);
 void write_immediate_u16(struct ir_block *block, enum opcode instruction, uint16_t operand);
 void write_immediate_s16(struct ir_block *block, enum opcode instruction, int16_t operand);
+void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32_t operand);
+void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_t operand);
+
+void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint32_t operand);
+void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int32_t operand);
+
 
 void overwrite_u8(struct ir_block *block, int index, uint8_t value);
 void overwrite_s8(struct ir_block *block, int index, int8_t value);
@@ -51,6 +71,10 @@ uint8_t read_u8(struct ir_block *block, int index);
 int8_t read_s8(struct ir_block *block, int index);
 uint16_t read_u16(struct ir_block *block, int index);
 int16_t read_s16(struct ir_block *block, int index);
+uint32_t read_u32(struct ir_block *block, int index);
+int32_t read_s32(struct ir_block *block, int index);
 
+int write_constant(struct ir_block *block, uint64_t constant);
+uint64_t read_constant(struct ir_block *block, int index);
 
 #endif

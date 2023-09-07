@@ -6,9 +6,34 @@
 #include "ir.h"
 
 
-static int immediate_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s 0x%02x\n", name, block->code[offset + 1]);
+static int immediate_u8_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%-16s %ud\n", name, read_u8(block, offset + 1));
     return offset + 2;
+}
+
+static int immediate_u16_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%16s %ud\n", name, read_u16(block, offset + 1));
+    return offset + 3;
+}
+
+static int immediate_u32_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%16s %ud\n", name, read_u32(block, offset + 1));
+    return offset + 5;
+}
+
+static int immediate_s8_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%-16s %d\n", name, read_s8(block, offset + 1));
+    return offset + 2;
+}
+
+static int immediate_s16_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%16s %d\n", name, read_s16(block, offset + 1));
+    return offset + 3;
+}
+
+static int immediate_s32_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%16s %d\n", name, read_s32(block, offset + 1));
+    return offset + 5;
 }
 
 static int jump_instruction(const char *name, struct ir_block *block, int offset) {
@@ -29,8 +54,18 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
     switch (instruction) {
     case OP_NOP:
         return simple_instruction("OP_NOP", offset);
-    case OP_PUSH:
-        return immediate_instruction("OP_PUSH", block, offset);
+    case OP_PUSH8:
+        return immediate_s8_instruction("OP_PUSH8", block, offset);
+    case OP_PUSH16:
+        return immediate_s16_instruction("OP_PUSH16", block, offset);
+    case OP_PUSH32:
+        return immediate_s32_instruction("OP_PUSH32", block, offset);
+    case OP_LOAD8:
+        return immediate_u8_instruction("OP_LOAD8", block, offset);
+    case OP_LOAD16:
+        return immediate_u16_instruction("OP_LOAD16", block, offset);
+    case OP_LOAD32:
+        return immediate_u32_instruction("OP_LOAD32", block, offset);
     case OP_POP:
         return simple_instruction("OP_POP", offset);
     case OP_ADD:
