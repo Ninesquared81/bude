@@ -25,8 +25,6 @@ static void jump(struct ir_block *block, int offset, int *ip) {
 }
 
 enum interpret_result interpret(struct ir_block *block) {
-    disassemble_block(block);
-    printf("-----------------------------\n");
     struct stack *stack = malloc(sizeof *stack);
     init_stack(stack);
     for (int ip = 0; ip < block->count; ++ip) {

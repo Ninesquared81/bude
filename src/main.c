@@ -16,6 +16,7 @@ struct cmdopts {
     // Options.
     bool dump_ir;
     bool optimise;
+    bool interpret;
     // Positional Args
     const char *filename;
 };
@@ -30,8 +31,10 @@ static void print_help(FILE *file, const char *name) {
             "Positional arguments:\n"
             "  file            name of the source code file\n"
             "Options:\n"
-            "  -d, --dump      dump the generated ir code and exit\n"
+            "  -d, --dump      dump the generated ir code and exit, unless -i is specified\n"
             "  -h, -?, --help  display this help message and exit\n"
+            "  -i              interpret ir code (enabled by default)\n"
+            "  -o              optimise ir code\n"
             "  --              treat all following arguments as positional\n"
         );
 }
@@ -40,9 +43,11 @@ static void init_cmdopts(struct cmdopts *opts) {
     opts->filename = NULL;
     opts->dump_ir = false;
     opts->optimise = false;
+    opts->interpret = true;
 }
 
-static void handle_positional_arg(const char *restrict name, struct cmdopts *opts, const char *restrict arg) {
+static void handle_positional_arg(const char *restrict name, struct cmdopts *opts,
+                                  const char *restrict arg) {
     if (opts->filename == NULL) {
         opts->filename = arg;
     }
@@ -66,6 +71,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
         print_usage(stderr, name);                   \
     } while (0)
 
+    bool had_i = false;
     for (int i = 1; i < argc; ++i) {
         const char *arg = argv[i];
         switch (arg[0]) {
@@ -74,10 +80,15 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             switch (arg[1]) {
             case 'd':
                 opts->dump_ir = true;
+                opts->interpret = had_i;
                 break;
             case 'h': case '?':
                 print_help(stderr, name);
                 exit(0);
+            case 'i':
+                opts->interpret = true;
+                had_i = true;
+                break;
             case 'o':
                 opts->optimise = true;
                 break;
@@ -152,11 +163,14 @@ int main(int argc, char *argv[]) {
     if (opts.optimise) {
         optimise(&block);
     }
-    if (!opts.dump_ir) {
-        interpret(&block);
-    }
-    else {
+    if (opts.dump_ir) {
         disassemble_block(&block);
+        if (opts.interpret) {
+            printf("------------------------------------------------\n");
+        }
+    }
+    if (opts.interpret) {
+        interpret(&block);
     }
     free_block(&block);
 
