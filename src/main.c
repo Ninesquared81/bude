@@ -29,13 +29,13 @@ static void print_help(FILE *file, const char *name) {
     print_usage(file, name);
     fprintf(file,
             "Positional arguments:\n"
-            "  file            name of the source code file\n"
+            "  file              name of the source code file\n"
             "Options:\n"
-            "  -d, --dump      dump the generated ir code and exit, unless -i is specified\n"
-            "  -h, -?, --help  display this help message and exit\n"
-            "  -i              interpret ir code (enabled by default)\n"
-            "  -o              optimise ir code\n"
-            "  --              treat all following arguments as positional\n"
+            "  -d, --dump        dump the generated ir code and exit, unless -i is specified\n"
+            "  -h, -?, --help    display this help message and exit\n"
+            "  -i, --interpret   interpret ir code (enabled by default)\n"
+            "  -o, --optimise    optimise ir code\n"
+            "  --                treat all following arguments as positional\n"
         );
 }
 
@@ -126,6 +126,13 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                 else if (strcmp(&arg[2], "help") == 0) {
                     print_help(stderr, name);
                     exit(0);
+                }
+                else if (strcmp(&arg[2], "interpret") == 0) {
+                    opts->interpret = true;
+                    had_i = true;
+                }
+                else if (strcmp(&arg[2], "optimise") == 0) {
+                    opts->optimise = true;
                 }
                 else {
                     BAD_OPTION(name, arg);
