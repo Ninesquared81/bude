@@ -37,16 +37,16 @@ void optimise(struct ir_block *block) {
             if (check_next(block, ip, 8, OP_POP)) {
                 overwrite_instruction(block, ip, OP_NOP);
                 overwrite_instruction(block, ip + 1, OP_NOP);
-                ++ip;
             }
+            ++ip;
             break;
         case OP_PUSH16:
             if (check_next(block, ip, 16, OP_POP)) {
                 overwrite_instruction(block, ip, OP_NOP);
                 overwrite_instruction(block, ip + 1, OP_NOP);
                 overwrite_instruction(block, ip + 2, OP_NOP);
-                ip += 2;
             }
+            ip += 2;
             break;
         case OP_PUSH32:
             if (check_next(block, ip, 32, OP_POP)) {
@@ -55,23 +55,23 @@ void optimise(struct ir_block *block) {
                 overwrite_instruction(block, ip + 2, OP_NOP);
                 overwrite_instruction(block, ip + 3, OP_NOP);
                 overwrite_instruction(block, ip + 4, OP_NOP);
-                ip += 4;
             }
+            ip += 4;
             break;
         case OP_LOAD8:
             if (check_next(block, ip, 8, OP_POP)) {
                 overwrite_instruction(block, ip, OP_NOP);
                 overwrite_instruction(block, ip + 1, OP_NOP);
-                ++ip;
             }
+            ++ip;
             break;
         case OP_LOAD16:
             if (check_next(block, ip, 16, OP_POP)) {
                 overwrite_instruction(block, ip, OP_NOP);
                 overwrite_instruction(block, ip + 1, OP_NOP);
                 overwrite_instruction(block, ip + 2, OP_NOP);
-                ip += 2;
             }
+            ip += 2;
             break;
         case OP_LOAD32:
             if (check_next(block, ip, 32, OP_POP)) {
@@ -80,8 +80,8 @@ void optimise(struct ir_block *block) {
                 overwrite_instruction(block, ip + 2, OP_NOP);
                 overwrite_instruction(block, ip + 3, OP_NOP);
                 overwrite_instruction(block, ip + 4, OP_NOP);
-                ip += 4;
             }
+            ip += 4;
             break;
         case OP_NOT:
             if (check_next(block, ip, 0, OP_NOT)) {
@@ -99,6 +99,11 @@ void optimise(struct ir_block *block) {
                 overwrite_instruction(block, ip + 1, OP_JUMP_NCOND);
                 ++ip;
             }
+            break;
+        case OP_JUMP:
+        case OP_JUMP_COND:
+        case OP_JUMP_NCOND:
+            ip += 2;
             break;
         }
     }
