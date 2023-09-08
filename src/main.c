@@ -57,6 +57,36 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
     }
 }
 
+#define BAD_OPTION(name, arg) do {                    \
+        fprintf(stderr, "Unkown option '%s'.", arg); \
+        print_usage(stderr, name);                   \
+    } while (0)
+
+static void parse_short_opt(const char *name, const char *arg,
+                            struct cmdopts *opts, bool *had_i) {
+    for (const char *opt = &arg[1]; *opt != '\0'; ++opt) {
+        switch (*opt) {
+        case 'd':
+            opts->dump_ir = true;
+            opts->interpret = *had_i;
+            break;
+        case 'h': case '?':
+            print_help(stderr, name);
+            exit(0);
+        case 'i':
+            opts->interpret = true;
+            *had_i = true;
+            break;
+        case 'o':
+            opts->optimise = true;
+            break;
+        default:
+            BAD_OPTION(name, arg);
+            exit(1);
+        }
+    }
+}
+
 static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
     init_cmdopts(opts);
     const char *name = argv[0];
@@ -66,11 +96,6 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
         exit(1);
     }
 
-#define BAD_OPTION() do {                            \
-        fprintf(stderr, "Unkown option '%s'.", arg); \
-        print_usage(stderr, name);                   \
-    } while (0)
-
     bool had_i = false;
     for (int i = 1; i < argc; ++i) {
         const char *arg = argv[i];
@@ -79,18 +104,10 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             // Options.
             switch (arg[1]) {
             case 'd':
-                opts->dump_ir = true;
-                opts->interpret = had_i;
-                break;
             case 'h': case '?':
-                print_help(stderr, name);
-                exit(0);
             case 'i':
-                opts->interpret = true;
-                had_i = true;
-                break;
             case 'o':
-                opts->optimise = true;
+                parse_short_opt(name, arg, opts, &had_i);
                 break;
             case '-':
                 if (arg[2] == '\0') {
@@ -104,18 +121,19 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                 // Long options.
                 if (strcmp(&arg[2], "dump") == 0) {
                     opts->dump_ir = true;
+                    opts->interpret = had_i;
                 }
                 else if (strcmp(&arg[2], "help") == 0) {
                     print_help(stderr, name);
                     exit(0);
                 }
                 else {
-                    BAD_OPTION();
+                    BAD_OPTION(name, arg);
                     exit(1);
                 }
                 break;
             default:
-                BAD_OPTION();
+                BAD_OPTION(name, arg);
                 exit(1);
             }
             break;
@@ -124,8 +142,10 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             break;
         }
     }
-#undef BAD_OPTION
 }
+
+#undef BAD_OPTION
+
 
 void load_source(const char *restrict filename, char *restrict inbuf) {
     FILE *file = fopen(filename, "r");
