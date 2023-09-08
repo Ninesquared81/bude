@@ -49,7 +49,8 @@ static int simple_instruction(const char *name, int offset) {
 
 static int disassemble_instruction(struct ir_block *block, int offset) {
     uint8_t instruction = block->code[offset];
-    printf("%04d [%03d] ", offset, instruction);
+    printf("%c %04d [%03d] ",
+           (is_jump_dest(block, offset)) ? '*': ' ', offset, instruction);
 
     switch (instruction) {
     case OP_NOP:

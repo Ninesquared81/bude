@@ -7,6 +7,7 @@
 #include "disassembler.h"
 #include "interpreter.h"
 #include "ir.h"
+#include "optimiser.h"
 
 
 #define INPUT_BUFFER_SIZE 4 * 1024 * 1024
@@ -14,6 +15,7 @@
 struct cmdopts {
     // Options.
     bool dump_ir;
+    bool optimise;
     // Positional Args
     const char *filename;
 };
@@ -37,6 +39,7 @@ static void print_help(FILE *file, const char *name) {
 static void init_cmdopts(struct cmdopts *opts) {
     opts->filename = NULL;
     opts->dump_ir = false;
+    opts->optimise = false;
 }
 
 static void handle_positional_arg(const char *restrict name, struct cmdopts *opts, const char *restrict arg) {
@@ -75,6 +78,9 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             case 'h': case '?':
                 print_help(stderr, name);
                 exit(0);
+            case 'o':
+                opts->optimise = true;
+                break;
             case '-':
                 if (arg[2] == '\0') {
                     // End of options.
@@ -138,11 +144,14 @@ int main(int argc, char *argv[]) {
     struct cmdopts opts;
     parse_args(argc, argv, &opts);
     load_source(opts.filename, inbuf);
-    
+
     struct ir_block block;
     init_block(&block);
     compile(inbuf, &block);
     free(inbuf);
+    if (opts.optimise) {
+        optimise(&block);
+    }
     if (!opts.dump_ir) {
         interpret(&block);
     }

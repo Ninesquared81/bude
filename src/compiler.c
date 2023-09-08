@@ -148,12 +148,14 @@ static int compile_conditional(struct compiler *compiler) {
 
     int jump = else_start - start - 1;
     patch_jump(compiler, start, jump);
+    write_jump(compiler->block, else_start);
 
     if (else_start != end_addr) {
         // We only emit a jump at the end of the `then` clause if we need to.
         int jump_addr = else_start - 3;
         int else_jump = end_addr - jump_addr - 1;
         patch_jump(compiler, jump_addr, else_jump);
+        write_jump(compiler->block, end_addr);
     }
     
     return end_addr;
@@ -181,9 +183,11 @@ static void compile_loop(struct compiler *compiler) {
 
     int loop_jump = condition_start - compiler->block->count - 1;  // Negative.
     write_immediate_s16(compiler->block, OP_JUMP, loop_jump);
+    write_jump(compiler->block, condition_start);
 
     int exit_jump = compiler->block->count - body_start - 1;  // Positive.
     patch_jump(compiler, body_start, exit_jump);
+    write_jump(compiler->block, compiler->block->count);
 
     expect_keep(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }

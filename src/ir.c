@@ -14,6 +14,10 @@
 #define CONST_TABLE_INIT_SIZE 64
 #endif
 
+#ifndef JUMP_INFO_TABLE_INIT_SIZE
+#define JUMP_INFO_TABLE_INIT_SIZE 8
+#endif
+
 static void *allocate_array(size_t count, size_t size) {
     void *array = calloc(count, size);
     if (array == NULL) {
@@ -48,6 +52,7 @@ void init_block(struct ir_block *block) {
     block->capacity = BLOCK_INIT_SIZE;
     block->count = 0;
     init_constant_table(&block->constants);
+    init_jump_info_table(&block->jumps);
 }
 
 void free_block(struct ir_block *block) {
@@ -56,6 +61,7 @@ void free_block(struct ir_block *block) {
     block->capacity = 0;
     block->count = 0;
     free_constant_table(&block->constants);
+    free_jump_info_table(&block->jumps);
 }
 
 void init_constant_table(struct constant_table *table) {
@@ -66,6 +72,20 @@ void init_constant_table(struct constant_table *table) {
 
 void free_constant_table(struct constant_table *table) {
     free_array(table->data, table->capacity, sizeof table->data[0]);
+    table->data = 0;
+    table->capacity = 0;
+    table->count = 0;
+}
+
+void init_jump_info_table(struct jump_info_table *table) {
+    table->dests = NULL;
+    table->capacity = 0;
+    table->count = 0;
+}
+
+void free_jump_info_table(struct jump_info_table *table) {
+    free(table->dests);
+    table->dests = NULL;
     table->capacity = 0;
     table->count = 0;
 }
@@ -73,15 +93,28 @@ void free_constant_table(struct constant_table *table) {
 static void grow_block(struct ir_block *block) {
     int old_capacity = block->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : BLOCK_INIT_SIZE;
-    block->code = reallocate_array(block->code, old_capacity, new_capacity, sizeof block->code[0]);
+    block->code = reallocate_array(block->code, old_capacity, new_capacity,
+                                   sizeof block->code[0]);
     block->capacity = new_capacity;
 }
 
 static void grow_constant_table(struct constant_table *table) {
     int old_capacity = table->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : CONST_TABLE_INIT_SIZE;
-    table->data = reallocate_array(table->data, old_capacity, new_capacity, sizeof table->data[0]);
+    table->data = reallocate_array(table->data, old_capacity, new_capacity,
+                                   sizeof table->data[0]);
     table->capacity = new_capacity;
+}
+
+static void grow_jump_info_table(struct jump_info_table *table) {
+    int old_capacity = table->capacity;
+    int new_capacity = (old_capacity > 0)
+        ? old_capacity + old_capacity/2
+        : JUMP_INFO_TABLE_INIT_SIZE;
+
+    table->dests = reallocate_array(table->dests, old_capacity, new_capacity,
+                                    sizeof table->dests[0]);
+    table->capacity = new_capacity;    
 }
 
 void write_simple(struct ir_block *block, enum opcode instruction) {
@@ -179,6 +212,11 @@ void overwrite_s16(struct ir_block *block, int start, int16_t value) {
     overwrite_u16(block, start, s16_to_u16(value));
 }
 
+void overwrite_instruction(struct ir_block *block, int index, enum opcode instruction) {
+    // An instruction opcode is basically just a u8.
+    overwrite_u8(block, index, instruction);
+}
+
 uint8_t read_u8(struct ir_block *block, int index) {
     assert(0 <= index && index < block->count);
     return block->code[index];
@@ -224,4 +262,28 @@ int write_constant(struct ir_block *block, uint64_t constant) {
 uint64_t read_constant(struct ir_block *block, int index) {
     assert(0 <= index && index < block->constants.count);
     return block->constants.data[index];
+}
+
+int write_jump(struct ir_block *block, int dest) {
+    struct jump_info_table *jumps = &block->jumps;
+    if (jumps->count + 1 > jumps->capacity) {
+        grow_jump_info_table(jumps);
+    }
+    jumps->dests[jumps->count++] = dest;
+    return jumps->count - 1;
+}
+
+int find_jump(struct ir_block *block, int dest) {
+    // Linear search.
+    struct jump_info_table *jumps = &block->jumps;
+    for (int i = 0; i < jumps->count; ++i) {
+        if (jumps->dests[i] == dest) {
+            return i;
+        }
+    }
+    return -1;  // Search failed.
+}
+
+bool is_jump_dest(struct ir_block *block, int dest) {
+    return find_jump(block, dest) != -1;
 }
