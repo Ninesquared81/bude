@@ -57,9 +57,9 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
     }
 }
 
-#define BAD_OPTION(name, arg) do {                    \
-        fprintf(stderr, "Unkown option '%s'.", arg); \
-        print_usage(stderr, name);                   \
+#define BAD_OPTION(name, arg) do {                      \
+        fprintf(stderr, "Unknown option '%s'.\n", arg); \
+        print_usage(stderr, name);                      \
     } while (0)
 
 static void parse_short_opt(const char *name, const char *arg,
@@ -90,11 +90,6 @@ static void parse_short_opt(const char *name, const char *arg,
 static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
     init_cmdopts(opts);
     const char *name = argv[0];
-    if (argc == 1) {
-        fprintf(stderr, "Error: missing positional argument.\n");
-        print_usage(stderr, name);
-        exit(1);
-    }
 
     bool had_i = false;
     for (int i = 1; i < argc; ++i) {
@@ -116,7 +111,8 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                         arg = argv[i];
                         handle_positional_arg(name, opts, arg);
                     }
-                    return;
+                    // Note: goto needed due to switch statement.
+                    goto check_filename;
                 }
                 // Long options.
                 if (strcmp(&arg[2], "dump") == 0) {
@@ -148,6 +144,13 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             handle_positional_arg(name, opts, arg);
             break;
         }
+    }
+
+check_filename:
+    if (opts->filename == NULL) {
+        fprintf(stderr, "Error: missing positional argument.\n");
+        print_usage(stderr, name);
+        exit(1);
     }
 }
 

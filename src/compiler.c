@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "compiler.h"
 #include "ir.h"
@@ -192,12 +193,26 @@ static void compile_loop(struct compiler *compiler) {
     expect_keep(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }
 
+static void compile_string(struct compiler *compiler) {
+    struct token token = peek(compiler);
+    const char *start = token.start + 1;
+    int length = token.length - 2;
+    char *string = calloc(length + 1, sizeof *string);
+    memcpy(string, start, length);
+    int index = register_memory(compiler->block, string, length + 1);
+    write_immediate_uv(compiler->block, OP_LOAD8, index);
+    write_immediate_sv(compiler->block, OP_PUSH8, length);
+}
+
 static void compile_expr(struct compiler *compiler) {
     struct ir_block *block = compiler->block;
     for (struct token token = peek(compiler);
          token.type != TOKEN_EOT;
          token = advance(compiler)) {
         switch (token.type) {
+        case TOKEN_DEREF:
+            write_simple(compiler->block, OP_DEREF);
+            break;
         case TOKEN_DUPE:
             write_simple(compiler->block, OP_DUPE);
             break;
@@ -227,6 +242,9 @@ static void compile_expr(struct compiler *compiler) {
             break;
         case TOKEN_STAR:
             write_simple(block, OP_MULT);
+            break;
+        case TOKEN_STRING:
+            compile_string(compiler);
             break;
         case TOKEN_SWAP:
             write_simple(block, OP_SWAP);

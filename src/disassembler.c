@@ -71,6 +71,8 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return simple_instruction("OP_POP", offset);
     case OP_ADD:
         return simple_instruction("OP_ADD", offset);
+    case OP_DEREF:
+        return simple_instruction("OP_DEREF", offset);
     case OP_DIVMOD:
         return simple_instruction("OP_DIVMOD", offset);
     case OP_DUPE:

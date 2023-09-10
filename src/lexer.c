@@ -13,6 +13,10 @@ static char advance(struct lexer *lexer) {
     return *lexer->current++;
 }
 
+static bool check(struct lexer *lexer, char c) {
+    return *lexer->current == c;
+}
+
 static char peek(struct lexer *lexer) {
     return *lexer->current;
 }
@@ -57,6 +61,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
     case 'd':
         if (lexer->current - lexer->start > 1) {
             switch (lexer->start[1]) {
+            case 'e': return check_keyword(lexer, 2, 3, "ref", TOKEN_DEREF);
             case 'o': return check_terminal(lexer, 2, TOKEN_DO);
             case 'u': return check_keyword(lexer, 2, 2, "pe", TOKEN_DUPE);
             }
@@ -110,6 +115,15 @@ static struct token integer(struct lexer *lexer) {
     return make_token(lexer, TOKEN_INT);
 }
 
+static struct token string(struct lexer *lexer) {
+    while (!check(lexer, '"')) {
+        advance(lexer);
+    }
+    // Consume the closing '"'.
+    advance(lexer);
+    return make_token(lexer, TOKEN_STRING);
+}
+
 struct token next_token(struct lexer *lexer) {
     consume_whitespace(lexer);
     lexer->start = lexer->current;
@@ -120,6 +134,9 @@ struct token next_token(struct lexer *lexer) {
 
     if (isdigit(c) || (c == '-' && isdigit(peek(lexer)))) {
         return integer(lexer);
+    }
+    if (c == '"') {
+        return string(lexer);
     }
 
     return symbol(lexer);

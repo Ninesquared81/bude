@@ -74,6 +74,11 @@ enum interpret_result interpret(struct ir_block *block) {
         }
         case OP_POP: pop(stack); break;
         case OP_ADD: BIN_OP(+, stack); break;
+        case OP_DEREF: {
+            stack_word addr = pop(stack);
+            push(stack, *(unsigned char *)(uintptr_t)addr);
+            break;
+        }
         case OP_DUPE: {
             stack_word a = pop(stack);
             push(stack, a);

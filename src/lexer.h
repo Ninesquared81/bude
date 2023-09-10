@@ -4,9 +4,11 @@
 enum token_type {
     // Literals.
     TOKEN_INT,
+    TOKEN_STRING,
     TOKEN_SYMBOL,
 
     // Keywords.
+    TOKEN_DEREF,
     TOKEN_DO,
     TOKEN_DUPE,
     TOKEN_ELIF,

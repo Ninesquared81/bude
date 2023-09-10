@@ -20,6 +20,7 @@ enum opcode {
     OP_LOAD32,
     OP_POP,
     OP_ADD,
+    OP_DEREF,
     OP_DIVMOD,
     OP_DUPE,
     OP_JUMP,
@@ -44,12 +45,19 @@ struct jump_info_table {
     int *dests;
 };
 
+struct memory_handler {
+    int capacity;
+    int count;
+    struct mem_obj *objects;
+};
+
 struct ir_block {
     int capacity;
     int count;
     uint8_t *code;
     struct constant_table constants;
     struct jump_info_table jumps;
+    struct memory_handler memory;
 };
 
 void init_block(struct ir_block *block);
@@ -58,6 +66,8 @@ void init_constant_table(struct constant_table *table);
 void free_constant_table(struct constant_table *table);
 void init_jump_info_table(struct jump_info_table *table);
 void free_jump_info_table(struct jump_info_table *table);
+void init_memory_handler(struct memory_handler *handler);
+void free_memory_handler(struct memory_handler *handler);
 
 void write_simple(struct ir_block *block, enum opcode instruction);
 
@@ -71,10 +81,13 @@ void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_
 void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint32_t operand);
 void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int32_t operand);
 
-void overwrite_u8(struct ir_block *block, int index, uint8_t value);
-void overwrite_s8(struct ir_block *block, int index, int8_t value);
-void overwrite_u16(struct ir_block *block, int index, uint16_t value);
-void overwrite_s16(struct ir_block *block, int index, int16_t value);
+void overwrite_u8(struct ir_block *block, int start, uint8_t value);
+void overwrite_s8(struct ir_block *block, int start, int8_t value);
+void overwrite_u16(struct ir_block *block, int start, uint16_t value);
+void overwrite_s16(struct ir_block *block, int start, int16_t value);
+void overwrite_u32(struct ir_block *block, int start, uint32_t value);
+void overwrite_s32(struct ir_block *block, int start, int32_t value);
+
 
 void overwrite_instruction(struct ir_block *block, int index, enum opcode instruction);
 
@@ -91,5 +104,7 @@ uint64_t read_constant(struct ir_block *block, int index);
 int write_jump(struct ir_block *block, int dest);
 int find_jump(struct ir_block *block, int dest);
 bool is_jump_dest(struct ir_block *block, int dest);
+
+int register_memory(struct ir_block *block, void *object, size_t size);
 
 #endif

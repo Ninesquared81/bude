@@ -1,0 +1,6 @@
+"Hello, World!" pop
+
+while dupe deref dupe do
+    print
+    1 +
+end

@@ -18,6 +18,16 @@
 #define JUMP_INFO_TABLE_INIT_SIZE 8
 #endif
 
+#ifndef MEM_OBJS_INIT_SIZE
+#define MEM_OBJS_INIT_SIZE 8
+#endif
+
+struct mem_obj {
+    void *data;
+    size_t size;
+    int index;
+};
+
 static void *allocate_array(size_t count, size_t size) {
     void *array = calloc(count, size);
     if (array == NULL) {
@@ -53,6 +63,7 @@ void init_block(struct ir_block *block) {
     block->count = 0;
     init_constant_table(&block->constants);
     init_jump_info_table(&block->jumps);
+    init_memory_handler(&block->memory);
 }
 
 void free_block(struct ir_block *block) {
@@ -62,6 +73,7 @@ void free_block(struct ir_block *block) {
     block->count = 0;
     free_constant_table(&block->constants);
     free_jump_info_table(&block->jumps);
+    free_memory_handler(&block->memory);
 }
 
 void init_constant_table(struct constant_table *table) {
@@ -90,6 +102,22 @@ void free_jump_info_table(struct jump_info_table *table) {
     table->count = 0;
 }
 
+void init_memory_handler(struct memory_handler *handler) {
+    handler->objects = allocate_array(MEM_OBJS_INIT_SIZE, sizeof *handler->objects);
+    handler->capacity = 0;
+    handler->count = 0;
+}
+
+void free_memory_handler(struct memory_handler *handler) {
+    for (int i = 0; i < handler->count; ++i) {
+        free(handler->objects[i].data);
+    }
+    free(handler->objects);
+    handler->objects = NULL;
+    handler->capacity = 0;
+    handler->count = 0;
+}
+
 static void grow_block(struct ir_block *block) {
     int old_capacity = block->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : BLOCK_INIT_SIZE;
@@ -115,6 +143,17 @@ static void grow_jump_info_table(struct jump_info_table *table) {
     table->dests = reallocate_array(table->dests, old_capacity, new_capacity,
                                     sizeof table->dests[0]);
     table->capacity = new_capacity;    
+}
+
+static void grow_memory_objects(struct memory_handler *handler) {
+    int old_capacity = handler->capacity;
+    int new_capacity = (old_capacity > 0)
+        ? old_capacity + old_capacity/2
+        : MEM_OBJS_INIT_SIZE;
+
+    handler->objects = reallocate_array(handler->objects, old_capacity, new_capacity,
+                                    sizeof handler->objects[0]);
+    handler->capacity = new_capacity;    
 }
 
 void write_simple(struct ir_block *block, enum opcode instruction) {
@@ -193,7 +232,7 @@ void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int32_
 }
 
 void overwrite_u8(struct ir_block *block, int start, uint8_t value) {
-    assert(0 <= start && start + 1 < block->count);
+    assert(0 <= start && start < block->count);
     block->code[start] = value;
 }
 
@@ -202,7 +241,7 @@ void overwrite_s8(struct ir_block *block, int start, int8_t value) {
 }
 
 void overwrite_u16(struct ir_block *block, int start, uint16_t value) {
-    assert(0 <= start && start + 2 < block->count);  // Make sure there's space.
+    assert(0 <= start && start + 1 < block->count);  // Make sure there's space.
     // Note: The IR instruction set is little-endian.
     block->code[start] = value;  // LSB.
     block->code[start + 1] = value >> 8;  // MSB. 
@@ -210,6 +249,18 @@ void overwrite_u16(struct ir_block *block, int start, uint16_t value) {
 
 void overwrite_s16(struct ir_block *block, int start, int16_t value) {
     overwrite_u16(block, start, s16_to_u16(value));
+}
+
+void overwrite_u32(struct ir_block *block, int start, uint32_t value) {
+    assert(0 <= start && start + 3 < block->count);
+    block->code[start] = value;
+    block->code[start + 1] = value >> 8;
+    block->code[start + 2] = value >> 16;
+    block->code[start + 3] = value >> 24;
+}
+
+void overwrite_s32(struct ir_block *block, int start, int32_t value) {
+    overwrite_u32(block, start, s32_to_u32(value));
 }
 
 void overwrite_instruction(struct ir_block *block, int index, enum opcode instruction) {
@@ -286,4 +337,18 @@ int find_jump(struct ir_block *block, int dest) {
 
 bool is_jump_dest(struct ir_block *block, int dest) {
     return find_jump(block, dest) != -1;
+}
+
+int register_memory(struct ir_block *block, void *object, size_t size) {
+    struct memory_handler *memory = &block->memory;
+    if (memory->count + 1 < memory->capacity) {
+        grow_memory_objects(memory);
+    }
+    int index = write_constant(block, (uintptr_t)object);
+    memory->objects[memory->count++] = (struct mem_obj) {
+        .data = object,
+        .size = size,
+        .index = index,
+    };
+    return index;
 }

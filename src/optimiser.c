@@ -30,31 +30,33 @@ static bool check_next(struct ir_block *block, int offset, int operand_size, enu
     return block->code[next_offset] == opcode;
 }
 
+
 void optimise(struct ir_block *block) {
     for (int ip = 0; ip < block->count; ++ip) {
         switch (block->code[ip]) {
         case OP_PUSH8:
             if (check_next(block, ip, 8, OP_POP)) {
                 overwrite_instruction(block, ip, OP_NOP);
-                overwrite_instruction(block, ip + 1, OP_NOP);
+                // Note: this assumes that OP_NOP == 0.
+                overwrite_u8(block, ip + 1, 0);
+                static_assert(OP_NOP == 0);  // Assert the assumption, statically.
+                overwrite_instruction(block, ip + 2, OP_NOP);
             }
             ++ip;
             break;
         case OP_PUSH16:
             if (check_next(block, ip, 16, OP_POP)) {
                 overwrite_instruction(block, ip, OP_NOP);
-                overwrite_instruction(block, ip + 1, OP_NOP);
-                overwrite_instruction(block, ip + 2, OP_NOP);
+                overwrite_u16(block, ip + 1, 0);
+                overwrite_instruction(block, ip + 3, OP_NOP);
             }
             ip += 2;
             break;
         case OP_PUSH32:
             if (check_next(block, ip, 32, OP_POP)) {
                 overwrite_instruction(block, ip, OP_NOP);
-                overwrite_instruction(block, ip + 1, OP_NOP);
-                overwrite_instruction(block, ip + 2, OP_NOP);
-                overwrite_instruction(block, ip + 3, OP_NOP);
-                overwrite_instruction(block, ip + 4, OP_NOP);
+                overwrite_u32(block, ip + 1, 0);
+                overwrite_instruction(block, ip + 5, OP_NOP);
             }
             ip += 4;
             break;
