@@ -12,7 +12,7 @@ Bude has a stack for storing 64-bit words. There are instructions to manipulate 
 `"Lorem ipsum"` &rarr; _p_ _i_ : Pushes the specified string to the stack
 along with its length.
 
-`42` &rarr; _i_: Pushes the specified integer to the stack.
+`42` &rarr; _i_ : Pushes the specified integer to the stack.
 
 ### Pop instructions
 
@@ -37,7 +37,8 @@ _w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
 
 ### Conrol flow constructs
 
-`if` _condition_ `then` _then-body_ [`elif` _elif-body_ &hellip;] [`else` _else-body_] `end`
+`if` _condition_ `then` _then-body_ [`elif` _elif-condition_ `then` _elif-then-body_ &hellip;]
+[`else` _else-body_] `end`
 
 `while` _condition_ `do` _body_ `end`
 
