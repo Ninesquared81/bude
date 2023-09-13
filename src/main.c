@@ -12,6 +12,8 @@
 
 #define INPUT_BUFFER_SIZE 4 * 1024 * 1024
 
+static const char *const version_number = "0.0.1";
+
 struct cmdopts {
     // Options.
     bool dump_ir;
@@ -35,8 +37,13 @@ static void print_help(FILE *file, const char *name) {
             "  -h, -?, --help    display this help message and exit\n"
             "  -i, --interpret   interpret ir code (enabled by default)\n"
             "  -o, --optimise    optimise ir code\n"
+            "  --version         display the version number and exit\n"
             "  --                treat all following arguments as positional\n"
         );
+}
+
+static void print_version(FILE *file) {
+    fprintf(file, "Bude version %s\n", version_number);
 }
 
 static void init_cmdopts(struct cmdopts *opts) {
@@ -129,6 +136,10 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                 }
                 else if (strcmp(&arg[2], "optimise") == 0) {
                     opts->optimise = true;
+                }
+                else if (strcmp(&arg[2], "version") == 0) {
+                    print_version(stderr);
+                    exit(0);
                 }
                 else {
                     BAD_OPTION(name, arg);
