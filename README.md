@@ -35,3 +35,9 @@ _w1_ _w2_ `swap` &rarr; _w2_ _w1_ : Swap the top two elements on the stack.
 
 _w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
 
+### Conrol flow constructs
+
+`if` _condition_ `then` _then-body_ [`elif` _elif-body_ &hellip;] [`else` _else-body_] `end`
+
+`while` _condition_ `do` _body_ `end`
+
