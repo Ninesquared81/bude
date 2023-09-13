@@ -28,3 +28,10 @@ _i1_ _i2_ `*` &rarr; (_i1_ \* _i2_) : Pops the top two elements and pushes their
 
 _i1_ _i2_ `/%` &rarr; (_i1_ / _i2_) (_i1_ \% _i2_) : Pops the top two elements and pushes their
 quotient and remainder.
+
+### Stack manipulation
+
+_w1_ _w2_ `swap` &rarr; _w2_ _w1_ : Swap the top two elements on the stack.
+
+_w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
+
