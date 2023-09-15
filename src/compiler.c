@@ -198,6 +198,7 @@ static int escape_character(char ch) {
     switch (ch) {
     case 'n': return '\n';
     case 't': return '\t';
+    case 'r': return '\r';
     case '\\':
     case '"':
     case '\'':
