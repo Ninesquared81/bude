@@ -341,7 +341,7 @@ bool is_jump_dest(struct ir_block *block, int dest) {
 
 int register_memory(struct ir_block *block, void *object, size_t size) {
     struct memory_handler *memory = &block->memory;
-    if (memory->count + 1 < memory->capacity) {
+    if (memory->count + 1 > memory->capacity) {
         grow_memory_objects(memory);
     }
     int index = write_constant(block, (uintptr_t)object);
