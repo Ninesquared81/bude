@@ -237,6 +237,9 @@ static void compile_expr(struct compiler *compiler) {
         case TOKEN_PRINT:
             write_simple(block, OP_PRINT);
             break;
+        case TOKEN_PRINT_CHAR:
+            write_simple(block, OP_PRINT_CHAR);
+            break;
         case TOKEN_SLASH_PERCENT:
             write_simple(block, OP_DIVMOD);
             break;

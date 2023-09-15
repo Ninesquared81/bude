@@ -136,6 +136,9 @@ enum interpret_result interpret(struct ir_block *block) {
         case OP_PRINT:
             printf("%"PRIsw"\n", u64_to_s64(pop(stack)));
             break;
+        case OP_PRINT_CHAR:
+            printf("%c", (char)(uint8_t)pop(stack));
+            break;
         }
     }
     free(stack);

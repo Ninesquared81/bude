@@ -1,6 +1,8 @@
 "Hello, World!" pop
 
 while dupe deref dupe do
-    print
+    print-char
     1 +
 end
+
+10 print-char

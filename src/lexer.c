@@ -48,6 +48,11 @@ static enum token_type check_keyword(struct lexer *lexer, int start, int length,
     return TOKEN_SYMBOL;
 }
 
+static bool check_middle(struct lexer *lexer, int start, int length, const char *middle) {
+    if (lexer->current - lexer->start < start + length) return false;
+    return memcmp(&lexer->start[start], middle, length) == 0;
+}
+
 static enum token_type check_terminal(struct lexer *lexer, int length, enum token_type type) {
     return (lexer->current - lexer->start == length) ? type : TOKEN_SYMBOL;
 }
@@ -81,7 +86,14 @@ static enum token_type symbol_type(struct lexer *lexer) {
     case 'n': return check_keyword(lexer, 1, 2, "ot", TOKEN_NOT);
     case 'p':
         switch (lexer->start[1]) {
-        case 'r': return check_keyword(lexer, 2, 3, "int", TOKEN_PRINT);
+        case 'r':
+            if (check_middle(lexer, 2, 3, "int")) {
+                switch (lexer->start[5]) {
+                case '-': return check_keyword(lexer, 6, 4, "char", TOKEN_PRINT_CHAR);
+                default: return check_terminal(lexer, 5, TOKEN_PRINT);
+                }
+            }
+            break;
         case 'o': return check_keyword(lexer, 2, 1, "p", TOKEN_POP);
         }
         break;

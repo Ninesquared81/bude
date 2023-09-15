@@ -89,6 +89,8 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return simple_instruction("OP_NOT", offset);
     case OP_PRINT:
         return simple_instruction("OP_PRINT", offset);
+    case OP_PRINT_CHAR:
+        return simple_instruction("OP_PRINT_CHAR", offset);
     case OP_SUB:
         return simple_instruction("OP_SUB", offset);
     case OP_SWAP:

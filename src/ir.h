@@ -29,6 +29,7 @@ enum opcode {
     OP_MULT,
     OP_NOT,
     OP_PRINT,
+    OP_PRINT_CHAR,
     OP_SUB,
     OP_SWAP,
 };
