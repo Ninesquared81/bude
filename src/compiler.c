@@ -7,6 +7,7 @@
 #include "compiler.h"
 #include "ir.h"
 #include "lexer.h"
+#include "string_builder.h"
 #include "type_punning.h"
 
 
@@ -193,12 +194,49 @@ static void compile_loop(struct compiler *compiler) {
     expect_keep(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }
 
+static int escape_character(char ch) {
+    switch (ch) {
+    case 'n': return '\n';
+    case 't': return '\t';
+    case '\\':
+    case '"':
+    case '\'':
+        return ch;
+    }
+
+    // `\{ch}` is not an escape sequence.
+    return -1;
+}
+
 static void compile_string(struct compiler *compiler) {
     struct token token = peek(compiler);
+    struct string_builder builder = {0};
+    struct string_builder *current = &builder;
     const char *start = token.start + 1;
-    int length = token.length - 2;
-    char *string = calloc(length + 1, sizeof *string);
-    memcpy(string, start, length);
+    start_view(current, start);
+    for (const char *c = start; *c != '"'; ++c) {
+        if (*c == '\\') {
+            if (c[1] == '\0') {
+                fprintf(stderr, "Unexpected EOF\n.");
+                exit(1);
+            }
+            int escaped = escape_character(c[1]);
+            if (escaped == -1) {
+                fprintf(stderr, "Invalid escape sequence '\\%c'.\n", c[1]);
+                exit(1);
+            }
+            current = store_char(current, escaped);
+            ++c;  // Consume the escaped character.
+        }
+        else {
+            if (!SB_IS_VIEW(current)) {
+                current = start_view(current, c);
+            }
+            ++current->view.length;
+        }
+    }
+    char *string = build_string(&builder);
+    int length = strlen(string);
     int index = register_memory(compiler->block, string, length + 1);
     write_immediate_uv(compiler->block, OP_LOAD8, index);
     write_immediate_sv(compiler->block, OP_PUSH8, length);

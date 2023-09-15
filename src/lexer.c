@@ -123,7 +123,11 @@ static struct token integer(struct lexer *lexer) {
 
 static struct token string(struct lexer *lexer) {
     while (!check(lexer, '"')) {
-        advance(lexer);
+        char c = advance(lexer);
+        if (c == '\\') {
+            // Escape sequence.
+            advance(lexer);
+        }
     }
     // Consume the closing '"'.
     advance(lexer);

@@ -1,8 +1,7 @@
-"Hello, World!" pop
+"\"Hello, World!\"\n" pop
 
 while dupe deref dupe do
     print-char
     1 +
 end
 
-10 print-char
