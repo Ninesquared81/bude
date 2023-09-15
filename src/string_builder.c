@@ -54,3 +54,20 @@ char *build_string(struct string_builder *builder) {
     return string;
 }
 
+char *build_string_and_die(struct string_builder *builder) {
+    char *string = build_string(builder);
+    kill_string_builder(builder);
+    return string;
+}
+
+void kill_string_builder(struct string_builder *builder) {
+    // NOTE: we do NOT free the passed (parent) builder, as we never allocated it.
+    struct string_builder *current = builder->next;
+    while (current != NULL) {
+        void *next = current->next;
+        free(current);
+        current = next;
+    }
+    // Zero out builder.
+    memset(builder, 0, sizeof *builder);
+}

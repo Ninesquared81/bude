@@ -236,7 +236,7 @@ static void compile_string(struct compiler *compiler) {
             ++current->view.length;
         }
     }
-    char *string = build_string(&builder);
+    char *string = build_string_and_die(&builder);
     int length = strlen(string);
     int index = register_memory(compiler->block, string, length + 1);
     write_immediate_uv(compiler->block, OP_LOAD8, index);

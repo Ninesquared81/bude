@@ -27,5 +27,8 @@ struct string_builder {
 struct string_builder *start_view(struct string_builder *builder, const char *start);
 struct string_builder *store_char(struct string_builder *builder, char ch);
 char *build_string(struct string_builder *builder);
+char *build_string_and_die(struct string_builder *builder);
+
+void kill_string_builder(struct string_builder *builder);
 
 #endif
