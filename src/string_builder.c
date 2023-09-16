@@ -4,20 +4,22 @@
 
 #include "string_builder.h"
 
-static struct string_builder *append_builder(struct string_builder *builder) {
+static struct string_builder *append_builder(struct string_builder *builder,
+                                             struct region *region) {
     assert(builder->next == NULL);
-    struct string_builder *new  = calloc(1, sizeof *builder->next);
+    struct string_builder *new = region_alloc(region, sizeof *new);
     if (new == NULL) {
         return NULL;
     }
-    // Note: rely on calloc for zero-initialisation.
+    memset(new, 0, sizeof *new);
     builder->next = new;
     return new;
 }
 
-struct string_builder *start_view(struct string_builder *builder, const char *start) {
+struct string_builder *start_view(struct string_builder *builder, const char *start,
+                                  struct region *region) {
     if (builder->owned_count > 0) {
-        builder = append_builder(builder);
+        builder = append_builder(builder, region);
         if (builder == NULL) return NULL;
     }
     builder->owned_count = -1;
@@ -26,48 +28,30 @@ struct string_builder *start_view(struct string_builder *builder, const char *st
     return builder;
 }
 
-struct string_builder *store_char(struct string_builder *builder, char ch) {
+struct string_builder *store_char(struct string_builder *builder, char ch, struct region *region) {
     if (SB_IS_VIEW(builder) || builder->owned_count >= (int)SB_OWNED_SIZE) {
-        builder = append_builder(builder);
+        builder = append_builder(builder, region);
         if (builder == NULL) return NULL;
     }
     builder->owned[builder->owned_count++] = ch;
     return builder;
 }
 
-char *build_string(struct string_builder *builder) {
+void build_string(struct string_builder *builder, char *buffer) {
+    // This function assumes the buffer is large enough.
+    for (; builder != NULL; builder = builder->next) {
+        struct string_view view = SB_NODE_AS_VIEW(builder);
+        memcpy(buffer, view.start, view.length);
+        buffer += view.length;
+    }
+    // buffer now points to the end of the string.
+    *buffer = '\0';
+}
+
+int sb_length(struct string_builder *builder) {
     int length = 0;
-    for (struct string_builder *current = builder; current != NULL; current = current->next) {
-        length += (SB_IS_VIEW(current)) ? current->view.length : current->owned_count;
+    for (; builder != NULL; builder = builder->next) {
+        length += SB_NODE_AS_VIEW(builder).length;
     }
-
-    char *string = malloc(length + 1);
-    if (string == NULL) return NULL;
-    
-    char *front = string;
-    for (struct string_builder *current = builder; current != NULL; current = current->next) {
-        struct string_view view = SB_NODE_AS_VIEW(current);
-        memcpy(front, view.start, view.length);
-        front += view.length;
-    }
-    string[length] = '\0';
-    return string;
-}
-
-char *build_string_and_die(struct string_builder *builder) {
-    char *string = build_string(builder);
-    kill_string_builder(builder);
-    return string;
-}
-
-void kill_string_builder(struct string_builder *builder) {
-    // NOTE: we do NOT free the passed (parent) builder, as we never allocated it.
-    struct string_builder *current = builder->next;
-    while (current != NULL) {
-        void *next = current->next;
-        free(current);
-        current = next;
-    }
-    // Zero out builder.
-    memset(builder, 0, sizeof *builder);
+    return length;
 }

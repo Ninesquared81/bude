@@ -2,6 +2,7 @@
 #define STRING_BUILDER_H
 
 #include "string_view.h"
+#include "region.h"
 
 #define SB_OWNED_SIZE sizeof(struct string_view)
 #define SB_IS_VIEW(builder) ((builder)->owned_count == -1)
@@ -24,10 +25,12 @@ struct string_builder {
     struct string_builder *next;
 };
 
-struct string_builder *start_view(struct string_builder *builder, const char *start);
-struct string_builder *store_char(struct string_builder *builder, char ch);
-char *build_string(struct string_builder *builder);
-char *build_string_and_die(struct string_builder *builder);
+struct string_builder *start_view(struct string_builder *builder, const char *start,
+                                  struct region *region);
+struct string_builder *store_char(struct string_builder *builder, char ch, struct region *region);
+void build_string(struct string_builder *builder, char *buffer);
+
+int sb_length(struct string_builder *builder);
 
 void kill_string_builder(struct string_builder *builder);
 
