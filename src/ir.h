@@ -58,7 +58,7 @@ struct ir_block {
     uint8_t *code;
     struct constant_table constants;
     struct jump_info_table jumps;
-    struct memory_handler memory;
+    struct region *static_memory;
 };
 
 void init_block(struct ir_block *block);
@@ -67,8 +67,6 @@ void init_constant_table(struct constant_table *table);
 void free_constant_table(struct constant_table *table);
 void init_jump_info_table(struct jump_info_table *table);
 void free_jump_info_table(struct jump_info_table *table);
-void init_memory_handler(struct memory_handler *handler);
-void free_memory_handler(struct memory_handler *handler);
 
 void write_simple(struct ir_block *block, enum opcode instruction);
 
@@ -105,7 +103,5 @@ uint64_t read_constant(struct ir_block *block, int index);
 int write_jump(struct ir_block *block, int dest);
 int find_jump(struct ir_block *block, int dest);
 bool is_jump_dest(struct ir_block *block, int dest);
-
-int register_memory(struct ir_block *block, void *object, size_t size);
 
 #endif

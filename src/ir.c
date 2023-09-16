@@ -63,7 +63,8 @@ void init_block(struct ir_block *block) {
     block->count = 0;
     init_constant_table(&block->constants);
     init_jump_info_table(&block->jumps);
-    init_memory_handler(&block->memory);
+    block->memory = new_region(MEMORY_INIT_SIZE);
+    CHECK_ALLOCATION(block->memory);
 }
 
 void free_block(struct ir_block *block) {
@@ -74,6 +75,7 @@ void free_block(struct ir_block *block) {
     free_constant_table(&block->constants);
     free_jump_info_table(&block->jumps);
     free_memory_handler(&block->memory);
+    free(block->memory);
 }
 
 void init_constant_table(struct constant_table *table) {
@@ -102,22 +104,6 @@ void free_jump_info_table(struct jump_info_table *table) {
     table->count = 0;
 }
 
-void init_memory_handler(struct memory_handler *handler) {
-    handler->objects = allocate_array(MEM_OBJS_INIT_SIZE, sizeof *handler->objects);
-    handler->capacity = 0;
-    handler->count = 0;
-}
-
-void free_memory_handler(struct memory_handler *handler) {
-    for (int i = 0; i < handler->count; ++i) {
-        free(handler->objects[i].data);
-    }
-    free(handler->objects);
-    handler->objects = NULL;
-    handler->capacity = 0;
-    handler->count = 0;
-}
-
 static void grow_block(struct ir_block *block) {
     int old_capacity = block->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : BLOCK_INIT_SIZE;
@@ -143,17 +129,6 @@ static void grow_jump_info_table(struct jump_info_table *table) {
     table->dests = reallocate_array(table->dests, old_capacity, new_capacity,
                                     sizeof table->dests[0]);
     table->capacity = new_capacity;    
-}
-
-static void grow_memory_objects(struct memory_handler *handler) {
-    int old_capacity = handler->capacity;
-    int new_capacity = (old_capacity > 0)
-        ? old_capacity + old_capacity/2
-        : MEM_OBJS_INIT_SIZE;
-
-    handler->objects = reallocate_array(handler->objects, old_capacity, new_capacity,
-                                    sizeof handler->objects[0]);
-    handler->capacity = new_capacity;    
 }
 
 void write_simple(struct ir_block *block, enum opcode instruction) {
