@@ -79,7 +79,7 @@ void free_block(struct ir_block *block) {
     block->count = 0;
     free_constant_table(&block->constants);
     free_jump_info_table(&block->jumps);
-    free(block->static_memory);
+    kill_region(block->static_memory);
 }
 
 void init_constant_table(struct constant_table *table) {
