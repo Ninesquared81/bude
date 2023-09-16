@@ -6,7 +6,7 @@
 struct region {
     struct region *next;
     size_t size;
-    char *alloc_head;
+    size_t alloc_count;
     char bytes[];
 };
 
