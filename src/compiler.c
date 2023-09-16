@@ -7,6 +7,7 @@
 #include "compiler.h"
 #include "ir.h"
 #include "lexer.h"
+#include "region.h"
 #include "string_builder.h"
 #include "type_punning.h"
 
@@ -214,7 +215,8 @@ static void compile_string(struct compiler *compiler) {
     struct string_builder builder = {0};
     struct string_builder *current = &builder;
     const char *start = token.start + 1;
-    start_view(current, start);
+    struct region *temp_region = new_region(1024);
+    start_view(current, start, temp_region);
     for (const char *c = start; *c != '"'; ++c) {
         if (*c == '\\') {
             if (c[1] == '\0') {
@@ -226,21 +228,23 @@ static void compile_string(struct compiler *compiler) {
                 fprintf(stderr, "Invalid escape sequence '\\%c'.\n", c[1]);
                 exit(1);
             }
-            current = store_char(current, escaped);
+            current = store_char(current, escaped, temp_region);
             ++c;  // Consume the escaped character.
         }
         else {
             if (!SB_IS_VIEW(current)) {
-                current = start_view(current, c);
+                current = start_view(current, c, temp_region);
             }
             ++current->view.length;
         }
     }
-    char *string = build_string_and_die(&builder);
-    int length = strlen(string);
-    int index = register_memory(compiler->block, string, length + 1);
+    int length = sb_length(&builder);
+    char *string = region_alloc(compiler->block->static_memory, length + 1);
+    build_string(&builder, string);
+    int index = write_constant(compiler->block, (uintptr_t)string);
     write_immediate_uv(compiler->block, OP_LOAD8, index);
     write_immediate_sv(compiler->block, OP_PUSH8, length);
+    kill_region(temp_region);
 }
 
 static void compile_expr(struct compiler *compiler) {

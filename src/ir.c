@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "ir.h"
+#include "region.h"
 #include "type_punning.h"
 
 #ifndef BLOCK_INIT_SIZE
@@ -18,8 +19,8 @@
 #define JUMP_INFO_TABLE_INIT_SIZE 8
 #endif
 
-#ifndef MEM_OBJS_INIT_SIZE
-#define MEM_OBJS_INIT_SIZE 8
+#ifndef MEMORY_INIT_SIZE
+#define MEMORY_INIT_SIZE 1024
 #endif
 
 struct mem_obj {
@@ -63,8 +64,12 @@ void init_block(struct ir_block *block) {
     block->count = 0;
     init_constant_table(&block->constants);
     init_jump_info_table(&block->jumps);
-    block->memory = new_region(MEMORY_INIT_SIZE);
-    CHECK_ALLOCATION(block->memory);
+    block->static_memory = new_region(MEMORY_INIT_SIZE);
+    //CHECK_ALLOCATION(block->static_memory);
+    if (block->static_memory == NULL) {
+        fprintf(stderr, "Failed to allocate region!\n");
+        exit(1);
+    }
 }
 
 void free_block(struct ir_block *block) {
@@ -74,8 +79,7 @@ void free_block(struct ir_block *block) {
     block->count = 0;
     free_constant_table(&block->constants);
     free_jump_info_table(&block->jumps);
-    free_memory_handler(&block->memory);
-    free(block->memory);
+    free(block->static_memory);
 }
 
 void init_constant_table(struct constant_table *table) {
@@ -312,18 +316,4 @@ int find_jump(struct ir_block *block, int dest) {
 
 bool is_jump_dest(struct ir_block *block, int dest) {
     return find_jump(block, dest) != -1;
-}
-
-int register_memory(struct ir_block *block, void *object, size_t size) {
-    struct memory_handler *memory = &block->memory;
-    if (memory->count + 1 > memory->capacity) {
-        grow_memory_objects(memory);
-    }
-    int index = write_constant(block, (uintptr_t)object);
-    memory->objects[memory->count++] = (struct mem_obj) {
-        .data = object,
-        .size = size,
-        .index = index,
-    };
-    return index;
 }
