@@ -24,8 +24,7 @@ static void jump(struct ir_block *block, int offset, int *ip) {
     *ip = new_address;
 }
 
-enum interpret_result interpret(struct ir_block *block) {
-    struct stack *stack = malloc(sizeof *stack);
+enum interpret_result interpret(struct ir_block *block, struct stack *stack) {
     init_stack(stack);
     for (int ip = 0; ip < block->count; ++ip) {
         enum opcode instruction = block->code[ip];
@@ -155,7 +154,6 @@ enum interpret_result interpret(struct ir_block *block) {
             break;
         }
     }
-    free(stack);
     return INTERPRET_OK;
 }
 

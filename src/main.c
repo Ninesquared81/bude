@@ -8,6 +8,7 @@
 #include "interpreter.h"
 #include "ir.h"
 #include "optimiser.h"
+#include "stack.h"
 
 
 #define INPUT_BUFFER_SIZE 4 * 1024 * 1024
@@ -211,7 +212,9 @@ int main(int argc, char *argv[]) {
         }
     }
     if (opts.interpret) {
-        interpret(&block);
+        struct stack *stack = malloc(sizeof *stack);
+        interpret(&block, stack);
+        free(stack);
     }
     free_block(&block);
 
