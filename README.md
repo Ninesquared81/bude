@@ -7,6 +7,14 @@ NOTE: The language is currently very unfinished.
 
 Bude has a stack for storing 64-bit words. There are instructions to manipulate the stack.
 
+Notation: below, different annotations are used to describe how data on the stack should be
+interpreted for the differet instructions.
+
+* _w_ &ndash; arbitrary stack word (64-bit)
+* _i_ &ndash; signed integer value
+* _p_ &ndash; pointer value
+* `<literal>` &ndash; the literal value denoted
+
 ### Push instructions
 
 `"Lorem ipsum"` &rarr; _p_ _i_ : Pushes the specified string to the stack
@@ -17,6 +25,8 @@ along with its length.
 ### Pop instructions
 
 _w_ `pop` &rarr; &varnothing; : Pops the top element from the stack and discards it.
+
+_w_ `print` &rarr; &varnothing; : Pops the top element from the stack and prints it as an integer.
 
 ### Arithmetic operations
 
@@ -42,3 +52,6 @@ _w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
 
 `while` _condition_ `do` _body_ `end`
 
+_w1_ _w2_ `or` (_w1_ or _w2_) : drop _w1_ if it is equal to zero, else drop _w2_
+
+_w1_ _w2_ `and` (_w1_ and _w2_) : drop _w1_ if it is non-zero, else drop _w2_
