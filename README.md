@@ -8,11 +8,13 @@ NOTE: The language is currently very unfinished.
 Bude has a stack for storing 64-bit words. There are instructions to manipulate the stack.
 
 Notation: below, different annotations are used to describe how data on the stack should be
-interpreted for the differet instructions.
+interpreted for the differet instructions. Note that regardless of the size of the underlying
+C type, these values always take up one full stack slot (64 bits).
 
-* _w_ &ndash; arbitrary stack word (64-bit)
+* _w_ &ndash; arbitrary stack word
 * _i_ &ndash; signed integer value
 * _p_ &ndash; pointer value
+* _c_ &ndash; ~~UTF-32~~ ASCII codepoint (will be UTF-32 in the future)
 * `<literal>` &ndash; the literal value denoted
 
 ### Push instructions
@@ -26,7 +28,10 @@ along with its length.
 
 _w_ `pop` &rarr; &varnothing; : Pops the top element from the stack and discards it.
 
-_w_ `print` &rarr; &varnothing; : Pops the top element from the stack and prints it as an integer.
+_i_ `print` &rarr; &varnothing; : Pops the top element from the stack and prints it as an integer.
+
+_c_ `print-char` &rarr; &varnothing; : Pops the top element from the stack and prints it as a
+unicode character
 
 ### Arithmetic operations
 
