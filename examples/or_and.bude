@@ -1,2 +1,38 @@
 42 36 or print
 42 36 and print
+
+
+"Or is " pop
+while dupe deref do
+    dupe deref print-char
+    1 +
+end
+
+if 0 1 or then
+    "true\n" pop
+else
+    "false\n" pop
+end
+
+while dupe deref do
+    dupe deref print-char
+    1 +
+end
+
+
+"And is " pop
+while dupe deref do
+    dupe deref print-char
+    1 +
+end
+
+if 0 1 and then
+    "true\n" pop
+else
+    "false\n" pop
+end
+
+while dupe deref do
+    dupe deref print-char
+    1 +
+end
