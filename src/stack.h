@@ -16,6 +16,7 @@ struct stack {
 };
 
 void init_stack(struct stack *stack);
+void reset_stack(struct stack *stack);
 
 void push(struct stack *stack, stack_word value);
 stack_word pop(struct stack *stack);

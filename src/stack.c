@@ -5,6 +5,10 @@
 
 
 void init_stack(struct stack *stack) {
+    reset_stack(stack);
+}
+
+void reset_stack(struct stack *stack) {
     stack->top = stack->elements;
 }
 
