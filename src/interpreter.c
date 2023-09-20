@@ -85,6 +85,20 @@ enum interpret_result interpret(struct ir_block *block) {
             push(stack, a);
             break;
         }
+        case OP_AND: {
+            stack_word b = pop(stack);
+            stack_word a = pop(stack);
+            stack_word result = (!a) ? a : b;
+            push(stack, result);
+            break;
+        }
+        case OP_OR: {
+            stack_word b = pop(stack);
+            stack_word a = pop(stack);
+            stack_word result = (a) ? a : b;
+            push(stack, result);
+            break;
+        }
         case OP_JUMP: {
             int offset = read_s16(block, ip + 1);
             jump(block, offset, &ip);

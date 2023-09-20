@@ -253,6 +253,9 @@ static void compile_expr(struct compiler *compiler) {
          token.type != TOKEN_EOT;
          token = advance(compiler)) {
         switch (token.type) {
+        case TOKEN_AND:
+            write_simple(compiler->block, OP_AND);
+            break;
         case TOKEN_DEREF:
             write_simple(compiler->block, OP_DEREF);
             break;
@@ -270,6 +273,9 @@ static void compile_expr(struct compiler *compiler) {
             break;
         case TOKEN_NOT:
             write_simple(block, OP_NOT);
+            break;
+        case TOKEN_OR:
+            write_simple(block, OP_OR);
             break;
         case TOKEN_PLUS:
             write_simple(block, OP_ADD);

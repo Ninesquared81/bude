@@ -8,6 +8,7 @@ enum token_type {
     TOKEN_SYMBOL,
 
     // Keywords.
+    TOKEN_AND,
     TOKEN_DEREF,
     TOKEN_DO,
     TOKEN_DUPE,
@@ -19,6 +20,7 @@ enum token_type {
     TOKEN_NOT,
     TOKEN_PLUS,
     TOKEN_POP,
+    TOKEN_OR,
     TOKEN_PRINT,
     TOKEN_PRINT_CHAR,
     TOKEN_SLASH_PERCENT,
