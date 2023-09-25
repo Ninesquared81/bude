@@ -24,6 +24,7 @@ enum opcode {
     OP_DEREF,
     OP_DIVMOD,
     OP_DUPE,
+    OP_EXIT,
     OP_JUMP,
     OP_JUMP_COND,
     OP_JUMP_NCOND,

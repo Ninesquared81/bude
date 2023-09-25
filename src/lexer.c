@@ -73,7 +73,6 @@ static enum token_type symbol_type(struct lexer *lexer) {
         break;
     case 'e':
         switch (lexer->start[1]) {
-        case 'n': return check_keyword(lexer, 2, 1, "d", TOKEN_END);
         case 'l':
             if (lexer->current - lexer->start > 2) {
                 switch (lexer->start[2]) {
@@ -81,6 +80,9 @@ static enum token_type symbol_type(struct lexer *lexer) {
                 case 's': return check_keyword(lexer, 3, 1, "e", TOKEN_ELSE);
                 }
             }
+            break;
+        case 'n': return check_keyword(lexer, 2, 1, "d", TOKEN_END);
+        case 'x': return check_keyword(lexer, 2, 2, "it", TOKEN_EXIT);
         }
         break;
     case 'i': return check_keyword(lexer, 1, 1, "f", TOKEN_IF);

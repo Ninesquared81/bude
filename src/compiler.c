@@ -262,6 +262,9 @@ static void compile_expr(struct compiler *compiler) {
         case TOKEN_DUPE:
             write_simple(compiler->block, OP_DUPE);
             break;
+        case TOKEN_EXIT:
+            write_simple(compiler->block, OP_EXIT);
+            break;
         case TOKEN_IF:
             compile_conditional(compiler);
             break;

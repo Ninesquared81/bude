@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -83,6 +84,12 @@ enum interpret_result interpret(struct ir_block *block, struct stack *stack) {
             push(stack, a);
             push(stack, a);
             break;
+        }
+        case OP_EXIT: {
+            int64_t exit_code = u64_to_s64(pop(stack));
+            if (exit_code < INT_MIN) exit_code = INT_MIN;
+            if (exit_code > INT_MAX) exit_code = INT_MAX;
+            exit(exit_code);
         }
         case OP_AND: {
             stack_word b = pop(stack);
