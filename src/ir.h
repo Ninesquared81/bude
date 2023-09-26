@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 
-#define IS_JUMP(instruction) (                   \
+#define IS_JUMP(instruction)         (           \
         instruction == OP_JUMP       ||          \
         instruction == OP_JUMP_COND  ||          \
         instruction == OP_JUMP_NCOND  )
@@ -63,6 +63,8 @@ struct ir_block {
     struct jump_info_table jumps;
     struct region *static_memory;
 };
+
+const char *get_opcode_name(enum opcode opcode);
 
 void init_block(struct ir_block *block);
 void free_block(struct ir_block *block);

@@ -29,6 +29,39 @@ struct mem_obj {
     int index;
 };
 
+
+const char *opcode_names[] = {
+    [OP_NOP]        = "OP_NOP",
+    [OP_PUSH8]      = "OP_PUSH8",
+    [OP_PUSH16]     = "OP_PUSH16",
+    [OP_PUSH32]     = "OP_PUSH32",
+    [OP_LOAD8]      = "OP_LOAD8",
+    [OP_LOAD16]     = "OP_LOAD16",
+    [OP_LOAD32]     = "OP_LOAD32",
+    [OP_POP]        = "OP_POP",
+    [OP_ADD]        = "OP_ADD",
+    [OP_AND]        = "OP_AND",
+    [OP_DEREF]      = "OP_DEREF",
+    [OP_DIVMOD]     = "OP_DIVMOD",
+    [OP_DUPE]       = "OP_DUPE",
+    [OP_EXIT]       = "OP_EXIT",
+    [OP_JUMP]       = "OP_JUMP",
+    [OP_JUMP_COND]  = "OP_JUMP_COND",
+    [OP_JUMP_NCOND] = "OP_JUMP_NCOND",
+    [OP_MULT]       = "OP_MULT",
+    [OP_NOT]        = "OP_NOT",
+    [OP_OR]         = "OP_OR",
+    [OP_PRINT]      = "OP_PRINT",
+    [OP_PRINT_CHAR] = "OP_PRINT_CHAR",
+    [OP_SUB]        = "OP_SUB",
+    [OP_SWAP]       = "OP_SWAP",
+};
+
+const char *get_opcode_name(enum opcode opcode) {
+    assert(0 < opcode && opcode < sizeof opcode_names / sizeof opcode_names[0]);
+    return opcode_names[opcode];
+};
+
 static void *allocate_array(size_t count, size_t size) {
     void *array = calloc(count, size);
     if (array == NULL) {
