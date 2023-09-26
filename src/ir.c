@@ -58,9 +58,9 @@ const char *opcode_names[] = {
 };
 
 const char *get_opcode_name(enum opcode opcode) {
-    assert(0 < opcode && opcode < sizeof opcode_names / sizeof opcode_names[0]);
+    assert(0 <= opcode && opcode < sizeof opcode_names / sizeof opcode_names[0]);
     return opcode_names[opcode];
-};
+}
 
 static void *allocate_array(size_t count, size_t size) {
     void *array = calloc(count, size);
