@@ -19,6 +19,10 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
     asm_start_asm(assembly);
     asm_start_code(assembly, "start");
     for (int ip = 0; ip < block->count; ++ip) {
+        if (is_jump_dest(block, ip)) {
+            // We need a label.
+            asm_write(assembly, "  addr_%d:\n", ip);
+        }
         enum opcode instruction = block->code[ip];
         switch (instruction) {
         case OP_NOP:
@@ -40,6 +44,41 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
             asm_write(assembly, "  ;; === OP_EXIT ===\n");
             asm_write(assembly, "\tpop\trcx\t\t; Exit code.\n");
             asm_write(assembly, "\tcall\t[ExitProcess]\n");
+            break;
+        case OP_JUMP: {
+            ip += 2;
+            int16_t jump = read_s16(block, ip - 1);
+            int jump_addr = ip - 1 + jump;  // -1 since jumps are calculated from the opcode.
+            asm_write(assembly, "  ;; === OP_JUMP ===\n");
+            asm_write(assembly, "\tjmp\taddr_%d\n", jump_addr);
+            break;
+        }
+        case OP_JUMP_COND: {
+            ip += 2;
+            int16_t jump = read_s16(block, ip - 1);
+            int jump_addr = ip - 1 + jump;
+            asm_write(assembly, "  ;; === OP_JUMP_COND ===\n");
+            asm_write(assembly, "\tpop\trax\t\t; Condition.\n");
+            asm_write(assembly, "\ttest rax, rax\n");
+            asm_write(assembly, "\tjnz\taddr_%d\n", jump_addr);
+            break;
+        }
+        case OP_JUMP_NCOND: {
+            ip += 2;
+            int16_t jump = read_s16(block, ip - 1);
+            int jump_addr = ip -1 + jump;
+            asm_write(assembly, "  ;; === OP_JUMP_NCOND ===\n");
+            asm_write(assembly, "\tpop\trax\t\t; Condition.\n");
+            asm_write(assembly, "\ttest\trax, rax\n");
+            asm_write(assembly, "\tjz\taddr_%d\n", jump_addr);
+            break;
+        }
+        case OP_NOT:
+            asm_write(assembly, "  ;; === OP_NOT ===\n");
+            asm_write(assembly, "\tpop\trax\n");
+            asm_write(assembly, "\ttest\trax, rax\n");
+            asm_write(assembly, "\tsetz\trax\n");
+            asm_write(assembly, "\tpush\trax\n");
             break;
         case OP_SUB:
             asm_write(assembly, "  ;; === OP_SUB ===\n");

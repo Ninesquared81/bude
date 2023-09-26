@@ -1,0 +1,3 @@
+if 0 then 42 else 69 end
+
+exit
