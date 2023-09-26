@@ -49,7 +49,8 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
             assert(0 && "Not implemented you silly goose!");
         }
     }
-    asm_write(assembly, "\tinvoke\tExitProcess, 0\n");
+    asm_write(assembly, "  ;; === END ===\n");
+    asm_write(assembly, "\tinvoke\tExitProcess, 0\t; Successful exit.\n");
     asm_end_code(assembly);
     return GENERATE_OK;
 #undef BIN_OP
