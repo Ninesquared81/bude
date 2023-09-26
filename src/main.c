@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "asm.h"
 #include "compiler.h"
 #include "disassembler.h"
+#include "generator.h"
 #include "interpreter.h"
 #include "ir.h"
 #include "optimiser.h"
@@ -20,6 +22,7 @@ struct cmdopts {
     bool dump_ir;
     bool optimise;
     bool interpret;
+    bool generate_asm;
     // Positional Args
     const char *filename;
 };
@@ -34,7 +37,8 @@ static void print_help(FILE *file, const char *name) {
             "Positional arguments:\n"
             "  file              name of the source code file\n"
             "Options:\n"
-            "  -d, --dump        dump the generated ir code and exit, unless -i is specified\n"
+            "  -a                generate assembly code\n"
+            "  -d, --dump        dump the generated ir code and exit, unless -i or -a are specified\n"
             "  -h, -?, --help    display this help message and exit\n"
             "  -i, --interpret   interpret ir code (enabled by default)\n"
             "  -o, --optimise    optimise ir code\n"
@@ -52,6 +56,7 @@ static void init_cmdopts(struct cmdopts *opts) {
     opts->dump_ir = false;
     opts->optimise = false;
     opts->interpret = true;
+    opts->generate_asm = false;
 }
 
 static void handle_positional_arg(const char *restrict name, struct cmdopts *opts,
@@ -71,12 +76,18 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
     } while (0)
 
 static void parse_short_opt(const char *name, const char *arg,
-                            struct cmdopts *opts, bool *had_i) {
+                            struct cmdopts *opts, bool *had_i, bool *had_a) {
     for (const char *opt = &arg[1]; *opt != '\0'; ++opt) {
         switch (*opt) {
+        case 'a':
+            opts->generate_asm = true;
+            opts->interpret = false;
+            *had_a = true;
+            break;
         case 'd':
             opts->dump_ir = true;
             opts->interpret = *had_i;
+            opts->generate_asm = *had_a;
             break;
         case 'h': case '?':
             print_help(stderr, name);
@@ -100,17 +111,19 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
     const char *name = argv[0];
 
     bool had_i = false;
+    bool had_a = false;
     for (int i = 1; i < argc; ++i) {
         const char *arg = argv[i];
         switch (arg[0]) {
         case '-':
             // Options.
             switch (arg[1]) {
+            case 'a':
             case 'd':
             case 'h': case '?':
             case 'i':
             case 'o':
-                parse_short_opt(name, arg, opts, &had_i);
+                parse_short_opt(name, arg, opts, &had_i, &had_a);
                 break;
             case '-':
                 if (arg[2] == '\0') {
@@ -126,6 +139,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                 if (strcmp(&arg[2], "dump") == 0) {
                     opts->dump_ir = true;
                     opts->interpret = had_i;
+                    opts->generate_asm = had_a;
                 }
                 else if (strcmp(&arg[2], "help") == 0) {
                     print_help(stderr, name);
@@ -215,6 +229,15 @@ int main(int argc, char *argv[]) {
         struct stack *stack = malloc(sizeof *stack);
         interpret(&block, stack);
         free(stack);
+    }
+    if (opts.generate_asm) {
+        struct asm_block *assembly = malloc(sizeof *assembly);
+        init_assembly(assembly);
+        if (generate(&block, assembly) != GENERATE_OK) {
+            exit(1);
+        }
+        printf("%s", assembly->code);
+        free(assembly);
     }
     free_block(&block);
 
