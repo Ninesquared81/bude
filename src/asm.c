@@ -22,30 +22,6 @@ void asm_vwrite(struct asm_block *assembly, const char *restrict code, va_list a
     assembly->count += count;
     assembly->code[assembly->count] = '\0';
 }
-/*
-void asm_vwrite_comment(struct asm_block *assembly, const char *restrict comment, va_list args) {
-    asm_write(assembly, ";; ");  // Start the comment.
-    asm_vwrite(assembly, comment, args);  // The comment supports printf formatting.
-    asm_write(assembly, "\n");  // Add newline at end of comment.
-}
-
-void asm_vwrite_inst1(struct asm_block *assembly, const char *restrict arg1, va_list args) {
-    asm_write(assembly, "\t%s", instruction);
-    asm_vwrite();
-    asm_write(assembly, "\n");
-}
-
-void asm_vwrite_inst1c(struct asm_block *assembly,
-                      const char *restrict arg1, const char *restrict comment, va_list args);
-
-void asm_vwrite_inst2(struct asm_block *assembly,
-                     const char *restrict arg1, const char *restrict arg2, va_list args);
-
-void asm_vwrite_inst2c(struct asm_block *assembly,
-                      const char *restrict arg1, const char *restrict arg2,
-                      const char *comment, va_list args);
-
-*/
 
 void asm_write(struct asm_block *assembly, const char *restrict code, ...) {
     va_list args;
@@ -53,27 +29,6 @@ void asm_write(struct asm_block *assembly, const char *restrict code, ...) {
     asm_vwrite(assembly, code, args);
     va_end(args);
 }
-/*
-void asm_write_comment(struct asm_block *assembly, const char *restrict comment, ...) {
-    va_list args;
-    va_start(args, comment);
-    asm_vwrite_comment(assembly, const char *restrict comment, args);
-    va_end(args);
-}
-
-void asm_write_inst1(struct asm_block *assembly, const char *restrict arg1, ...);
-
-void asm_write_inst1c(struct asm_block *assembly,
-                      const char *restrict arg1, const char *restrict comment, ...);
-
-void asm_write_inst2(struct asm_block *assembly,
-                     const char *restrict arg1, const char *restrict arg2, ...);
-
-void asm_write_inst2c(struct asm_block *assembly,
-                      const char *restrict arg1, const char *restrict arg2,
-                      const char *comment, ...);
-
-*/
 
 void asm_start_asm(struct asm_block *assembly) {
     asm_write(assembly, "format PE64 console\n");
