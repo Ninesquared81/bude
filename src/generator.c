@@ -96,6 +96,10 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "setz", "rax");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case OP_PRINT:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst4(assembly, "cinvoke", "printf", "\"%%I64d%%c\"", "rax", "10");
+            break;
         case OP_SUB:
             BIN_OP("sub");
             break;
