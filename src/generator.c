@@ -13,19 +13,6 @@ void generate_header(struct asm_block *assembly) {
     asm_write(assembly, "\n");
 }
 
-void generate_imports(struct asm_block *assembly) {
-    asm_section(assembly, ".idata", "import", "data", "readable");
-    asm_write(assembly, "\n");
-    asm_write(assembly, "  library\\\n");
-    asm_write(assembly, "\tkernel, 'kernel32.dll',\\\n");
-    asm_write(assembly, "\tmsvcrt, 'msvcrt.dll'\n");
-    asm_write(assembly, "  import msvcrt,\\\n");
-    asm_write(assembly, "\tprintf, 'printf'\n");
-    asm_write(assembly, "  import kernel,\\\n");
-    asm_write(assembly, "\tExitProcess, 'ExitProcess'\n");
-    asm_write(assembly, "\n");
-}
-
 void generate_code(struct asm_block *assembly, struct ir_block *block) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
@@ -97,8 +84,10 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "push", "rax");
             break;
         case OP_PRINT:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst4(assembly, "cinvoke", "printf", "\"%%I64d%%c\"", "rax", "10");
+            asm_write_inst1c(assembly, "pop", "rdx", "Second argument to printf.");
+            asm_write_inst2c(assembly, "mov", "rcx", "fmt_s64",
+                             "First argument to printf (format string).");
+            asm_write_inst1(assembly, "call", "[printf]");
             break;
         case OP_SUB:
             BIN_OP("sub");
@@ -113,9 +102,38 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
 #undef BIN_OP
 }
 
+void generate_imports(struct asm_block *assembly) {
+    asm_section(assembly, ".idata", "import", "data", "readable");
+    asm_write(assembly, "\n");
+    asm_write(assembly, "  library\\\n");
+    asm_write(assembly, "\tkernel, 'kernel32.dll',\\\n");
+    asm_write(assembly, "\tmsvcrt, 'msvcrt.dll'\n");
+    asm_write(assembly, "\n");
+    asm_write(assembly, "  import msvcrt,\\\n");
+    asm_write(assembly, "\tprintf, 'printf'\n");
+    asm_write(assembly, "\n");
+    asm_write(assembly, "  import kernel,\\\n");
+    asm_write(assembly, "\tExitProcess, 'ExitProcess'\n");
+    asm_write(assembly, "\n");
+}
+
+void generate_constants(struct asm_block *assembly, struct ir_block *block) {
+    (void)block;
+    asm_section(assembly, ".rodata", "data", "readable");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "fmt_s64");
+    asm_write_inst3c(assembly, "db", "'%%I64d'", "10", "0",
+                     "NOTE: I64 is a Non-ISO Microsoft extension.");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "fmt_u64");
+    asm_write_inst3(assembly, "db", "'%%I64u'", "10", "0");
+    asm_write(assembly, "\n");
+}
+
 enum generate_result generate(struct ir_block *block, struct asm_block *assembly) {
     generate_header(assembly);
     generate_code(assembly, block);
+    generate_constants(assembly, block);
     generate_imports(assembly);
     return GENERATE_OK;
 }

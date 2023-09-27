@@ -31,15 +31,15 @@ void asm_label(struct asm_block *assembly, const char *label, ...);
 #define asm_write_inst2(assembly, inst, arg1, arg2) \
     asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 "\n")
 #define asm_write_inst2c(assembly, inst, arg1, arg2, comment) \
-    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 "\t\t; " comment "\n")
+    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 "\t; " comment "\n")
 #define asm_write_inst3(assembly, inst, arg1, arg2, arg3) \
     asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 "\n")
 #define asm_write_inst3c(assembly, inst, arg1, arg2, arg3, comment) \
-    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 "\t\t;; " comment "\n")
+    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 "\t; " comment "\n")
 #define asm_write_inst4(assembly, inst, arg1, arg2, arg3, arg4) \
     asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 ", " arg4 "\n")
 #define asm_write_inst4c(assembly, inst, arg1, arg2, arg3, arg4, comment) \
-    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 ", " arg4 "\t\t;; " comment "\n")
+    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 ", " arg4 "\t; " comment "\n")
 
 
 #define asm_write_inst0f(assembly, inst, ...)            \
@@ -53,16 +53,16 @@ void asm_label(struct asm_block *assembly, const char *label, ...);
 #define asm_write_inst2f(assembly, inst, arg1, arg2, ...) \
     asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 "\n", __VA_ARGS__)
 #define asm_write_inst2cf(assembly, inst, arg1, arg2, comment, ...) \
-    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 "\t\t; " comment "\n", __VA_ARGS__)
+    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 "\t; " comment "\n", __VA_ARGS__)
 #define asm_write_inst3f(assembly, inst, arg1, arg2, arg3, ...) \
     asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 "\n", __VA_ARGS__)
 #define asm_write_inst3cf(assembly, inst, arg1, arg2, arg3, comment, ...) \
-    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 "\t\t;; " comment "\n",\
+    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 "\t; " comment "\n",\
               __VA_ARGS__)
 #define asm_write_inst4f(assembly, inst, arg1, arg2, arg3, arg4, ...) \
     asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 ", " arg4 "\n", __VA_ARGS__)
 #define asm_write_inst4cf(assembly, inst, arg1, arg2, arg3, arg4, comment, ...) \
-    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 ", " arg4 "\t\t;; " comment "\n",\
+    asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 ", " arg3 ", " arg4 "\t; " comment "\n",\
               __VA_ARGS__)
 
 #define asm_section(assembly, ...) asm_section_(assembly, __VA_ARGS__, NULL)
