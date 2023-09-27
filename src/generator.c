@@ -7,7 +7,26 @@
 #include "ir.h"
 
 
-enum generate_result generate(struct ir_block *block, struct asm_block *assembly) {
+void generate_header(struct asm_block *assembly) {
+    asm_write(assembly, "format PE64 console\n");
+    asm_write(assembly, "include 'win64ax.inc'\n");
+    asm_write(assembly, "\n");
+}
+
+void generate_imports(struct asm_block *assembly) {
+    asm_section(assembly, ".idata", "import", "data", "readable");
+    asm_write(assembly, "\n");
+    asm_write(assembly, "  library\\\n");
+    asm_write(assembly, "\tkernel, 'kernel32.dll',\\\n");
+    asm_write(assembly, "\tmsvcrt, 'msvcrt.dll'\n");
+    asm_write(assembly, "  import msvcrt,\\\n");
+    asm_write(assembly, "\tprintf, 'printf'\n");
+    asm_write(assembly, "  import kernel,\\\n");
+    asm_write(assembly, "\tExitProcess, 'ExitProcess'\n");
+    asm_write(assembly, "\n");
+}
+
+void generate_code(struct asm_block *assembly, struct ir_block *block) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
         asm_write_inst1c(assembly, "pop", "rbx", "RHS.");               \
@@ -16,12 +35,14 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
         asm_write_inst1(assembly, "push", "rax");                       \
     } while (0)
 
-    asm_start_asm(assembly);
-    asm_start_code(assembly, "start");
+    asm_section(assembly, ".code", "code", "readable", "executable");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "start");
+    asm_write(assembly, "\n");
     for (int ip = 0; ip < block->count; ++ip) {
         if (is_jump_dest(block, ip)) {
             // We need a label.
-            asm_write(assembly, "  addr_%d:\n", ip);
+            asm_label(assembly, "addr_%d", ip);
         }
         enum opcode instruction = block->code[ip];
         if (instruction == OP_NOP) continue;
@@ -84,7 +105,13 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
     }
     asm_write(assembly, "  ;;\t=== END ===\n");
     asm_write_inst2c(assembly, "invoke", "ExitProcess", "0", "Successful exit.");
-    asm_end_code(assembly);
-    return GENERATE_OK;
+    asm_write(assembly, "\n");
 #undef BIN_OP
+}
+
+enum generate_result generate(struct ir_block *block, struct asm_block *assembly) {
+    generate_header(assembly);
+    generate_code(assembly, block);
+    generate_imports(assembly);
+    return GENERATE_OK;
 }
