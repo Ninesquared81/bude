@@ -2,6 +2,7 @@
 #define ASM_H
 
 #include <stdarg.h>
+#include <stddef.h>
 
 #define ASM_CODE_SIZE 4 * 1024 *1024
 
