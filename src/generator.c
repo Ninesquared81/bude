@@ -8,12 +8,12 @@
 
 
 enum generate_result generate(struct ir_block *block, struct asm_block *assembly) {
-#define BIN_OP(OP)                                               \
-    do {                                                         \
-        asm_write(assembly, "\tpop\trbx\t\t; RHS.\n");           \
-        asm_write(assembly, "\tpop\trax\t\t; LHS.\n");           \
-        asm_write(assembly, "\t"OP"\trax, rbx\n");               \
-        asm_write(assembly, "\tpush\trax\n");                    \
+#define BIN_OP(OP)                                                      \
+    do {                                                                \
+        asm_write_inst1c(assembly, "pop", "rbx", "RHS.");               \
+        asm_write_inst1c(assembly, "pop", "rax", "LHS.");               \
+        asm_write_inst2(assembly, OP, "rax", "rbx");                    \
+        asm_write_inst1(assembly, "push", "rax");                       \
     } while (0)
 
     asm_start_asm(assembly);
@@ -33,47 +33,47 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
         case OP_PUSH8: {
             ++ip;
             int8_t value = read_s8(block, ip);
-            asm_write(assembly, "\tmov\trax, %"PRId8"\n", value);
-            asm_write(assembly, "\tpush\trax\n");
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRId8, value);
+            asm_write_inst1(assembly, "push", "rax");
             break;
         }
         case OP_ADD:
             BIN_OP("add");
             break;
         case OP_EXIT:
-            asm_write(assembly, "\tpop\trcx\t\t; Exit code.\n");
-            asm_write(assembly, "\tcall\t[ExitProcess]\n");
+            asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
+            asm_write_inst1(assembly, "call", "[ExitProcess]");
             break;
         case OP_JUMP: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip - 1 + jump;  // -1 since jumps are calculated from the opcode.
-            asm_write(assembly, "\tjmp\taddr_%d\n", jump_addr);
+            asm_write_inst1f(assembly, "jmp", "addr_%d", jump_addr);
             break;
         }
         case OP_JUMP_COND: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip - 1 + jump;
-            asm_write(assembly, "\tpop\trax\t\t; Condition.\n");
-            asm_write(assembly, "\ttest rax, rax\n");
-            asm_write(assembly, "\tjnz\taddr_%d\n", jump_addr);
+            asm_write_inst1c(assembly, "pop", "rax", "Condition.");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst1f(assembly, "jnz", "addr_%d", jump_addr);
             break;
         }
         case OP_JUMP_NCOND: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip -1 + jump;
-            asm_write(assembly, "\tpop\trax\t\t; Condition.\n");
-            asm_write(assembly, "\ttest\trax, rax\n");
-            asm_write(assembly, "\tjz\taddr_%d\n", jump_addr);
+            asm_write_inst1c(assembly, "pop", "rax", "Condition.");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst1f(assembly, "jz", "addr_%d", jump_addr);
             break;
         }
         case OP_NOT:
-            asm_write(assembly, "\tpop\trax\n");
-            asm_write(assembly, "\ttest\trax, rax\n");
-            asm_write(assembly, "\tsetz\trax\n");
-            asm_write(assembly, "\tpush\trax\n");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst1(assembly, "setz", "rax");
+            asm_write_inst1(assembly, "push", "rax");
             break;
         case OP_SUB:
             BIN_OP("sub");
@@ -83,7 +83,7 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
         }
     }
     asm_write(assembly, "  ;;\t=== END ===\n");
-    asm_write(assembly, "\tinvoke\tExitProcess, 0\t; Successful exit.\n");
+    asm_write_inst2c(assembly, "invoke", "ExitProcess", "0", "Successful exit.");
     asm_end_code(assembly);
     return GENERATE_OK;
 #undef BIN_OP
