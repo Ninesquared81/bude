@@ -8,7 +8,6 @@
 
 void init_assembly(struct asm_block *assembly) {
     assembly->count = 0;
-    assembly->entry_point = NULL;
 }
 
 void asm_vwrite(struct asm_block *assembly, const char *restrict code, va_list args) {
@@ -35,13 +34,25 @@ void asm_start_asm(struct asm_block *assembly) {
     asm_write(assembly, "include 'win64ax.inc'\n\n");
 }
 
-void asm_start_code(struct asm_block *assembly, const char *entry_point) {
-    assembly->entry_point = entry_point;
-    asm_write(assembly, ".code\n");
-    asm_write(assembly, "  %s:\n\n", entry_point);
+void asm_section_(struct asm_block *assembly, const char *section_name, ...) {
+    asm_write(assembly, "section '%s'", section_name);
+    va_list args;
+    va_start(args, section_name);
+    // Section permissions.
+    const char *perm;
+    while ((perm = va_arg(args, const char *))) {
+        asm_write(assembly, " %s", perm);
+    }
+    va_end(args);
+    asm_write(assembly, "\n");
 }
 
-void asm_end_code(struct asm_block *assembly) {
-    asm_write(assembly, "\n.end %s\n", assembly->entry_point);
+void asm_label(struct asm_block *assembly, const char *restrict label, ...) {
+    asm_write(assembly, "  ");
+    va_list args;
+    va_start(args, label);
+    asm_vwrite(assembly, label, args);
+    va_end(args);
+    asm_write(assembly, ":\n");
 }
 
