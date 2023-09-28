@@ -17,9 +17,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
         asm_write_inst1c(assembly, "pop", "rbx", "RHS.");               \
-        asm_write_inst1c(assembly, "pop", "rax", "LHS.");               \
-        asm_write_inst2(assembly, OP, "rax", "rbx");                    \
-        asm_write_inst1(assembly, "push", "rax");                       \
+        asm_write_inst2c(assembly, OP, "[rsp]", "rbx", "LHS left on stack."); \
     } while (0)
 
     asm_section(assembly, ".code", "code", "readable", "executable");
@@ -48,6 +46,8 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case OP_ADD:
             BIN_OP("add");
             break;
+        case OP_DIVMOD:
+            
         case OP_EXIT:
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
@@ -77,6 +77,9 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1f(assembly, "jz", "addr_%d", jump_addr);
             break;
         }
+        case OP_MULT:
+            BIN_OP("mul");
+            break;
         case OP_NOT:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "test", "rax", "rax");
