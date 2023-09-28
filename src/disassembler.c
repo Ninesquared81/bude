@@ -12,12 +12,12 @@ static int immediate_u8_instruction(const char *name, struct ir_block *block, in
 }
 
 static int immediate_u16_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%16s %ud\n", name, read_u16(block, offset + 1));
+    printf("%-16s %ud\n", name, read_u16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_u32_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%16s %ud\n", name, read_u32(block, offset + 1));
+    printf("%-16s %ud\n", name, read_u32(block, offset + 1));
     return offset + 5;
 }
 
@@ -27,12 +27,12 @@ static int immediate_s8_instruction(const char *name, struct ir_block *block, in
 }
 
 static int immediate_s16_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%16s %d\n", name, read_s16(block, offset + 1));
+    printf("%-16s %d\n", name, read_s16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_s32_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%16s %d\n", name, read_s32(block, offset + 1));
+    printf("%-16s %d\n", name, read_s32(block, offset + 1));
     return offset + 5;
 }
 
