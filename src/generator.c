@@ -47,7 +47,13 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             BIN_OP("add");
             break;
         case OP_DIVMOD:
-            
+            asm_write_inst1c(assembly, "pop", "rbx", "Divisor.");
+            asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
+            asm_write_inst2c(assembly, "xor", "rdx", "rdx", "Zero out extra bytes in dividend.");
+            asm_write_inst1(assembly, "div", "rbx");
+            asm_write_inst1c(assembly, "push", "rax", "Quotient.");
+            asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
+            break;
         case OP_EXIT:
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
