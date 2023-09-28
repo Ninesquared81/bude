@@ -49,7 +49,7 @@ void asm_label(struct asm_block *assembly, const char *label, ...);
 #define asm_write_inst1f(assembly, inst, arg1, ...) \
     asm_write(assembly, "\t" inst "\t" arg1 "\n", __VA_ARGS__)
 #define asm_write_inst1cf(assembly, inst, arg1, comment, ...) \
-    asm_write(assembly, "\t" inst "\t" arg1 "\t\t; " comment "\n", __VA_ARGS__)
+    asm_write(assembly, "\t" inst "\t" arg1 "\t; " comment "\n", __VA_ARGS__)
 #define asm_write_inst2f(assembly, inst, arg1, arg2, ...) \
     asm_write(assembly, "\t" inst "\t" arg1 ", " arg2 "\n", __VA_ARGS__)
 #define asm_write_inst2cf(assembly, inst, arg1, arg2, comment, ...) \

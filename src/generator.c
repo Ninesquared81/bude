@@ -93,10 +93,14 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "push", "rax");
             break;
         case OP_PRINT:
-            asm_write_inst1c(assembly, "pop", "rdx", "Second argument to printf.");
-            asm_write_inst2c(assembly, "mov", "rcx", "fmt_s64",
-                             "First argument to printf (format string).");
+            asm_write_inst1c(assembly, "pop", "rdx", "Value to be printed.");
+            asm_write_inst2c(assembly, "mov", "rcx", "fmt_s64", "Format string.");
+            asm_write_inst2c(assembly, "mov", "rbx", "rsp",
+                            "Save rsp for later (rbp is non-volatile in MS x64)");
+            asm_write_inst2c(assembly, "and", "spl", "0F0h", "Align stack.");
+            asm_write_inst2c(assembly, "sub", "rsp", "32\t", "Shadow space.");
             asm_write_inst1(assembly, "call", "[printf]");
+            asm_write_inst2c(assembly, "mov", "rsp", "rbx", "Restore cached version of rsp.");
             break;
         case OP_SUB:
             BIN_OP("sub");
