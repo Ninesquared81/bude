@@ -127,7 +127,10 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         }
     }
     asm_write(assembly, "  ;;\t=== END ===\n");
-    asm_write_inst2c(assembly, "invoke", "ExitProcess", "0", "Successful exit.");
+    asm_write_inst2c(assembly, "xor", "rcx", "rcx", "Successful exit.");
+    asm_write_inst2(assembly, "and", "spl", "0F0h");
+    asm_write_inst2(assembly, "sub", "rsp", "32");
+    asm_write_inst1(assembly, "call", "[ExitProcess]");
     asm_write(assembly, "\n");
 #undef BIN_OP
 }
