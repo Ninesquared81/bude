@@ -43,6 +43,23 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
+        case OP_PUSH16: {
+            ip += 2;
+            int16_t value = read_s16(block, ip - 1);
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRId16, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case OP_PUSH32: {
+            ip += 4;
+            int32_t value = read_s32(block, ip - 3);
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRId16, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case OP_POP:
+            asm_write_inst1(assembly, "pop", "rax");
+            break;
         case OP_ADD:
             BIN_OP("add");
             break;
