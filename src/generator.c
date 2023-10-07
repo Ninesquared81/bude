@@ -152,7 +152,7 @@ void generate_imports(struct asm_block *assembly) {
 
 void generate_constants(struct asm_block *assembly, struct ir_block *block) {
     (void)block;
-    asm_section(assembly, ".rodata", "data", "readable");
+    asm_section(assembly, ".rdata", "data", "readable");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_s64");
     asm_write_inst3c(assembly, "db", "'%%I64d'", "10", "0",
