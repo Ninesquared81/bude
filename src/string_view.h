@@ -3,7 +3,7 @@
 
 struct string_view {
     const char *start;
-    int length;
+    size_t length;
 };
 
 char *view_to_string(struct string_view *view);
