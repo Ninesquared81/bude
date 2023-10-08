@@ -1,6 +1,8 @@
 #ifndef STRING_BUILDER_H
 #define STRING_BUILDER_H
 
+#include <stddef.h>
+
 #include "string_view.h"
 #include "region.h"
 
@@ -30,7 +32,7 @@ struct string_builder *start_view(struct string_builder *builder, const char *st
 struct string_builder *store_char(struct string_builder *builder, char ch, struct region *region);
 void build_string(struct string_builder *builder, char *buffer);
 
-int sb_length(struct string_builder *builder);
+size_t sb_length(struct string_builder *builder);
 
 void kill_string_builder(struct string_builder *builder);
 

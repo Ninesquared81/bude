@@ -48,8 +48,8 @@ void build_string(struct string_builder *builder, char *buffer) {
     *buffer = '\0';
 }
 
-int sb_length(struct string_builder *builder) {
-    int length = 0;
+size_t sb_length(struct string_builder *builder) {
+    size_t length = 0;
     for (; builder != NULL; builder = builder->next) {
         length += SB_NODE_AS_VIEW(builder).length;
     }
