@@ -49,12 +49,6 @@ struct jump_info_table {
     int *dests;
 };
 
-struct memory_handler {
-    int capacity;
-    int count;
-    struct mem_obj *objects;
-};
-
 struct ir_block {
     int capacity;
     int count;
