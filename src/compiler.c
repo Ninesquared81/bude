@@ -238,12 +238,8 @@ static void compile_string(struct compiler *compiler) {
             ++current->view.length;
         }
     }
-    int length = sb_length(&builder);
-    char *string = region_alloc(compiler->block->static_memory, length + 1);
-    build_string(&builder, string);
-    int index = write_constant(compiler->block, (uintptr_t)string);
-    write_immediate_uv(compiler->block, OP_LOAD8, index);
-    write_immediate_sv(compiler->block, OP_PUSH8, length);
+    uint32_t index = write_string(compiler->block, &builder);
+    write_immediate_uv(compiler->block, OP_LOAD_STRING8, index);
     kill_region(temp_region);
 }
 

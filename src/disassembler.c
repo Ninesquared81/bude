@@ -67,6 +67,12 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return immediate_u16_instruction("OP_LOAD16", block, offset);
     case OP_LOAD32:
         return immediate_u32_instruction("OP_LOAD32", block, offset);
+    case OP_LOAD_STRING8:
+        return immediate_u8_instruction("OP_LOAD_STRING8", block, offset);
+    case OP_LOAD_STRING16:
+        return immediate_u16_instruction("OP_LOAD_STRING16", block, offset);
+    case OP_LOAD_STRING32:
+        return immediate_u32_instruction("OP_LOAD_STRING32", block, offset);
     case OP_POP:
         return simple_instruction("OP_POP", offset);
     case OP_ADD:

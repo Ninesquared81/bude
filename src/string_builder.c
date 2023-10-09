@@ -48,6 +48,14 @@ void build_string(struct string_builder *builder, char *buffer) {
     *buffer = '\0';
 }
 
+struct string_view build_string_in_region(struct string_builder *builder, struct region *region) {
+    size_t length = sb_length(builder);
+    char *buffer = region_alloc(region, length + 1);
+    if (buffer == NULL) return (struct string_view) {0};
+    build_string(builder, buffer);
+    return (struct string_view) {.start = buffer, .length = length};
+}
+
 size_t sb_length(struct string_builder *builder) {
     size_t length = 0;
     for (; builder != NULL; builder = builder->next) {

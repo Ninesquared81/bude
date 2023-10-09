@@ -72,6 +72,30 @@ enum interpret_result interpret(struct ir_block *block, struct stack *stack) {
             push(stack, constant);
             break;
         }
+        case OP_LOAD_STRING8: {
+            ++ip;
+            uint8_t index = read_u8(block, ip);
+            struct string_view *view = read_string(block, index);
+            push(stack, (uintptr_t)view->start);
+            push(stack, view->length);
+            break;
+        }
+        case OP_LOAD_STRING16: {
+            ip += 2;
+            uint16_t index = read_u16(block, ip);
+            struct string_view *view = read_string(block, index);
+            push(stack, (uintptr_t)view->start);
+            push(stack, view->length);
+            break;
+        }
+        case OP_LOAD_STRING32: {
+            ip += 4;
+            uint32_t index = read_u32(block, ip);
+            struct string_view *view = read_string(block, index);
+            push(stack, (uintptr_t)view->start);
+            push(stack, view->length);
+            break;
+        }
         case OP_POP: pop(stack); break;
         case OP_ADD: BIN_OP(+, stack); break;
         case OP_DEREF: {

@@ -19,6 +19,10 @@
 #define JUMP_INFO_TABLE_INIT_SIZE 8
 #endif
 
+#ifndef STRING_TABLE_INIT_SIZE
+#define STRING_TABLE_INIT_SIZE 64
+#endif
+
 #ifndef MEMORY_INIT_SIZE
 #define MEMORY_INIT_SIZE 1024
 #endif
@@ -31,30 +35,33 @@ struct mem_obj {
 
 
 const char *opcode_names[] = {
-    [OP_NOP]        = "OP_NOP",
-    [OP_PUSH8]      = "OP_PUSH8",
-    [OP_PUSH16]     = "OP_PUSH16",
-    [OP_PUSH32]     = "OP_PUSH32",
-    [OP_LOAD8]      = "OP_LOAD8",
-    [OP_LOAD16]     = "OP_LOAD16",
-    [OP_LOAD32]     = "OP_LOAD32",
-    [OP_POP]        = "OP_POP",
-    [OP_ADD]        = "OP_ADD",
-    [OP_AND]        = "OP_AND",
-    [OP_DEREF]      = "OP_DEREF",
-    [OP_DIVMOD]     = "OP_DIVMOD",
-    [OP_DUPE]       = "OP_DUPE",
-    [OP_EXIT]       = "OP_EXIT",
-    [OP_JUMP]       = "OP_JUMP",
-    [OP_JUMP_COND]  = "OP_JUMP_COND",
-    [OP_JUMP_NCOND] = "OP_JUMP_NCOND",
-    [OP_MULT]       = "OP_MULT",
-    [OP_NOT]        = "OP_NOT",
-    [OP_OR]         = "OP_OR",
-    [OP_PRINT]      = "OP_PRINT",
-    [OP_PRINT_CHAR] = "OP_PRINT_CHAR",
-    [OP_SUB]        = "OP_SUB",
-    [OP_SWAP]       = "OP_SWAP",
+    [OP_NOP]               = "OP_NOP",
+    [OP_PUSH8]             = "OP_PUSH8",
+    [OP_PUSH16]            = "OP_PUSH16",
+    [OP_PUSH32]            = "OP_PUSH32",
+    [OP_LOAD8]             = "OP_LOAD8",
+    [OP_LOAD16]            = "OP_LOAD16",
+    [OP_LOAD32]            = "OP_LOAD32",
+    [OP_LOAD_STRING8]      = "OP_LOAD_STRING8",
+    [OP_LOAD_STRING16]     = "OP_LOAD_STRING16",
+    [OP_LOAD_STRING32]     = "OP_LOAD_STRING32",
+    [OP_POP]               = "OP_POP",
+    [OP_ADD]               = "OP_ADD",
+    [OP_AND]               = "OP_AND",
+    [OP_DEREF]             = "OP_DEREF",
+    [OP_DIVMOD]            = "OP_DIVMOD",
+    [OP_DUPE]              = "OP_DUPE",
+    [OP_EXIT]              = "OP_EXIT",
+    [OP_JUMP]              = "OP_JUMP",
+    [OP_JUMP_COND]         = "OP_JUMP_COND",
+    [OP_JUMP_NCOND]        = "OP_JUMP_NCOND",
+    [OP_MULT]              = "OP_MULT",
+    [OP_NOT]               = "OP_NOT",
+    [OP_OR]                = "OP_OR",
+    [OP_PRINT]             = "OP_PRINT",
+    [OP_PRINT_CHAR]        = "OP_PRINT_CHAR",
+    [OP_SUB]               = "OP_SUB",
+    [OP_SWAP]              = "OP_SWAP",
 };
 
 const char *get_opcode_name(enum opcode opcode) {
@@ -97,6 +104,7 @@ void init_block(struct ir_block *block) {
     block->count = 0;
     init_constant_table(&block->constants);
     init_jump_info_table(&block->jumps);
+    init_string_table(&block->strings);
     block->static_memory = new_region(MEMORY_INIT_SIZE);
     //CHECK_ALLOCATION(block->static_memory);
     if (block->static_memory == NULL) {
@@ -141,6 +149,19 @@ void free_jump_info_table(struct jump_info_table *table) {
     table->count = 0;
 }
 
+void init_string_table(struct string_table *table) {
+    table->views = allocate_array(STRING_TABLE_INIT_SIZE, sizeof *table->views);
+    table->capacity = STRING_TABLE_INIT_SIZE;
+    table->count = 0;
+}
+
+void free_string_table(struct string_table *table) {
+    free_array(table->views, table->capacity, sizeof *table->views);
+    table->views = NULL;
+    table->capacity = 0;
+    table->count = 0;
+}
+
 static void grow_block(struct ir_block *block) {
     int old_capacity = block->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : BLOCK_INIT_SIZE;
@@ -166,6 +187,15 @@ static void grow_jump_info_table(struct jump_info_table *table) {
     table->dests = reallocate_array(table->dests, old_capacity, new_capacity,
                                     sizeof table->dests[0]);
     table->capacity = new_capacity;    
+}
+
+static void grow_string_table(struct string_table *table) {
+    size_t old_capacity = table->capacity;
+    size_t new_capacity = old_capacity + old_capacity/2;
+    assert(new_capacity > 0);
+    table->views = reallocate_array(table->views, old_capacity, new_capacity,
+                                      sizeof table->views[0]);
+    table->capacity = new_capacity;
 }
 
 void write_simple(struct ir_block *block, enum opcode instruction) {
@@ -325,6 +355,25 @@ int write_constant(struct ir_block *block, uint64_t constant) {
 uint64_t read_constant(struct ir_block *block, int index) {
     assert(0 <= index && index < block->constants.count);
     return block->constants.data[index];
+}
+
+uint32_t write_string(struct ir_block *block, struct string_builder *builder) {
+    struct string_view view = build_string_in_region(builder, block->static_memory);
+    if (view.start == NULL) {
+        fprintf(stderr, "Failed to allocate string.\n");
+        exit(1);
+    }
+    struct string_table *table = &block->strings;
+    if (table->count + 1 > table->capacity) {
+        grow_string_table(table);
+    }
+    table->views[table->count++] = view;
+    return table->count - 1;
+}
+
+struct string_view *read_string(struct ir_block *block, uint32_t index) {
+    assert(index < block->strings.count);
+    return &block->strings.views[index];
 }
 
 int write_jump(struct ir_block *block, int dest) {
