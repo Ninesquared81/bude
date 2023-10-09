@@ -16,6 +16,8 @@ void init_assembly(struct asm_block *assembly);
 void asm_write(struct asm_block *assembly, const char *restrict code, ...);
 void asm_vwrite(struct asm_block *assembly, const char *restrict code, va_list args);
 
+void asm_write_string(struct asm_block *assembly, const char *restrict string);
+
 void asm_start_asm(struct asm_block *assembly);
 void asm_section_(struct asm_block *assembly, const char *section_name, ...);
 void asm_label(struct asm_block *assembly, const char *label, ...);

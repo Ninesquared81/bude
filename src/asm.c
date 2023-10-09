@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -54,5 +55,35 @@ void asm_label(struct asm_block *assembly, const char *restrict label, ...) {
     asm_vwrite(assembly, label, args);
     va_end(args);
     asm_write(assembly, ":\n");
+}
+
+static bool can_be_in_fasm_string(char c) {
+    return ' ' <= c && c <= '~';  // ASCII only.
+}
+
+void asm_write_string(struct asm_block *assembly, const char *restrict string) {
+    char opener = '"';
+    asm_write(assembly, "\"");
+    for (char c = *string; c != '\0'; c = *++string) {
+        if (can_be_in_fasm_string(c)) {
+            if (c != opener) {
+                asm_write(assembly, "%c", c);
+            }
+            else {
+                char new_opener = (opener == '"') ? '\'' : '"';
+                asm_write(assembly, "%c, %c%c", opener, new_opener, c);
+                opener = new_opener;
+            }
+        }
+        else {
+            asm_write(assembly, "%c", opener);
+            do {
+                asm_write(assembly, ", %d", c);
+                if (c == '\0') return;  // Stop string after null terminator.
+            } while (!can_be_in_fasm_string(c = *++string));
+            asm_write(assembly, "%c", opener);
+        }
+    }
+    asm_write(assembly, "%c, 0", opener);  // Null terminate string.
 }
 
