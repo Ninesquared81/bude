@@ -62,8 +62,8 @@ static bool can_be_in_fasm_string(char c) {
 }
 
 void asm_write_string(struct asm_block *assembly, const char *restrict string) {
-    char opener = '"';
-    asm_write(assembly, "\"");
+    char opener = (*string == '"') ? '\'' : '"';
+    asm_write(assembly, "%c", opener);
     for (char c = *string; c != '\0'; c = *++string) {
         if (can_be_in_fasm_string(c)) {
             if (c != opener) {
