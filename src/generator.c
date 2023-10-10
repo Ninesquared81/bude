@@ -108,6 +108,13 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case OP_ADD:
             BIN_OP("add");
             break;
+        case OP_AND:
+            asm_write_inst1c(assembly, "pop", "rbx", "'Then' value.");
+            asm_write_inst2c(assembly, "mov", "rax", "[rsp]", "'Else' value.");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "cmovnz", "rax", "rbx");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            break;
         case OP_DEREF:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movzx", "rbx", "byte [rax]");
@@ -161,6 +168,13 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "test", "rax", "rax");
             asm_write_inst1(assembly, "setz", "rax");
             asm_write_inst1(assembly, "push", "rax");
+            break;
+        case OP_OR:
+            asm_write_inst1c(assembly, "pop", "rbx", "'Else' value.");
+            asm_write_inst2c(assembly, "mov", "rax", "[rsp]", "'Then' value.");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "cmovz", "rax", "rbx");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
         case OP_PRINT:
             asm_write_inst1c(assembly, "pop", "rdx", "Value to be printed.");
