@@ -184,6 +184,12 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case OP_SUB:
             BIN_OP("sub");
             break;
+        case OP_SWAP:
+            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
+            asm_write_inst2(assembly, "mov", "rbx", "[rsp+8]");
+            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rbx");
+            break;
         default:
             assert(0 && "Not implemented you silly goose!");
         }
