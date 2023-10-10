@@ -78,7 +78,7 @@ _i1_ _i2_ `-` &rarr; (_i1_ - _i2_) : Pop the top two elements and push their dif
 
 _i1_ _i2_ `*` &rarr; (_i1_ \* _i2_) : Pop the top two elements and push their product.
 
-_i1_ _i2_ `/%` &rarr; (_i1_ / _i2_) (_i1_ \% _i2_) : Pops the top two elements and pushes their
+_i1_ _i2_ `/%` &rarr; (_i1_ / _i2_) (_i1_ \% _i2_) : Pop the top two elements and push their
 quotient and remainder.
 
 ### Logical operations
