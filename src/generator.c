@@ -87,16 +87,16 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             break;
         }
         case OP_LOAD_STRING16: {
-            ++ip;
-            int16_t index = read_u16(block, ip);
+            ip += 2;
+            int16_t index = read_u16(block, ip - 1);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
             asm_write_inst1(assembly, "push", "rax");
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
             break;
         }
         case OP_LOAD_STRING32: {
-            ++ip;
-            int32_t index = read_u32(block, ip);
+            ip += 4;
+            int32_t index = read_u32(block, ip - 3);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
             asm_write_inst1(assembly, "push", "rax");
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
