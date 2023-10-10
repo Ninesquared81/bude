@@ -14,7 +14,7 @@ for different environments (e.g. to change to compiler other than GCC).
 make
 ```
 
-### Running the compiler
+## Running the compiler
 
 After building the project, the interpreter can be run using the following command:
 
