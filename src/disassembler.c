@@ -7,17 +7,17 @@
 
 
 static int immediate_u8_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %ud\n", name, read_u8(block, offset + 1));
+    printf("%-16s %u\n", name, read_u8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_u16_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %ud\n", name, read_u16(block, offset + 1));
+    printf("%-16s %u\n", name, read_u16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_u32_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %ud\n", name, read_u32(block, offset + 1));
+    printf("%-16s %u\n", name, read_u32(block, offset + 1));
     return offset + 5;
 }
 

@@ -57,6 +57,27 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
+        case OP_LOAD8: {
+            ++ip;
+            uint8_t index = read_u8(block, ip);
+            asm_write_inst2f(assembly, "lea", "rax", "[constants + %"PRIu8"*8]", index);
+            asm_write_inst1(assembly, "push", "qword [rax]");
+            break;
+        }
+        case OP_LOAD16: {
+            ip += 2;
+            uint16_t index = read_u16(block, ip - 1);
+            asm_write_inst2f(assembly, "lea", "rax", "[constants + %"PRIu16"*8]", index);
+            asm_write_inst1(assembly, "push", "qword [rax]");
+            break;
+        }
+        case OP_LOAD32: {
+            ip += 4;
+            uint32_t index = read_u32(block, ip - 3);
+            asm_write_inst2f(assembly, "lea", "rax", "[constants + %"PRIu32"*8]", index);
+            asm_write_inst1(assembly, "push", "qword [rax]");
+            break;
+        }
         case OP_LOAD_STRING8: {
             ++ip;
             int8_t index = read_u8(block, ip);
@@ -210,6 +231,14 @@ void generate_constants(struct asm_block *assembly, struct ir_block *block) {
         asm_write_string(assembly, block->strings.views[i].start);
         asm_write(assembly, "\n\n");
     }
+    if (block->constants.count > 0) {
+        struct constant_table *constants = &block->constants;
+        asm_label(assembly, "constants");
+        for (int i = 0; i < constants->count; ++i) {
+            asm_write_inst1f(assembly, "dq", "%"PRIu64, constants->data[i]);
+        }
+    }
+    
 }
 
 enum generate_result generate(struct ir_block *block, struct asm_block *assembly) {
