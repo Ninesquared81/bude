@@ -5,7 +5,7 @@ CFLAGS = -Wall -Wextra -Werror -pedantic -g -std=c2x -D__USE_MINGW_ANSI_STDIO=1
 sources = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(sources))
 
-out = bin/main
+out = bin/bude
 
 .PHONY: all
 
