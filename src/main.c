@@ -23,6 +23,8 @@ struct cmdopts {
     bool optimise;
     bool interpret;
     bool generate_asm;
+    // Parameterised options.
+    const char *output_filename;
     // Positional Args
     const char *filename;
 };
@@ -39,6 +41,7 @@ static void print_help(FILE *file, const char *name) {
             "Options:\n"
             "  -a                generate assembly code\n"
             "  -d, --dump        dump the generated ir code and exit, unless -i or -a are specified\n"
+            "  -f <filename>     write the output to the specified file\n"
             "  -h, -?, --help    display this help message and exit\n"
             "  -i, --interpret   interpret ir code (enabled by default)\n"
             "  -o, --optimise    optimise ir code\n"
@@ -53,6 +56,7 @@ static void print_version(FILE *file) {
 
 static void init_cmdopts(struct cmdopts *opts) {
     opts->filename = NULL;
+    opts->output_filename = NULL;
     opts->dump_ir = false;
     opts->optimise = false;
     opts->interpret = true;
@@ -125,6 +129,22 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             case 'o':
                 parse_short_opt(name, arg, opts, &had_i, &had_a);
                 break;
+            case 'f': {
+                const char *filename = NULL;
+                if (arg[2] != '\0') {
+                    // Argument pasted on the end.
+                    filename = &arg[2];
+                }
+                else if (argc >= i + 1) {
+                    filename = argv[++i];  // Consume the next argument as the filename.
+                }
+                else {
+                    fprintf(stderr, "'%s' option missing required argument 'filename'.\n", arg);
+                    exit(1);
+                }
+                opts->output_filename = filename;
+                break;
+            }
             case '-':
                 if (arg[2] == '\0') {
                     // End of options.
@@ -231,12 +251,20 @@ int main(int argc, char *argv[]) {
         free(stack);
     }
     if (opts.generate_asm) {
+        FILE *outfile = stdout;
+        if (opts.output_filename != NULL) {
+            outfile = fopen(opts.output_filename, "w");
+            if (outfile == NULL) {
+                perror("Failed to open output file");
+                exit(1);
+            }
+        }
         struct asm_block *assembly = malloc(sizeof *assembly);
         init_assembly(assembly);
         if (generate(&block, assembly) != GENERATE_OK) {
             exit(1);
         }
-        printf("%s", assembly->code);
+        fprintf(outfile, "%s", assembly->code);
         free(assembly);
     }
     free_block(&block);
