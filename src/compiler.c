@@ -164,6 +164,26 @@ static int compile_conditional(struct compiler *compiler) {
     return end_addr;
 }
 
+static void compile_for_loop(struct compiler *compiler) {
+    advance(compiler);  // Consume `for` token.
+    compile_expr(compiler);  // Count.
+    expect_consume(compiler, TOKEN_DO, "Expect `do` after `for` start.");
+
+    int offset = start_jump(compiler, OP_FOR_LOOP_START);
+    int body_start = compiler->block->count;
+    compile_expr(compiler);  // Loop body.
+
+    int loop_jump = body_start - compiler->block->count - 1;
+    write_immediate_s16(compiler->block, OP_FOR_LOOP_UPDATE, loop_jump);
+    write_jump(compiler->block, body_start);
+
+    int skip_jump = compiler->block->count - offset - 1;
+    patch_jump(compiler, offset, skip_jump);
+    write_jump(compiler->block, compiler->block->count);
+
+    expect_keep(compiler, TOKEN_END, "Expect `end` after `for` loop.");
+}
+
 static void compile_loop(struct compiler *compiler) {
     advance(compiler);  // Consume `while` token.
     int condition_start = compiler->block->count;
@@ -260,6 +280,9 @@ static void compile_expr(struct compiler *compiler) {
             break;
         case TOKEN_EXIT:
             write_simple(compiler->block, OP_EXIT);
+            break;
+        case TOKEN_FOR:
+            compile_for_loop(compiler);
             break;
         case TOKEN_IF:
             compile_conditional(compiler);

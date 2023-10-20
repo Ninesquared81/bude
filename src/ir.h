@@ -7,10 +7,12 @@
 #include "string_builder.h"
 #include "string_view.h"
 
-#define IS_JUMP(instruction)         (           \
-        instruction == OP_JUMP       ||          \
-        instruction == OP_JUMP_COND  ||          \
-        instruction == OP_JUMP_NCOND  )
+#define IS_JUMP(instruction)              (       \
+        instruction == OP_JUMP            ||      \
+        instruction == OP_JUMP_COND       ||      \
+        instruction == OP_JUMP_NCOND      ||      \
+        instruction == OP_FOR_LOOP_START  ||      \
+        instruction == OP_FOR_LOOP_UPDATE )
 
 enum opcode {
     OP_NOP,
@@ -30,6 +32,8 @@ enum opcode {
     OP_DIVMOD,
     OP_DUPE,
     OP_EXIT,
+    OP_FOR_LOOP_START,
+    OP_FOR_LOOP_UPDATE,
     OP_JUMP,
     OP_JUMP_COND,
     OP_JUMP_NCOND,

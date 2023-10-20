@@ -174,7 +174,31 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_MULT: BIN_OP(*, stack); break;
+        case OP_FOR_LOOP_START: {
+            int skip_jump = read_s16(interpreter->block, ip + 1);
+            stack_word counter = pop(interpreter->main_stack);
+            if (counter != 0) {
+                ip += 2;
+                push(interpreter->auxiliary_stack, counter);
+            }
+            else {
+                jump(interpreter->block, skip_jump, &ip);
+            }
+            break;
+        }
+        case OP_FOR_LOOP_UPDATE: {
+            int loop_jump = read_s16(interpreter->block, ip + 1);
+            stack_word counter = pop(interpreter->auxiliary_stack);
+            if (--counter != 0) {
+                push(interpreter->auxiliary_stack, counter);
+                jump(interpreter->block, loop_jump, &ip);
+            }
+            else {
+                ip += 2;
+            }
+            break;
+        }
+        case OP_MULT: BIN_OP(*, interpreter->main_stack); break;
         case OP_NOT: {
             bool condition = pop(interpreter->main_stack);
             push(interpreter->main_stack, !condition);

@@ -1,7 +1,5 @@
 "Hello, World!\n"
-while dupe do
-    swap dupe
-    deref print-char
+for do
+    dupe deref print-char
     1 +
-    swap 1 -
 end

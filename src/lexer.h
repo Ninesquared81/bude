@@ -16,6 +16,7 @@ enum token_type {
     TOKEN_ELSE,
     TOKEN_END,
     TOKEN_EXIT,
+    TOKEN_FOR,
     TOKEN_IF,
     TOKEN_MINUS,
     TOKEN_NOT,
