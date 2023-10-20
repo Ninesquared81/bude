@@ -246,9 +246,10 @@ int main(int argc, char *argv[]) {
         }
     }
     if (opts.interpret) {
-        struct stack *stack = malloc(sizeof *stack);
-        interpret(&block, stack);
-        free(stack);
+        struct interpreter interpreter;
+        init_interpreter(&interpreter, &block);
+        interpret(&interpreter);
+        free_interpreter(&interpreter);
     }
     if (opts.generate_asm) {
         FILE *outfile = stdout;
