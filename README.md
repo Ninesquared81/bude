@@ -19,7 +19,7 @@ $ make
 After building the project, the interpreter can be run using the following command:
 
 ```shellsession
-$ ./bin/bude.exe ./examples/hello.bude
+$ ./bin/bude.exe ./examples/hello_world.bude
 Hello, World!
 ```
 
