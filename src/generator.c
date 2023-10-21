@@ -24,6 +24,11 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
     asm_write(assembly, "\n");
     asm_label(assembly, "start");
     asm_write(assembly, "\n");
+    asm_write(assembly, "  ;;\tInitialisation.\n");
+    // Global registers.
+    asm_write_inst2c(assembly, "lea", "rsi", "[aux]", "Auxiliary stack pointer.");
+    asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Loop counter.");
+    // Instructions.
     for (int ip = 0; ip < block->count; ++ip) {
         if (is_jump_dest(block, ip)) {
             // We need a label.
@@ -134,6 +139,27 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case OP_EXIT:
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
+            break;
+        case OP_FOR_LOOP_START:
+            ip += 2;
+            int16_t skip_jump = read_s16(block, ip - 1);
+            int skip_jump_addr = ip - 1 + skip_jump;
+            asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
+                             "Push old loop counter onto auxiliary stack.");
+            asm_write_inst2(assembly, "add", "rsi", "8");
+            asm_write_inst1c(assembly, "pop", "rdi", "Load loop counter.");
+            asm_write_inst2(assembly, "test", "rdi", "rdi");
+            asm_write_inst1f(assembly, "jz", "addr_%d", skip_jump_addr);
+            break;
+        case OP_FOR_LOOP_UPDATE:
+            ip += 2;
+            int16_t loop_jump = read_s16(block, ip - 1);
+            int loop_jump_addr = ip - 1 + loop_jump;
+            asm_write_inst1(assembly, "dec", "rdi");
+            asm_write_inst2(assembly, "test", "rdi", "rdi");
+            asm_write_inst1f(assembly, "jnz", "addr_%d", loop_jump_addr);
+            asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
+            asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
             break;
         case OP_JUMP: {
             ip += 2;
@@ -258,7 +284,12 @@ void generate_constants(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1f(assembly, "dq", "%"PRIu64, constants->data[i]);
         }
     }
-    
+}
+
+void generate_bss(struct asm_block *assembly) {
+    asm_section(assembly, ".bss", "data", "readable", "writeable");
+    asm_label(assembly, "aux");
+    asm_write_inst1(assembly, "rq", "1024*1024");
 }
 
 enum generate_result generate(struct ir_block *block, struct asm_block *assembly) {
@@ -266,5 +297,6 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
     generate_code(assembly, block);
     generate_constants(assembly, block);
     generate_imports(assembly);
+    generate_bss(assembly);
     return GENERATE_OK;
 }
