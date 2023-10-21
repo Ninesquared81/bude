@@ -11,30 +11,32 @@ The project can be built using the makefile provided. This may need to be edited
 for different environments (e.g. to change to compiler other than GCC).
 
 ```shell
-make
+$ make
 ```
 
 ## Running the compiler
 
 After building the project, the interpreter can be run using the following command:
 
-```shell
-./bin/main.exe ./examples/hello.bude
+```shellsession
+$ ./bin/bude.exe ./examples/hello.bude
+Hello, World!
 ```
 
 This will run the program `hello_world.bude` from the `examples` subdirectory. A full list of
 command line options can be found by running:
 
 ```shell
-./bin/main.exe -h
+$ ./bin/bude.exe -h
 ```
 
 To create a Windows executable file, run:
 
-```shell
-./bin/main.exe ./examples/hello_world.bude -a > hello_world.asm
-fasm hello_world.asm
-./hello_world.exe
+```shellsession
+$ ./bin/bude.exe ./examples/hello_world.bude -a -f hello_world.asm
+$ fasm hello_world.asm
+$ ./hello_world.exe
+Hello, World!
 ```
 
 This assumes FASM has been installed and is in the PATH variable.
@@ -106,3 +108,5 @@ _w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
 [`else` _else-body_] `end`
 
 `while` _condition_ `do` _body_ `end`
+
+`for` _count_ `do` _body_ `end`
