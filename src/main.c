@@ -263,6 +263,7 @@ int main(int argc, char *argv[]) {
         struct asm_block *assembly = malloc(sizeof *assembly);
         init_assembly(assembly);
         if (generate(&block, assembly) != GENERATE_OK) {
+            fprintf(stderr, "Failed to write assembly code");
             exit(1);
         }
         fprintf(outfile, "%s", assembly->code);
