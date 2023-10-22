@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,21 +207,21 @@ check_filename:
 void load_source(const char *restrict filename, char *restrict inbuf) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        perror("Could not open file");
+        fprintf(stderr, "Could not open input file '%s': %s.\n", filename, strerror(errno));
         exit(1);
     }
     size_t length = fread(inbuf, sizeof *inbuf, INPUT_BUFFER_SIZE - 1, file);
     if (ferror(file)) {
-        perror("Error reading file");
+        fprintf(stderr, "Error reading input file '%s': %s.\n", filename, strerror(errno));
         exit(1);
     }
     if (!feof(file)) {
-        perror("File too large");
+        fprintf(stderr, "Input file '%s' too large.\n", filename);
         exit(1);
     }
     inbuf[length] = '\0';  // Set null byte.
     if (fclose(file) != 0) {
-        perror("Failed to close input file");
+        fprintf(stderr, "Failed to close input file '%s': %s.\n", filename, strerror(errno));
         exit(1);
     }
 }
@@ -228,7 +229,7 @@ void load_source(const char *restrict filename, char *restrict inbuf) {
 int main(int argc, char *argv[]) {
     char *inbuf = calloc(INPUT_BUFFER_SIZE, sizeof *inbuf);
     if (inbuf == NULL) {
-        fprintf(stderr, "calloc failed!\n");
+        perror("calloc() failed");
         exit(1);
     }
     struct cmdopts opts;
@@ -265,13 +266,15 @@ int main(int argc, char *argv[]) {
         if (opts.output_filename != NULL) {
             outfile = fopen(opts.output_filename, "w");
             if (outfile == NULL) {
-                perror("Failed to open output file");
+                fprintf(stderr, "Failed to open output file '%s': %s.\n",
+                       opts.output_filename, strerror(errno));
                 exit(1);
             }
         }
         fprintf(outfile, "%s", assembly->code);
         if (fclose(outfile) != 0) {
-            perror("Failed to close output file");
+            fprintf(stderr, "Failed to close output file '%s': %s.\n",
+                    opts.output_filename, strerror(errno));
             exit(1);
         }
         free(assembly);
