@@ -9,15 +9,17 @@
 
 void init_assembly(struct asm_block *assembly) {
     assembly->count = 0;
+    assembly->status = ASM_OK;
 }
 
 void asm_vwrite(struct asm_block *assembly, const char *restrict code, va_list args) {
     assert(assembly->count + 1 <= ASM_CODE_SIZE);  // +1 for null byte.
+    if (asm_had_error(assembly)) return;  // If there was an error, do nothing.
     size_t max_count = ASM_CODE_SIZE - assembly->count;
     int count = vsnprintf(&assembly->code[assembly->count], max_count, code, args);
     if (count < 0 || (size_t)count > max_count) {
-        fprintf(stderr, "Could not write assembly code.\n");
-        exit(1);
+        assembly->status = ASM_WRITE_ERROR;
+        return;
     }
     assembly->count += count;
     assembly->code[assembly->count] = '\0';

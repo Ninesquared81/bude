@@ -298,5 +298,5 @@ enum generate_result generate(struct ir_block *block, struct asm_block *assembly
     generate_constants(assembly, block);
     generate_imports(assembly);
     generate_bss(assembly);
-    return GENERATE_OK;
+    return (!asm_had_error(assembly)) ? GENERATE_OK : GENERATE_ERROR;
 }

@@ -8,6 +8,10 @@
 
 struct asm_block {
     size_t count;
+    enum asm_status {
+        ASM_OK,
+        ASM_WRITE_ERROR,
+    } status;
     char code[ASM_CODE_SIZE];
 };
 
@@ -21,6 +25,9 @@ void asm_write_string(struct asm_block *assembly, const char *restrict string);
 void asm_start_asm(struct asm_block *assembly);
 void asm_section_(struct asm_block *assembly, const char *section_name, ...);
 void asm_label(struct asm_block *assembly, const char *label, ...);
+
+#define asm_had_error(assembly) ((assembly)->status != ASM_OK)
+#define asm_reset_status(assembly) ((assembly)->status = ASM_OK)
 
 #define asm_write_inst0(assembly, inst) \
     asm_write(assembly, "\t" inst "\n")
