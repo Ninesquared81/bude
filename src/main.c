@@ -252,6 +252,12 @@ int main(int argc, char *argv[]) {
         free_interpreter(&interpreter);
     }
     if (opts.generate_asm) {
+        struct asm_block *assembly = malloc(sizeof *assembly);
+        init_assembly(assembly);
+        if (generate(&block, assembly) != GENERATE_OK) {
+            fprintf(stderr, "Failed to write assembly code.\n");
+            exit(1);
+        }
         FILE *outfile = stdout;
         if (opts.output_filename != NULL) {
             outfile = fopen(opts.output_filename, "w");
@@ -260,13 +266,11 @@ int main(int argc, char *argv[]) {
                 exit(1);
             }
         }
-        struct asm_block *assembly = malloc(sizeof *assembly);
-        init_assembly(assembly);
-        if (generate(&block, assembly) != GENERATE_OK) {
-            fprintf(stderr, "Failed to write assembly code");
+        fprintf(outfile, "%s", assembly->code);
+        if (fclose(outfile) != 0) {
+            perror("Failed to close file");
             exit(1);
         }
-        fprintf(outfile, "%s", assembly->code);
         free(assembly);
     }
     free_block(&block);
