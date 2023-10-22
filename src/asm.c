@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "asm.h"
 
@@ -10,6 +11,7 @@
 void init_assembly(struct asm_block *assembly) {
     assembly->count = 0;
     assembly->status = ASM_OK;
+    memset(&assembly->code, 0, ASM_CODE_SIZE);
 }
 
 void asm_vwrite(struct asm_block *assembly, const char *restrict code, va_list args) {
@@ -22,7 +24,6 @@ void asm_vwrite(struct asm_block *assembly, const char *restrict code, va_list a
         return;
     }
     assembly->count += count;
-    assembly->code[assembly->count] = '\0';
 }
 
 void asm_write(struct asm_block *assembly, const char *restrict code, ...) {
