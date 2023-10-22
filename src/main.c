@@ -219,7 +219,10 @@ void load_source(const char *restrict filename, char *restrict inbuf) {
         exit(1);
     }
     inbuf[length] = '\0';  // Set null byte.
-    fclose(file);    
+    if (fclose(file) != 0) {
+        perror("Failed to close input file");
+        exit(1);
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -268,7 +271,7 @@ int main(int argc, char *argv[]) {
         }
         fprintf(outfile, "%s", assembly->code);
         if (fclose(outfile) != 0) {
-            perror("Failed to close file");
+            perror("Failed to close output file");
             exit(1);
         }
         free(assembly);
