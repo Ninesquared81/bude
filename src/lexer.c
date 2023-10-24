@@ -25,9 +25,24 @@ static bool is_at_end(struct lexer *lexer) {
     return *lexer->current == '\0';
 }
 
+static void consume_comment(struct lexer *lexer) {
+    while (!is_at_end(lexer) && advance(lexer) != '\n') {
+        /* Do nothing. */
+    }
+}
+
 static void consume_whitespace(struct lexer *lexer) {
-    while (!is_at_end(lexer) && isspace(peek(lexer))) {
-        advance(lexer);
+    while (!is_at_end(lexer)) {
+        char c = peek(lexer);
+        if (isspace(c)) {
+            advance(lexer);
+        }
+        else if (c == '#') {
+            consume_comment(lexer);
+        }
+        else {
+            return;  // End of whitespace.
+        }
     }
 }
 
