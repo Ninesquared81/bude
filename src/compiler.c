@@ -263,6 +263,11 @@ static void compile_string(struct compiler *compiler) {
     kill_region(temp_region);
 }
 
+static void compile_symbol(struct compiler *compiler) {
+    (void)compiler;
+    assert(0 && "Not implemented");
+}
+
 static void compile_expr(struct compiler *compiler) {
     struct ir_block *block = compiler->block;
     for (struct token token = peek(compiler);
@@ -324,7 +329,7 @@ static void compile_expr(struct compiler *compiler) {
             write_simple(block, OP_SWAP);
             break;
         case TOKEN_SYMBOL:
-            assert(0 && "Not implemented");
+            compile_symbol(compiler);
             break;
         case TOKEN_WHILE:
             compile_loop(compiler);
