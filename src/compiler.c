@@ -9,6 +9,7 @@
 #include "lexer.h"
 #include "region.h"
 #include "string_builder.h"
+#include "symbol.h"
 #include "type_punning.h"
 
 
@@ -17,6 +18,7 @@ struct compiler {
     struct ir_block *block;
     struct token current_token;
     struct token previous_token;
+    struct symbol_dictionary *symbols;
 };
 
 static void init_compiler(struct compiler *compiler, const char *src, struct ir_block *block) {
