@@ -140,7 +140,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
             break;
-        case OP_FOR_LOOP_START:
+        case OP_FOR_LOOP_START: {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
@@ -151,7 +151,8 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "test", "rdi", "rdi");
             asm_write_inst1f(assembly, "jz", "addr_%d", skip_jump_addr);
             break;
-        case OP_FOR_LOOP_UPDATE:
+        }
+        case OP_FOR_LOOP_UPDATE: {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
@@ -161,6 +162,22 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
             asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
             break;
+        }
+        case OP_GET_LOOP_VAR: {
+            ip += 2;
+            uint16_t offset = read_u16(block, ip - 1);
+            if (offset == 0) {
+                // Current loop.
+                asm_write_inst1(assembly, "push", "rdi");
+            }
+            else {
+                // Outer loop.
+                asm_write_inst2cf(assembly, "lea", "rax", "[rsi-%d]",
+                                  "Offset of loop variable.", (int)offset);
+                asm_write_inst1(assembly, "push", "rax");
+            }
+            break;
+        }
         case OP_JUMP: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
