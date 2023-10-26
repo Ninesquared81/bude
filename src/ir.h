@@ -34,6 +34,7 @@ enum opcode {
     OP_EXIT,
     OP_FOR_LOOP_START,
     OP_FOR_LOOP_UPDATE,
+    OP_GET_LOOP_VAR,
     OP_JUMP,
     OP_JUMP_COND,
     OP_JUMP_NCOND,

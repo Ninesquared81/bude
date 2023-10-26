@@ -18,13 +18,17 @@ struct compiler {
     struct ir_block *block;
     struct token current_token;
     struct token previous_token;
-    struct symbol_dictionary *symbols;
+    struct symbol_dictionary symbols;
+    size_t for_loop_level;
 };
 
 static void init_compiler(struct compiler *compiler, const char *src, struct ir_block *block) {
     init_lexer(&compiler->lexer, src);
     compiler->block = block;
     compiler->current_token = next_token(&compiler->lexer);
+    compiler->previous_token = (struct token){0};
+    init_symbol_dictionary(&compiler->symbols);
+    compiler->for_loop_level = 0;
 }
 
 static struct token advance(struct compiler *compiler) {
@@ -68,7 +72,7 @@ static void compile_expr(struct compiler *compiler);
 #define IN_RANGE(x, lower, upper) ((lower) <= (x) && (x) <= (upper))
 
 static void compile_integer(struct compiler *compiler) {
-    int64_t integer = strtoll(peek(compiler).start, NULL, 0);
+    int64_t integer = strtoll(peek(compiler).value.start, NULL, 0);
     if (INT32_MIN <= integer && integer <= INT32_MAX) {
         write_immediate_sv(compiler->block, OP_PUSH8, integer);
     }
@@ -170,6 +174,12 @@ static void compile_for_loop(struct compiler *compiler) {
     advance(compiler);  // Consume `for` token.
     compile_expr(compiler);  // Count.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `for` start.");
+    ++compiler->for_loop_level;
+    insert_symbol(&compiler->symbols, &(struct symbol) {
+            .name = {.start = "i", .length = 1},
+            .type = SYM_LOOP_VAR,
+            .loop_var.level = compiler->for_loop_level
+        });
 
     int offset = start_jump(compiler, OP_FOR_LOOP_START);
     int body_start = compiler->block->count;
@@ -183,6 +193,7 @@ static void compile_for_loop(struct compiler *compiler) {
     patch_jump(compiler, offset, skip_jump);
     write_jump(compiler->block, compiler->block->count);
 
+    --compiler->for_loop_level;
     expect_keep(compiler, TOKEN_END, "Expect `end` after `for` loop.");
 }
 
@@ -236,7 +247,7 @@ static void compile_string(struct compiler *compiler) {
     struct token token = peek(compiler);
     struct string_builder builder = {0};
     struct string_builder *current = &builder;
-    const char *start = token.start + 1;
+    const char *start = token.value.start + 1;
     struct region *temp_region = new_region(1024);
     start_view(current, start, temp_region);
     for (const char *c = start; *c != '"'; ++c) {
@@ -265,9 +276,33 @@ static void compile_string(struct compiler *compiler) {
     kill_region(temp_region);
 }
 
+static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
+    size_t level = symbol->loop_var.level;
+    if (level < compiler->for_loop_level) {
+        // TODO: protect against too-long symbol names.
+        assert(symbol->name.length <= INT_MAX);
+        fprintf(stderr, "Loop variable '%.*s' referenced outside defining loop.",
+                (int)symbol->name.length, symbol->name.start);
+        exit(1);
+    }
+    uint16_t offset = level - compiler->for_loop_level;  // Offset from top of aux.
+    write_immediate_u16(compiler->block, OP_GET_LOOP_VAR, offset);
+}
+
 static void compile_symbol(struct compiler *compiler) {
-    (void)compiler;
-    assert(0 && "Not implemented");
+    struct string_view symbol_text = peek(compiler).value;
+    struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
+    if (symbol == NULL) {
+        // TODO: protect against really long symbol names.
+        assert(symbol_text.length <= INT_MAX);
+        fprintf(stderr, "Unknown symbol '%.*s'.\n", (int)symbol_text.length, symbol_text.start);
+        exit(1);
+    }
+    switch (symbol->type) {
+    case SYM_LOOP_VAR:
+        compile_loop_var_symbol(compiler, symbol);
+        break;
+    }
 }
 
 static void compile_expr(struct compiler *compiler) {

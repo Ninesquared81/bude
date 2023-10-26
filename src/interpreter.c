@@ -198,6 +198,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
+        case OP_GET_LOOP_VAR: {
+            ip += 2;
+            uint16_t offset = read_u16(interpreter->block, ip - 1);
+            stack_word loop_var = interpreter->auxiliary_stack->top[-1 - (int)offset];
+            push(interpreter->main_stack, loop_var);
+            break;
+        }
         case OP_MULT: BIN_OP(*, interpreter->main_stack); break;
         case OP_NOT: {
             bool condition = pop(interpreter->main_stack);

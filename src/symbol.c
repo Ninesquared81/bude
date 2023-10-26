@@ -20,7 +20,7 @@ void init_symbol_dictionary(struct symbol_dictionary *dict) {
 
 static bool check_name(const struct symdict_slot *slot, uint32_t hash,
                        const struct string_view *name) {
-    return slot->hash == hash && !sv_eq(&slot->symbol.name, name);
+    return slot->hash == hash && sv_eq(&slot->symbol.name, name);
 }
 
 static struct symdict_slot *find_slot(const struct symbol_dictionary *dict,
@@ -49,6 +49,7 @@ void insert_symbol(struct symbol_dictionary *dict, struct symbol *symbol) {
     assert(slot);  // Todo: grow dict when there isn't space.
     memcpy(&slot->symbol, symbol, sizeof *symbol);
     slot->is_occupied = true;
+    slot->hash = hash;
 }
 
 struct symbol *lookup_symbol(const struct symbol_dictionary *dict,

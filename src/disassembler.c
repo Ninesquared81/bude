@@ -91,6 +91,8 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return jump_instruction("OP_FOR_LOOP_START", block, offset);
     case OP_FOR_LOOP_UPDATE:
         return jump_instruction("OP_FOR_LOOP_UPDATE", block, offset);
+    case OP_GET_LOOP_VAR:
+        return immediate_u16_instruction("OP_GET_LOOP_VAR", block, offset);
     case OP_JUMP:
         return jump_instruction("OP_JUMP", block, offset);
     case OP_JUMP_COND:

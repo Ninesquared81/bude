@@ -49,8 +49,10 @@ static void consume_whitespace(struct lexer *lexer) {
 static struct token make_token(struct lexer *lexer, enum token_type type) {
     return (struct token) {
         .type = type,
-        .start = lexer->start,
-        .length = lexer->current - lexer->start,
+        .value = {
+            .start = lexer->start,
+            .length = lexer->current - lexer->start
+        },
     };
 }
 

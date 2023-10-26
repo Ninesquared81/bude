@@ -1,6 +1,8 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include "string_view.h"
+
 enum token_type {
     // Literals.
     TOKEN_INT,
@@ -37,8 +39,7 @@ enum token_type {
 
 struct token {
     enum token_type type;
-    const char *start;
-    int length;
+    struct string_view value;
 };
 
 struct lexer {

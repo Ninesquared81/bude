@@ -12,5 +12,5 @@ char *view_to_string(struct string_view *view) {
 }
 
 bool sv_eq(const struct string_view *a, const struct string_view *b) {
-    return a->length == b->length && strcmp(a->start, b->start) == 0;
+    return a->length == b->length && strncmp(a->start, b->start, a->length) == 0;
 }
