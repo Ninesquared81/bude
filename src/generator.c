@@ -148,7 +148,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
             asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
-                             "Push old loop counter onto auxiliary stack.");
+                             "Push old loop counter onto loop stack.");
             asm_write_inst2(assembly, "add", "rsi", "8");
             asm_write_inst1c(assembly, "pop", "rdi", "Load loop counter.");
             asm_write_inst2(assembly, "test", "rdi", "rdi");
@@ -175,7 +175,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             }
             else {
                 // Outer loop.
-                asm_write_inst2cf(assembly, "lea", "rax", "[rsi-%"PRIu16"]",
+                asm_write_inst2cf(assembly, "mov", "rax", "[rsi - %"PRIu16"*8]",
                                   "Offset of loop variable.", offset);
                 asm_write_inst1(assembly, "push", "rax");
             }

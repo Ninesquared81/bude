@@ -1,0 +1,5 @@
+"Hello, World!\n"
+for i to do
+    dupe i +
+    deref print-char
+end

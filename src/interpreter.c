@@ -207,6 +207,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             stack_word counter = pop(interpreter->main_stack);
             if (counter != 0) {
                 ip += 2;
+                push(interpreter->loop_stack, 0);
                 push(interpreter->auxiliary_stack, counter);
             }
             else {
@@ -218,7 +219,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             int loop_jump = read_s16(interpreter->block, ip + 1);
             stack_word target = peek(interpreter->auxiliary_stack);
             stack_word counter = pop(interpreter->loop_stack);
-            if (++counter != target) {
+            if (++counter < target) {
                 push(interpreter->loop_stack, counter);
                 jump(interpreter->block, loop_jump, &ip);
             }

@@ -191,7 +191,7 @@ static void compile_for_loop(struct compiler *compiler) {
             insert_symbol(&compiler->symbols, &symbol);
         } else if (match(compiler, TOKEN_TO)) {
             start_instruction = OP_FOR_INC_START;
-            update_instruction = OP_FOR_DEC;
+            update_instruction = OP_FOR_INC;
             insert_symbol(&compiler->symbols, &symbol);
         }
         else {
@@ -302,14 +302,14 @@ static void compile_string(struct compiler *compiler) {
 
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
     size_t level = symbol->loop_var.level;
-    if (level < compiler->for_loop_level) {
+    if (level > compiler->for_loop_level) {
         // TODO: protect against too-long symbol names.
         assert(symbol->name.length <= INT_MAX);
-        fprintf(stderr, "Loop variable '%.*s' referenced outside defining loop.",
+        fprintf(stderr, "Loop variable '%.*s' referenced outside defining loop.\n",
                 (int)symbol->name.length, symbol->name.start);
         exit(1);
     }
-    uint16_t offset = level - compiler->for_loop_level;  // Offset from top of aux.
+    uint16_t offset = compiler->for_loop_level - level;  // Offset from top of aux.
     write_immediate_u16(compiler->block, OP_GET_LOOP_VAR, offset);
 }
 
