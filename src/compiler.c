@@ -34,7 +34,7 @@ static void init_compiler(struct compiler *compiler, const char *src, struct ir_
 static struct token advance(struct compiler *compiler) {
     compiler->previous_token = compiler->current_token;
     compiler->current_token = next_token(&compiler->lexer);
-    return compiler->current_token;
+    return compiler->previous_token;
 }
 
 static bool check(struct compiler *compiler, enum token_type type) {
@@ -63,16 +63,25 @@ static void expect_keep(struct compiler *compiler, enum token_type type, const c
     }
 }
 
+static bool is_at_end(struct compiler *compiler) {
+    return compiler->current_token.type == TOKEN_EOT;
+}
+
 static struct token peek(struct compiler *compiler) {
     return compiler->current_token;
 }
 
+static struct token peek_previous(struct compiler *compiler) {
+    return compiler->previous_token;
+}
+
 static void compile_expr(struct compiler *compiler);
+static void compile_symbol(struct compiler *compiler);
 
 #define IN_RANGE(x, lower, upper) ((lower) <= (x) && (x) <= (upper))
 
 static void compile_integer(struct compiler *compiler) {
-    int64_t integer = strtoll(peek(compiler).value.start, NULL, 0);
+    int64_t integer = strtoll(peek_previous(compiler).value.start, NULL, 0);
     if (INT32_MIN <= integer && integer <= INT32_MAX) {
         write_immediate_sv(compiler->block, OP_PUSH8, integer);
     }
@@ -84,7 +93,7 @@ static void compile_integer(struct compiler *compiler) {
 }
 
 static int start_jump(struct compiler *compiler, enum opcode jump_instruction) {
-    assert(IS_JUMP(jump_instruction));
+    assert(is_jump(jump_instruction));
     int jump_offset = compiler->block->count;
     write_immediate_s16(compiler->block, jump_instruction, 0);
     return jump_offset;
@@ -99,7 +108,6 @@ static void patch_jump(struct compiler *compiler, int instruction_offset, int ju
 }
 
 static int compile_conditional(struct compiler *compiler) {
-    advance(compiler);  // Consume the `if`/`elif` token.
     compile_expr(compiler);  // Condition.
     expect_consume(compiler, TOKEN_THEN, "Expect `then` after condition in `if` block.");
 
@@ -140,7 +148,7 @@ static int compile_conditional(struct compiler *compiler) {
     int end_addr = compiler->block->count;
     int else_start = end_addr;
 
-    if (check(compiler, TOKEN_ELIF)) {
+    if (match(compiler, TOKEN_ELIF)) {
         start_jump(compiler, OP_JUMP);
         else_start = compiler->block->count;
         end_addr = compile_conditional(compiler);
@@ -152,7 +160,7 @@ static int compile_conditional(struct compiler *compiler) {
         end_addr = compiler->block->count;
     }
     else {
-        expect_keep(compiler, TOKEN_END, "Expect `end` after `if` body.");
+        expect_consume(compiler, TOKEN_END, "Expect `end` after `if` body.");
     }
 
     int jump = else_start - start - 1;
@@ -171,22 +179,36 @@ static int compile_conditional(struct compiler *compiler) {
 }
 
 static void compile_for_loop(struct compiler *compiler) {
-    advance(compiler);  // Consume `for` token.
+    enum opcode start_instruction = OP_FOR_DEC_START;
+    enum opcode update_instruction = OP_FOR_DEC;
+    if (match(compiler, TOKEN_SYMBOL)) {
+        struct symbol symbol = {
+            .name = peek_previous(compiler).value,
+            .type = SYM_LOOP_VAR,
+            .loop_var.level = compiler->for_loop_level + 1
+        };
+        if (match(compiler, TOKEN_FROM)) {
+            insert_symbol(&compiler->symbols, &symbol);
+        } else if (match(compiler, TOKEN_TO)) {
+            start_instruction = OP_FOR_INC_START;
+            update_instruction = OP_FOR_DEC;
+            insert_symbol(&compiler->symbols, &symbol);
+        }
+        else {
+            // Symbol was part of count.
+            compile_symbol(compiler);
+        }
+    }
     compile_expr(compiler);  // Count.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `for` start.");
     ++compiler->for_loop_level;
-    insert_symbol(&compiler->symbols, &(struct symbol) {
-            .name = {.start = "i", .length = 1},
-            .type = SYM_LOOP_VAR,
-            .loop_var.level = compiler->for_loop_level
-        });
-
-    int offset = start_jump(compiler, OP_FOR_LOOP_START);
+    
+    int offset = start_jump(compiler, start_instruction);
     int body_start = compiler->block->count;
     compile_expr(compiler);  // Loop body.
 
     int loop_jump = body_start - compiler->block->count - 1;
-    write_immediate_s16(compiler->block, OP_FOR_LOOP_UPDATE, loop_jump);
+    write_immediate_s16(compiler->block, update_instruction, loop_jump);
     write_jump(compiler->block, body_start);
 
     int skip_jump = compiler->block->count - offset - 1;
@@ -198,7 +220,6 @@ static void compile_for_loop(struct compiler *compiler) {
 }
 
 static void compile_loop(struct compiler *compiler) {
-    advance(compiler);  // Consume `while` token.
     int condition_start = compiler->block->count;
     compile_expr(compiler);  // Condition.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `while` condition.");
@@ -225,7 +246,7 @@ static void compile_loop(struct compiler *compiler) {
     patch_jump(compiler, body_start, exit_jump);
     write_jump(compiler->block, compiler->block->count);
 
-    expect_keep(compiler, TOKEN_END, "Expect `end` after `while` body.");
+    expect_consume(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }
 
 static int escape_character(char ch) {
@@ -244,7 +265,7 @@ static int escape_character(char ch) {
 }
 
 static void compile_string(struct compiler *compiler) {
-    struct token token = peek(compiler);
+    struct token token = peek_previous(compiler);
     struct string_builder builder = {0};
     struct string_builder *current = &builder;
     const char *start = token.value.start + 1;
@@ -290,7 +311,7 @@ static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *sy
 }
 
 static void compile_symbol(struct compiler *compiler) {
-    struct string_view symbol_text = peek(compiler).value;
+    struct string_view symbol_text = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
     if (symbol == NULL) {
         // TODO: protect against really long symbol names.
@@ -305,75 +326,83 @@ static void compile_symbol(struct compiler *compiler) {
     }
 }
 
-static void compile_expr(struct compiler *compiler) {
+static bool compile_simple(struct compiler *compiler) {
     struct ir_block *block = compiler->block;
-    for (struct token token = peek(compiler);
-         token.type != TOKEN_EOT;
-         token = advance(compiler)) {
-        switch (token.type) {
-        case TOKEN_AND:
-            write_simple(compiler->block, OP_AND);
-            break;
-        case TOKEN_DEREF:
-            write_simple(compiler->block, OP_DEREF);
-            break;
-        case TOKEN_DUPE:
-            write_simple(compiler->block, OP_DUPE);
-            break;
-        case TOKEN_EXIT:
-            write_simple(compiler->block, OP_EXIT);
-            break;
-        case TOKEN_FOR:
+    switch (peek(compiler).type) {
+    case TOKEN_AND:
+        write_simple(block, OP_AND);
+        break;
+    case TOKEN_DEREF:
+        write_simple(block, OP_DEREF);
+        break;
+    case TOKEN_DUPE:
+        write_simple(block, OP_DUPE);
+        break;
+    case TOKEN_EXIT:
+        write_simple(block, OP_EXIT);
+        break;
+    case TOKEN_MINUS:
+        write_simple(block, OP_SUB);
+        break;
+    case TOKEN_NOT:
+        write_simple(block, OP_NOT);
+        break;
+    case TOKEN_OR:
+        write_simple(block, OP_OR);
+        break;
+    case TOKEN_PLUS:
+        write_simple(block, OP_ADD);
+        break;
+    case TOKEN_POP:
+        write_simple(block, OP_POP);
+        break;
+    case TOKEN_PRINT:
+        write_simple(block, OP_PRINT);
+        break;
+    case TOKEN_PRINT_CHAR:
+        write_simple(block, OP_PRINT_CHAR);
+        break;
+    case TOKEN_SLASH_PERCENT:
+        write_simple(block, OP_DIVMOD);
+        break;
+    case TOKEN_STAR:
+        write_simple(block, OP_MULT);
+        break;
+    case TOKEN_SWAP:
+        write_simple(block, OP_SWAP);
+        break;
+    default:
+        /* All other tokens fall through. */
+        return false;
+    }
+    advance(compiler);
+    return true;
+}
+
+static void compile_expr(struct compiler *compiler) {
+    while (!is_at_end(compiler)) {
+        if (match(compiler, TOKEN_FOR)) {
             compile_for_loop(compiler);
-            break;
-        case TOKEN_IF:
+        }
+        else if (match(compiler, TOKEN_IF)) {
             compile_conditional(compiler);
-            break;
-        case TOKEN_INT:
+        }
+        else if (match(compiler, TOKEN_INT)) {
             compile_integer(compiler);
-            break;
-        case TOKEN_MINUS:
-            write_simple(block, OP_SUB);
-            break;
-        case TOKEN_NOT:
-            write_simple(block, OP_NOT);
-            break;
-        case TOKEN_OR:
-            write_simple(block, OP_OR);
-            break;
-        case TOKEN_PLUS:
-            write_simple(block, OP_ADD);
-            break;
-        case TOKEN_POP:
-            write_simple(block, OP_POP);
-            break;
-        case TOKEN_PRINT:
-            write_simple(block, OP_PRINT);
-            break;
-        case TOKEN_PRINT_CHAR:
-            write_simple(block, OP_PRINT_CHAR);
-            break;
-        case TOKEN_SLASH_PERCENT:
-            write_simple(block, OP_DIVMOD);
-            break;
-        case TOKEN_STAR:
-            write_simple(block, OP_MULT);
-            break;
-        case TOKEN_STRING:
+        }
+        else if (match(compiler, TOKEN_STRING)) {
             compile_string(compiler);
-            break;
-        case TOKEN_SWAP:
-            write_simple(block, OP_SWAP);
-            break;
-        case TOKEN_SYMBOL:
+        }
+        else if (match(compiler, TOKEN_SYMBOL)) {
             compile_symbol(compiler);
-            break;
-        case TOKEN_WHILE:
+        }
+        else if (match(compiler, TOKEN_WHILE)) {
             compile_loop(compiler);
-            break;
-        default:
-            /* All other tokens fall through. */
-            return;
+        }
+        else {
+            // Treat any other token as a simple token.
+            // If it's not simple, stop compiling.
+            if (!compile_simple(compiler)) return;
         }
     }
 }

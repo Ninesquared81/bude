@@ -172,8 +172,8 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             }
             else {
                 // Outer loop.
-                asm_write_inst2cf(assembly, "lea", "rax", "[rsi-%d]",
-                                  "Offset of loop variable.", (int)offset);
+                asm_write_inst2cf(assembly, "lea", "rax", "[rsi-%"PRIu16"]",
+                                  "Offset of loop variable.", offset);
                 asm_write_inst1(assembly, "push", "rax");
             }
             break;

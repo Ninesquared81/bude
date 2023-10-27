@@ -19,6 +19,7 @@ enum token_type {
     TOKEN_END,
     TOKEN_EXIT,
     TOKEN_FOR,
+    TOKEN_FROM,
     TOKEN_IF,
     TOKEN_MINUS,
     TOKEN_NOT,
@@ -31,6 +32,7 @@ enum token_type {
     TOKEN_STAR,
     TOKEN_SWAP,
     TOKEN_THEN,
+    TOKEN_TO,
     TOKEN_WHILE,
 
     // Special.

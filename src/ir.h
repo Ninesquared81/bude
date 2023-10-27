@@ -7,13 +7,6 @@
 #include "string_builder.h"
 #include "string_view.h"
 
-#define IS_JUMP(instruction)              (       \
-        instruction == OP_JUMP            ||      \
-        instruction == OP_JUMP_COND       ||      \
-        instruction == OP_JUMP_NCOND      ||      \
-        instruction == OP_FOR_LOOP_START  ||      \
-        instruction == OP_FOR_LOOP_UPDATE )
-
 enum opcode {
     OP_NOP,
     OP_PUSH8,
@@ -32,8 +25,10 @@ enum opcode {
     OP_DIVMOD,
     OP_DUPE,
     OP_EXIT,
-    OP_FOR_LOOP_START,
-    OP_FOR_LOOP_UPDATE,
+    OP_FOR_DEC_START,
+    OP_FOR_DEC,
+    OP_FOR_INC_START,
+    OP_FOR_INC,
     OP_GET_LOOP_VAR,
     OP_JUMP,
     OP_JUMP_COND,
@@ -76,6 +71,7 @@ struct ir_block {
 };
 
 const char *get_opcode_name(enum opcode opcode);
+bool is_jump(enum opcode instruction);
 
 void init_block(struct ir_block *block);
 void free_block(struct ir_block *block);

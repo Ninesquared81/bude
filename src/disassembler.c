@@ -87,10 +87,14 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return simple_instruction("OP_DUPE", offset);
     case OP_EXIT:
         return simple_instruction("OP_EXIT", offset);
-    case OP_FOR_LOOP_START:
-        return jump_instruction("OP_FOR_LOOP_START", block, offset);
-    case OP_FOR_LOOP_UPDATE:
-        return jump_instruction("OP_FOR_LOOP_UPDATE", block, offset);
+    case OP_FOR_DEC_START:
+        return jump_instruction("OP_FOR_DEC_START", block, offset);
+    case OP_FOR_DEC:
+        return jump_instruction("OP_FOR_DEC", block, offset);
+    case OP_FOR_INC_START:
+        return jump_instruction("OP_FOR_INC_START", block, offset);
+    case OP_FOR_INC:
+        return jump_instruction("OP_FOR_INC", block, offset);
     case OP_GET_LOOP_VAR:
         return immediate_u16_instruction("OP_GET_LOOP_VAR", block, offset);
     case OP_JUMP:

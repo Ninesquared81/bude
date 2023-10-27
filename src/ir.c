@@ -52,8 +52,10 @@ const char *opcode_names[] = {
     [OP_DIVMOD]            = "OP_DIVMOD",
     [OP_DUPE]              = "OP_DUPE",
     [OP_EXIT]              = "OP_EXIT",
-    [OP_FOR_LOOP_START]    = "OP_FOR_LOOP_START",
-    [OP_FOR_LOOP_UPDATE]   = "OP_FOR_LOOP_UPDATE",
+    [OP_FOR_DEC_START]     = "OP_FOR_DEC_START",
+    [OP_FOR_DEC]           = "OP_FOR_DEC",
+    [OP_FOR_INC_START]     = "OP_FOR_INC_START",
+    [OP_FOR_INC]           = "OP_FOR_INC",
     [OP_GET_LOOP_VAR]      = "OP_GET_LOOP_VAR",
     [OP_JUMP]              = "OP_JUMP",
     [OP_JUMP_COND]         = "OP_JUMP_COND",
@@ -70,6 +72,21 @@ const char *opcode_names[] = {
 const char *get_opcode_name(enum opcode opcode) {
     assert(0 <= opcode && opcode < sizeof opcode_names / sizeof opcode_names[0]);
     return opcode_names[opcode];
+}
+
+bool is_jump(enum opcode instruction) {
+    switch (instruction) {
+    case OP_JUMP:
+    case OP_JUMP_COND:
+    case OP_JUMP_NCOND:
+    case OP_FOR_DEC_START:
+    case OP_FOR_DEC:
+    case OP_FOR_INC_START:
+    case OP_FOR_INC:
+        return true;
+    default:
+        return false;
+    }
 }
 
 static void *allocate_array(size_t count, size_t size) {

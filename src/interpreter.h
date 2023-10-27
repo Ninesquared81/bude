@@ -15,6 +15,7 @@ struct interpreter {
     struct ir_block *block;
     struct stack *main_stack;
     struct stack *auxiliary_stack;
+    struct stack *loop_stack;
 };
 
 bool init_interpreter(struct interpreter *interpreter, struct ir_block *block);

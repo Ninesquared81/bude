@@ -22,17 +22,21 @@ bool init_interpreter(struct interpreter *interpreter, struct ir_block *block) {
     interpreter->block = block;
     interpreter->main_stack = malloc(sizeof *interpreter->main_stack);
     interpreter->auxiliary_stack = malloc(sizeof *interpreter->auxiliary_stack);
-    if (interpreter->main_stack == NULL || interpreter->auxiliary_stack == NULL) {
+    interpreter->loop_stack = malloc(sizeof *interpreter->loop_stack);
+    if (interpreter->main_stack == NULL || interpreter->auxiliary_stack == NULL
+        || interpreter->loop_stack == NULL) {
         return false;
     }
     init_stack(interpreter->main_stack);
     init_stack(interpreter->auxiliary_stack);
+    init_stack(interpreter->loop_stack);
     return true;
 }
 
 void free_interpreter(struct interpreter *interpreter) {
     free(interpreter->main_stack);
     free(interpreter->auxiliary_stack);
+    free(interpreter->loop_stack);
     interpreter->main_stack = NULL;
     interpreter->auxiliary_stack = NULL;
 }
@@ -174,7 +178,31 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_FOR_LOOP_START: {
+        case OP_FOR_DEC_START: {
+            int skip_jump = read_s16(interpreter->block, ip + 1);
+            stack_word counter = pop(interpreter->main_stack);
+            if (counter != 0) {
+                ip += 2;
+                push(interpreter->loop_stack, counter);
+            }
+            else {
+                jump(interpreter->block, skip_jump, &ip);
+            }
+            break;
+        }
+        case OP_FOR_DEC: {
+            int loop_jump = read_s16(interpreter->block, ip + 1);
+            stack_word counter = pop(interpreter->loop_stack);
+            if (--counter != 0) {
+                push(interpreter->loop_stack, counter);
+                jump(interpreter->block, loop_jump, &ip);
+            }
+            else {
+                ip += 2;
+            }
+            break;
+        }
+        case OP_FOR_INC_START: {
             int skip_jump = read_s16(interpreter->block, ip + 1);
             stack_word counter = pop(interpreter->main_stack);
             if (counter != 0) {
@@ -186,14 +214,16 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_FOR_LOOP_UPDATE: {
+        case OP_FOR_INC: {
             int loop_jump = read_s16(interpreter->block, ip + 1);
-            stack_word counter = pop(interpreter->auxiliary_stack);
-            if (--counter != 0) {
-                push(interpreter->auxiliary_stack, counter);
+            stack_word target = peek(interpreter->auxiliary_stack);
+            stack_word counter = pop(interpreter->loop_stack);
+            if (++counter != target) {
+                push(interpreter->loop_stack, counter);
                 jump(interpreter->block, loop_jump, &ip);
             }
             else {
+                pop(interpreter->auxiliary_stack);
                 ip += 2;
             }
             break;
@@ -201,7 +231,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case OP_GET_LOOP_VAR: {
             ip += 2;
             uint16_t offset = read_u16(interpreter->block, ip - 1);
-            stack_word loop_var = interpreter->auxiliary_stack->top[-1 - (int)offset];
+            stack_word loop_var = peek_nth(interpreter->loop_stack, offset);
             push(interpreter->main_stack, loop_var);
             break;
         }
@@ -227,7 +257,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case OP_PRINT:
-            printf("%"PRIsw"\n", u64_to_s64(pop(interpreter->main_stack)));
+            printf("%"PRIsw"\n", pop(interpreter->main_stack));
             break;
         case OP_PRINT_CHAR:
             printf("%c", (char)(uint8_t)pop(interpreter->main_stack));

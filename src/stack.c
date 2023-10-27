@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #include "stack.h"
@@ -26,4 +27,20 @@ stack_word pop(struct stack *stack) {
         exit(1);
     }
     return *--stack->top;
+}
+
+stack_word peek(struct stack *stack) {
+    if (stack->top == &stack->elements[0]) {
+        fprintf(stderr, "Stack underflow\n");
+        exit(1);
+    }
+    return stack->top[-1];
+}
+
+stack_word peek_nth(struct stack *stack, uint32_t n) {
+    if (stack->top - stack->elements <= (int64_t)n) {
+        fprintf(stderr, "Stack underflow\n");
+        exit(1);
+    }
+    return stack->top[-1 - (int64_t)n];
 }
