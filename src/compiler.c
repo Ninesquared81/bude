@@ -202,6 +202,9 @@ static void compile_for_loop(struct compiler *compiler) {
     compile_expr(compiler);  // Count.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `for` start.");
     ++compiler->for_loop_level;
+    if (compiler->for_loop_level > compiler->block->max_for_loop_level) {
+        compiler->block->max_for_loop_level = compiler->for_loop_level;
+    }
     
     int offset = start_jump(compiler, start_instruction);
     int body_start = compiler->block->count;

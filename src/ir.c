@@ -122,6 +122,7 @@ void init_block(struct ir_block *block) {
     block->code = allocate_array(BLOCK_INIT_SIZE, sizeof *block->code);
     block->capacity = BLOCK_INIT_SIZE;
     block->count = 0;
+    block->max_for_loop_level = 0;
     init_constant_table(&block->constants);
     init_jump_info_table(&block->jumps);
     init_string_table(&block->strings);

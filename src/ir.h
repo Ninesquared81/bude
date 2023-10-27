@@ -64,6 +64,7 @@ struct ir_block {
     int capacity;
     int count;
     uint8_t *code;
+    size_t max_for_loop_level;
     struct constant_table constants;
     struct jump_info_table jumps;
     struct string_table strings;
