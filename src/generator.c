@@ -147,12 +147,12 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
-            asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
-                             "Push old loop counter onto loop stack.");
-            asm_write_inst2(assembly, "add", "rsi", "8");
             asm_write_inst1c(assembly, "pop", "rdi", "Load loop counter.");
             asm_write_inst2(assembly, "test", "rdi", "rdi");
             asm_write_inst1f(assembly, "jz", "addr_%d", skip_jump_addr);
+            asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
+                             "Push old loop counter onto loop stack.");
+            asm_write_inst2(assembly, "add", "rsi", "8");
             break;
         }
         case OP_FOR_DEC: {
@@ -162,6 +162,33 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "dec", "rdi");
             asm_write_inst2(assembly, "test", "rdi", "rdi");
             asm_write_inst1f(assembly, "jnz", "addr_%d", loop_jump_addr);
+            asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
+            asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
+            break;
+        }
+        case OP_FOR_INC_START: {
+            ip += 2;
+            int16_t skip_jump = read_s16(block, ip - 1);
+            int skip_jump_addr = ip - 1 + skip_jump;
+            asm_write_inst1c(assembly, "pop", "rax", "Load loop target.");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst1f(assembly, "jz", "addr_%d", skip_jump_addr);
+            asm_write_inst2c(assembly, "mov", "[rbx]", "rax", "Push loop target to aux.");
+            asm_write_inst2(assembly, "add", "rbx", "8");
+            asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
+                             "Push old loop counter onto loop stack.");
+            asm_write_inst2(assembly, "add", "rsi", "8");
+            asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Zero out loop counter.");
+            break;
+        }
+        case OP_FOR_INC: {
+            ip += 2;
+            int16_t loop_jump = read_s16(block, ip - 1);
+            int loop_jump_addr = ip - 1 + loop_jump;
+            asm_write_inst1(assembly, "inc", "rdi");
+            asm_write_inst2(assembly, "cmp", "rdi", "[rbx-8]");
+            asm_write_inst1f(assembly, "jl", "addr_%d", loop_jump_addr);
+            asm_write_inst2c(assembly, "sub", "rbx", "8", "Pop target.");
             asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
             asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
             break;
