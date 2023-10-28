@@ -23,6 +23,8 @@ enum opcode {
     OP_AND,
     OP_DEREF,
     OP_DIVMOD,
+    OP_IDIVMOD,
+    OP_EDIVMOD,
     OP_DUPE,
     OP_EXIT,
     OP_FOR_DEC_START,
