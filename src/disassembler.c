@@ -48,7 +48,7 @@ static int simple_instruction(const char *name, int offset) {
 }
 
 static int disassemble_instruction(struct ir_block *block, int offset) {
-    uint8_t instruction = block->code[offset];
+    enum opcode instruction = block->code[offset];
     printf("%c %04d [%03d] ",
            (is_jump_dest(block, offset)) ? '*': ' ', offset, instruction);
 
@@ -117,10 +117,10 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return simple_instruction("OP_SUB", offset);
     case OP_SWAP:
         return simple_instruction("OP_SWAP", offset);
-    default:
-        printf("<Unknown opcode>\n");
-        return offset + 1;
     }
+    // Not in switch so that the compiler can ensure all cases are handled.
+    printf("<Unknown opcode>\n");
+    return offset + 1;
 }
 
 void disassemble_block(struct ir_block *block) {
