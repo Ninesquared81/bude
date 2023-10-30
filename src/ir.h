@@ -8,40 +8,87 @@
 #include "string_view.h"
 
 enum opcode {
+    /* NOP -- no operation. */
     OP_NOP,
+    /* PUSHn Imm_sn -- Push a 64-bit integer to the stack. */
     OP_PUSH8,
     OP_PUSH16,
     OP_PUSH32,
+    /* LOADn Imm_un -- Push a word at a given index from the constants table. */
     OP_LOAD8,
     OP_LOAD16,
     OP_LOAD32,
+    /* LOAD_STRINGn Imm_un -- Push a string (ptr word) to the stack. */
     OP_LOAD_STRING8,
     OP_LOAD_STRING16,
     OP_LOAD_STRING32,
+    /* POP -- Pop and discard the top stack element. */
     OP_POP,
+    /* ADD -- Add top two stack elements. */
     OP_ADD,
+    /* AND -- Logical (value-preserving) and operation of top two elements. */
     OP_AND,
+    /* DEREF -- Dereference (byte) ptr at top of stack. */
     OP_DEREF,
+    /* DIVMOD -- Unsigned division and reaminder. */
     OP_DIVMOD,
+    /* IDIVMOD -- Signed (truncated) division and remainder. */
     OP_IDIVMOD,
+    /* EDIVMOD -- Signed (Euclidean) divion and remainder (remaninder non-negative). */
     OP_EDIVMOD,
+    /* DUPE -- Duplicate top stack element. */
     OP_DUPE,
+    /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     OP_EXIT,
+    /* FOR_DEC_START -- Initialise a for loop counter to the top element. */
     OP_FOR_DEC_START,
+    /* FOR_DEC -- Decrement a for loop counter by 1 and loop while it's not zero. */
     OP_FOR_DEC,
+    /* FOR_INC_START -- Initialise a for loop counter to zero and the target to the top element. */
     OP_FOR_INC_START,
+    /* FOR_INC Imm_s16 -- Increment a for loop counter by 1 and jump a given distance if
+       the counter is not equal to the target. */
     OP_FOR_INC,
+    /* GET_LOOP_VAR Imm_u16 -- Get the loop variable a given distance from the current loop. */
     OP_GET_LOOP_VAR,
+    /* JUMP Imm_s16 -- Jump a given distance. */
     OP_JUMP,
+    /* JUMP_COND Imm_s16 -- Jump the given distance if the top element is non-zero (true). */
     OP_JUMP_COND,
+    /* JUMP_NCOND Imm_s16 -- Jump the given distance if the top element is zero (false). */
     OP_JUMP_NCOND,
+    /* MULT -- Multiply the top two stack elements. */
     OP_MULT,
+    /* NOT -- Logical not operation of the top two stack elements. */
     OP_NOT,
+    /* OR -- Logical (value-preserving) or operation of top two stack elements. */
     OP_OR,
+    /* PRINT -- Print the top element of the stack as a word. */
     OP_PRINT,
+    /* PRINT_CHAR -- Print the top element of the stack as a character. */
     OP_PRINT_CHAR,
+    /* PRINT_INT -- Print the top element of the stack as a signed integer. */
+    OP_PRINT_INT,
+    /* SUB -- Subtract the top stack element from the next element. */
     OP_SUB,
+    /* SWAP -- Swap the top two stack elements. */
     OP_SWAP,
+    /* SXn, SXnL -- sign extend an n-bit integer. The -L versions operate on the
+       element under the top (i.e. the left-hand side of a binary operation). */
+    OP_SX8,
+    OP_SX8L,
+    OP_SX16,
+    OP_SX16L,
+    OP_SX32,
+    OP_SX32L,
+    /* ZXn, ZXnL -- zero extend an n-bit integer. The -L versions operate on the
+       elemenr under the top (i.e. the left-hand side of a binary operation). */
+    OP_ZX8,
+    OP_ZX8L,
+    OP_ZX16,
+    OP_ZX16L,
+    OP_ZX32,
+    OP_ZX32L,
 };
 
 struct constant_table {
