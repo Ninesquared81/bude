@@ -64,6 +64,15 @@ static enum opcode promote(enum type type) {
     return arithmetic_conversions[TYPE_INT][type].rhs_conv;
 }
 
+static enum opcode sign_extend(enum type type) {
+    switch (type) {
+    case TYPE_BYTE:
+        return OP_SX8;
+    default:
+        return OP_NOP;
+    }
+}
+
 static bool check_pointer_addition(struct type_checker *checker,
                             enum type lhs_type, enum type rhs_type) {
     enum opcode conversion;
@@ -188,8 +197,26 @@ enum type_check_result type_check(struct type_checker *checker) {
                 enum opcode signed_instruction = (is_signed(lhs_type)) ? OP_EDIVMOD : OP_IDIVMOD;
                 overwrite_instruction(checker->block, checker->ip, signed_instruction);
             }
+            overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
+            overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
             ts_push(checker, conversion.result_type);  // Quotient.
             ts_push(checker, conversion.result_type);  // Remainder.
+            break;
+        }
+        case OP_IDIVMOD:
+        case OP_EDIVMOD: {
+            enum type rhs_type = ts_pop(checker);
+            enum type lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                checker->had_error = true;
+                fprintf(stderr, "Type error: invalid types for `idivmod`.\n");
+                conversion.result_type = TYPE_WORD;
+            }
+            overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
+            overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
+            ts_push(checker, conversion.result_type);
+            ts_push(checker, conversion.result_type);
             break;
         }
         case OP_DUPE: {
@@ -245,6 +272,18 @@ enum type_check_result type_check(struct type_checker *checker) {
             }
             break;
         }
+        case OP_PRINT_INT: {
+            enum type type = ts_pop(checker);
+            if (is_integral(type)) {
+                enum opcode conv_instruction = sign_extend(type);
+                overwrite_instruction(checker->block, checker->ip - 1, conv_instruction);
+            }
+            else {
+                checker->had_error = true;
+                fprintf(stderr, "Type error: invalid type for `OP_PRINT_CHAR`.\n");
+            }
+            break;
+        }
         case OP_SUB: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
@@ -285,6 +324,20 @@ enum type_check_result type_check(struct type_checker *checker) {
             ts_push(checker, lhs_type);
             break;
         }
+        case OP_SX8:
+        case OP_SX8L:
+        case OP_SX16:
+        case OP_SX16L:
+        case OP_SX32:
+        case OP_SX32L:
+        case OP_ZX8:
+        case OP_ZX8L:
+        case OP_ZX16:
+        case OP_ZX16L:
+        case OP_ZX32:
+        case OP_ZX32L:
+            // No type checking.
+            break;
         case OP_EXIT: {
             enum type type = ts_pop(checker);
             if (!is_integral(type)) {
@@ -292,7 +345,25 @@ enum type_check_result type_check(struct type_checker *checker) {
                 fprintf(stderr, "Type error: expected integral type for `exit`.\n");
             }
             // TODO: work out how to handle end of control flow here.
+            break;
         }
+        case OP_JUMP_COND:
+        case OP_JUMP_NCOND:
+            ts_pop(checker);
+            /* Fallthrough */
+        case OP_JUMP:
+            fprintf(stderr, "Warning: type checking not implemented yet.\n");
+            checker->ip += 2;
+            break;
+        case OP_FOR_DEC_START:
+        case OP_FOR_INC_START:
+            ts_pop(checker);
+            /* Fallthrough */
+        case OP_FOR_DEC:
+        case OP_FOR_INC:
+            fprintf(stderr, "Warning: type checking not implemented yet.\n");
+            checker->ip += 2;
+            break;
         }
     }
     return (!checker->had_error) ? TYPE_CHECK_OK : TYPE_CHECK_ERROR;
