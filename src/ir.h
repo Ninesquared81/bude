@@ -82,7 +82,7 @@ enum opcode {
     OP_SX32,
     OP_SX32L,
     /* ZXn, ZXnL -- zero extend an n-bit integer. The -L versions operate on the
-       elemenr under the top (i.e. the left-hand side of a binary operation). */
+       element under the top (i.e. the left-hand side of a binary operation). */
     OP_ZX8,
     OP_ZX8L,
     OP_ZX16,

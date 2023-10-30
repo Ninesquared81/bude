@@ -330,10 +330,18 @@ static void compile_symbol(struct compiler *compiler) {
 }
 
 static bool compile_simple(struct compiler *compiler) {
+#define BIN_OP(block, op)                          \
+    do {                                           \
+        write_simple(block, OP_NOP);               \
+        write_simple(block, OP_NOP);               \
+        write_simple(block, op);                   \
+        write_simple(block, OP_NOP);               \
+    } while (0);
+
     struct ir_block *block = compiler->block;
     switch (peek(compiler).type) {
     case TOKEN_AND:
-        write_simple(block, OP_AND);
+        BIN_OP(block, OP_AND);
         break;
     case TOKEN_DEREF:
         write_simple(block, OP_DEREF);
@@ -345,16 +353,16 @@ static bool compile_simple(struct compiler *compiler) {
         write_simple(block, OP_EXIT);
         break;
     case TOKEN_MINUS:
-        write_simple(block, OP_SUB);
+        BIN_OP(block, OP_SUB);
         break;
     case TOKEN_NOT:
         write_simple(block, OP_NOT);
         break;
     case TOKEN_OR:
-        write_simple(block, OP_OR);
+        BIN_OP(block, OP_OR);
         break;
     case TOKEN_PLUS:
-        write_simple(block, OP_ADD);
+        BIN_OP(block, OP_ADD);
         break;
     case TOKEN_POP:
         write_simple(block, OP_POP);
@@ -366,10 +374,14 @@ static bool compile_simple(struct compiler *compiler) {
         write_simple(block, OP_PRINT_CHAR);
         break;
     case TOKEN_SLASH_PERCENT:
+        write_simple(block, OP_NOP);  // LHS conversion.
+        write_simple(block, OP_NOP);  // RHS conversion.
         write_simple(block, OP_DIVMOD);
+        write_simple(block, OP_NOP);  // Quotient conversion.
+        write_simple(block, OP_NOP);  // Remainder conversion.
         break;
     case TOKEN_STAR:
-        write_simple(block, OP_MULT);
+        BIN_OP(block, OP_MULT);
         break;
     case TOKEN_SWAP:
         write_simple(block, OP_SWAP);
@@ -380,6 +392,7 @@ static bool compile_simple(struct compiler *compiler) {
     }
     advance(compiler);
     return true;
+#undef BIN_OP
 }
 
 static void compile_expr(struct compiler *compiler) {

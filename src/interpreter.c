@@ -250,6 +250,28 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, a % b);
             break;
         }
+        case OP_IDIVMOD: {
+            int64_t b = u64_to_s64(pop(interpreter->main_stack));
+            int64_t a = u64_to_s64(pop(interpreter->main_stack));
+            push(interpreter->main_stack, a / b);
+            push(interpreter->main_stack, a % b);
+            break;
+        }
+        case OP_EDIVMOD: {
+            int64_t b = u64_to_s64(pop(interpreter->main_stack));
+            int64_t a = u64_to_s64(pop(interpreter->main_stack));
+            int64_t q = a / b;
+            int64_t r = a % b;
+            if (r < 0) {
+                // Adjust r to ensure r >= 0.
+                r += llabs(b);
+                // Adjust q to maintain a = b*q + r.
+                q -= (b > 0) - (b < 0);  // Sign of b.
+            }
+            push(interpreter->main_stack, q);
+            push(interpreter->main_stack, r);
+            break;
+        }
         case OP_SWAP: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
@@ -263,6 +285,110 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case OP_PRINT_CHAR:
             printf("%c", (char)(uint8_t)pop(interpreter->main_stack));
             break;
+        case OP_PRINT_INT:
+            printf("%"PRIssw"\n", u64_to_s64(pop(interpreter->main_stack)));
+            break;
+        case OP_SX8: {
+            stack_word b = pop(interpreter->main_stack);
+            b &= 0xFF;  // Mask off higher bits.
+            uint64_t sign = b >> 7;
+            uint64_t extension = -sign << 8;
+            b |= extension;
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_SX8L: {
+            stack_word b = pop(interpreter->main_stack);
+            stack_word a = pop(interpreter->main_stack);
+            a &= 0xFF;  // Mask off higher bits.
+            uint64_t sign = a >> 7;
+            uint64_t extension = -sign << 8;
+            a |= extension;
+            push(interpreter->main_stack, a);
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_SX16: {
+            stack_word b = pop(interpreter->main_stack);
+            b &= 0xFFFF;  // Mask off higher bits.
+            uint64_t sign = b >> 15;
+            uint64_t extension = -sign << 16;
+            b |= extension;
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_SX16L: {
+            stack_word b = pop(interpreter->main_stack);
+            stack_word a = pop(interpreter->main_stack);
+            a &= 0xFFFF;  // Mask off higher bits.
+            uint64_t sign = a >> 15;
+            uint64_t extension = -sign << 16;
+            a |= extension;
+            push(interpreter->main_stack, a);
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_SX32: {
+            stack_word b = pop(interpreter->main_stack);
+            b &= 0xFFFFFFFF;  // Mask off higher bits.
+            uint64_t sign = b >> 31;
+            uint64_t extension = -sign << 32;
+            b |= extension;
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_SX32L: {
+            stack_word b = pop(interpreter->main_stack);
+            stack_word a = pop(interpreter->main_stack);
+            a &= 0xFFFFFFFF;  // Mask off higher bits.
+            uint64_t sign = a >> 31;
+            uint64_t extension = -sign << 32;
+            a |= extension;
+            push(interpreter->main_stack, a);
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_ZX8: {
+            stack_word b = pop(interpreter->main_stack);
+            b &= 0xFF;
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_ZX8L: {
+            stack_word b = pop(interpreter->main_stack);
+            stack_word a = pop(interpreter->main_stack);
+            a &= 0xFF;
+            push(interpreter->main_stack, a);
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_ZX16: {
+            stack_word b = pop(interpreter->main_stack);
+            b &= 0xFFFF;
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_ZX16L: {
+            stack_word b = pop(interpreter->main_stack);
+            stack_word a = pop(interpreter->main_stack);
+            a &= 0xFFFF;
+            push(interpreter->main_stack, a);
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_ZX32: {
+            stack_word b = pop(interpreter->main_stack);
+            b &= 0xFFFFFFFF;
+            push(interpreter->main_stack, b);
+            break;
+        }
+        case OP_ZX32L: {
+            stack_word b = pop(interpreter->main_stack);
+            stack_word a = pop(interpreter->main_stack);
+            a &= 0xFFFFFFFF;
+            push(interpreter->main_stack, a);
+            push(interpreter->main_stack, b);
+        }
         }
     }
     return INTERPRET_OK;

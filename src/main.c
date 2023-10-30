@@ -12,6 +12,7 @@
 #include "ir.h"
 #include "optimiser.h"
 #include "stack.h"
+#include "type_checker.h"
 
 
 #define INPUT_BUFFER_SIZE 4 * 1024 * 1024
@@ -244,6 +245,18 @@ int main(int argc, char *argv[]) {
         optimise(&block);
     }
     if (opts.dump_ir) {
+        printf("=== Before type checking: ===\n");
+        disassemble_block(&block);
+        printf("------------------------------------------------\n");
+    }
+    struct type_checker checker;
+    init_type_checker(&checker, &block);
+    if (type_check(&checker) == TYPE_CHECK_ERROR) {
+        // Error message(s) already emitted.
+        exit(1);
+    }
+    if (opts.dump_ir) {
+        printf("=== After type checking: ===\n");
         disassemble_block(&block);
         if (opts.interpret) {
             printf("------------------------------------------------\n");

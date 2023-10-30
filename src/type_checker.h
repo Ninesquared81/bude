@@ -35,8 +35,10 @@ struct type_checker {
 
 enum type_check_result {
     TYPE_CHECK_OK,
-    TYPE_CHECK_ERR,
+    TYPE_CHECK_ERROR,
 };
+
+void reset_type_stack(struct type_stack *tstack);
 
 void init_type_checker(struct type_checker *checker, struct ir_block *block);
 void free_type_checker(struct type_checker *checker);
