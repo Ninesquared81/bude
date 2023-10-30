@@ -188,7 +188,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: invalid type for `divmod`");
+                fprintf(stderr, "Type error: invalid types for `divmod`.\n");
                 conversion.result_type = TYPE_WORD;
             }
             if (is_signed(conversion.result_type)) {
