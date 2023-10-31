@@ -369,6 +369,7 @@ static bool compile_simple(struct compiler *compiler) {
         write_simple(block, OP_POP);
         break;
     case TOKEN_PRINT:
+        write_simple(block, OP_NOP);  // Conversion.
         write_simple(block, OP_PRINT);
         break;
     case TOKEN_PRINT_CHAR:
