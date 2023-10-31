@@ -397,24 +397,48 @@ struct string_view *read_string(struct ir_block *block, uint32_t index) {
     return &block->strings.views[index];
 }
 
+static int binary_search(struct jump_info_table *jumps, int dest) {
+    int hi = jumps->count - 1;
+    int lo = 0;
+    while (hi > lo) {
+        int mid = (hi - lo) / 2;
+        if (jumps->dests[mid] == dest) {
+            return mid;
+        }
+        if (jumps->dests[mid] < dest) {
+            lo = mid + 1;
+        }
+        else {
+            hi = mid - 1;
+        }
+    }
+    return lo;
+}
+
 int add_jump(struct ir_block *block, int dest) {
     struct jump_info_table *jumps = &block->jumps;
     if (jumps->count + 1 > jumps->capacity) {
         grow_jump_info_table(jumps);
     }
-    jumps->dests[jumps->count++] = dest;
-    return jumps->count - 1;
+    // Usually, we add elements in order, so first see if we can just add it on the end.
+    // Also, we handle the empty case here as well.
+    if (jumps->count == 0 || jumps->dests[jumps->count - 1] < dest) {
+        jumps->dests[jumps->count++] = dest;
+        return jumps->count - 1;
+    }
+    // Binary insert.
+    int index = binary_search(jumps, dest);
+    memmove(&jumps->dests[index + 1], &jumps->dests[index], jumps->count - index);
+    ++jumps->count;
+    jumps->dests[index] = dest;
+    return index;
 }
 
 int find_jump(struct ir_block *block, int dest) {
-    // Linear search.
+    // Binary search.
     struct jump_info_table *jumps = &block->jumps;
-    for (int i = 0; i < jumps->count; ++i) {
-        if (jumps->dests[i] == dest) {
-            return i;
-        }
-    }
-    return -1;  // Search failed.
+    int index = binary_search(jumps, dest);
+    return (index < jumps->count && jumps->dests[index] == dest) ? index : -1;  // -1: search failed.
 }
 
 bool is_jump_dest(struct ir_block *block, int dest) {
