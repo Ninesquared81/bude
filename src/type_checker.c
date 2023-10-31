@@ -396,6 +396,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case OP_GET_LOOP_VAR:
+            checker->ip += 2;  // Loop variable.
             ts_push(checker, TYPE_INT);  // Loop variable is always an integer.
             break;
         case OP_MULT: {
