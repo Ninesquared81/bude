@@ -167,7 +167,7 @@ uint64_t read_constant(struct ir_block *block, int index);
 uint32_t write_string(struct ir_block *block, struct string_builder *builder);
 struct string_view *read_string(struct ir_block *block, uint32_t index);
 
-int write_jump(struct ir_block *block, int dest);
+int add_jump(struct ir_block *block, int dest);
 int find_jump(struct ir_block *block, int dest);
 bool is_jump_dest(struct ir_block *block, int dest);
 

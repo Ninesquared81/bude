@@ -397,7 +397,7 @@ struct string_view *read_string(struct ir_block *block, uint32_t index) {
     return &block->strings.views[index];
 }
 
-int write_jump(struct ir_block *block, int dest) {
+int add_jump(struct ir_block *block, int dest) {
     struct jump_info_table *jumps = &block->jumps;
     if (jumps->count + 1 > jumps->capacity) {
         grow_jump_info_table(jumps);
