@@ -158,6 +158,7 @@ static int compile_conditional(struct compiler *compiler) {
         else_start = compiler->block->count;
         compile_expr(compiler);  // Else body.
         end_addr = compiler->block->count;
+        expect_consume(compiler, TOKEN_END, "Expect `end` after `if` body.");
     }
     else {
         expect_consume(compiler, TOKEN_END, "Expect `end` after `if` body.");
