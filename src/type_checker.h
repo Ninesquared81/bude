@@ -26,7 +26,14 @@ struct type_stack {
     enum type types[TYPE_STACK_SIZE];
 };
 
+struct type_checker_states {
+    size_t size;
+    struct type_stack **tstacks;
+    int *ips;
+};
+
 struct type_checker {
+    struct type_checker_states states;
     struct ir_block *block;
     struct type_stack *tstack;
     int ip;

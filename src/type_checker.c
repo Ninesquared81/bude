@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "type_checker.h"
 
@@ -15,7 +16,22 @@ void reset_type_stack(struct type_stack *tstack) {
     tstack->top = tstack->types;
 }
 
+static void init_type_checker_states(struct type_checker_states *states,
+                                     struct jump_info_table *jumps) {
+    states->size = jumps->count;
+    states->tstacks = calloc(states->size, sizeof *states->tstacks);
+    states->ips = calloc(states->size, sizeof *states->ips);
+    memcpy(states->ips, jumps->dests, states->size);
+}
+
+static void free_type_checker_states(struct type_checker_states *states) {
+    states->size = 0;
+    free(states->tstacks);
+    free(states->ips);
+}
+
 void init_type_checker(struct type_checker *checker, struct ir_block *block) {
+    init_type_checker_states(&checker->states, &block->jumps);
     checker->block = block;
     checker->tstack = malloc(sizeof *checker->tstack);
     checker->ip = 0;
@@ -24,6 +40,7 @@ void init_type_checker(struct type_checker *checker, struct ir_block *block) {
 }
 
 void free_type_checker(struct type_checker *checker) {
+    free_type_checker_states(&checker->states);
     free(checker->tstack);
     checker->tstack = NULL;
 }
