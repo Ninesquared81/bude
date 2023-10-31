@@ -188,6 +188,9 @@ static bool check_state(struct type_checker *checker) {
 
 static int find_jump_src(struct type_checker *checker) {
     struct type_checker_states *states = &checker->states;
+    if (states->size == 0) {
+        return -1;
+    }
     size_t index = find_state(states, checker->ip);
     assert(index < (size_t)checker->block->jumps.count);
     if (states->states[index] == NULL) {
@@ -211,6 +214,11 @@ static bool save_jump(struct type_checker *checker, int dest_offset) {
 }
 
 static void check_unreachable(struct type_checker *checker) {
+    while (checker->block->code[checker->ip + 1] == OP_NOP
+           && !is_jump_dest(checker->block, checker->ip + 1)) {
+        ++checker->ip;
+        if (checker->ip >= checker->block->count) return;
+    }
     if (!is_jump_dest(checker->block, checker->ip + 1)) {
         checker->had_error = true;
         int start_ip = checker->ip + 1;
@@ -218,13 +226,14 @@ static void check_unreachable(struct type_checker *checker) {
         while (ip + 1 < checker->block->count && !is_jump_dest(checker->block, ip + 1)) {
             ++ip;
         }
-        if (ip < checker->block->count) {
+        if (ip + 1 < checker->block->count) {
             fprintf(stderr, "Type error: code from index %d to %d is unreachable.\n",
                     start_ip, ip);
         }
         else {
             fprintf(stderr, "Type error: code from index %d to end is unreachable.\n",
                     start_ip);
+            return;
         }
         checker->ip = ip;
     }
