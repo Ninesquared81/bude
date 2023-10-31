@@ -19,14 +19,18 @@ void reset_type_stack(struct type_stack *tstack) {
 static void init_type_checker_states(struct type_checker_states *states,
                                      struct jump_info_table *jumps) {
     states->size = jumps->count;
-    states->tstacks = calloc(states->size, sizeof *states->tstacks);
+    states->states = calloc(states->size, sizeof *states->states);
     states->ips = calloc(states->size, sizeof *states->ips);
     memcpy(states->ips, jumps->dests, states->size);
 }
 
 static void free_type_checker_states(struct type_checker_states *states) {
+    for (size_t i = 0; i < states->size; ++i) {
+        // NOTE: it's safe to pass NULL to free, so no need to check for it.
+        free(states->states[i]);
+    }
     states->size = 0;
-    free(states->tstacks);
+    free(states->states);
     free(states->ips);
 }
 
@@ -110,8 +114,63 @@ static bool check_pointer_addition(struct type_checker *checker,
     return true;
 }
 
+static size_t find_state(struct type_checker_states *states, int ip) {
+    int hi = states->size - 1;
+    int lo = 0;
+    while (hi > lo) {
+        size_t mid = (hi - lo) / 2;
+        int state = states->ips[mid];
+        if (state < ip) {
+            lo = mid + 1;
+        }
+        else {
+            hi = mid - 1;
+        }
+    }
+    return lo;
+}
+
+static bool save_state(struct type_checker *checker) {
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, checker->ip);
+    if (states->states[index] != NULL) {
+        // There was already a state saved there.
+        return false;
+    }
+    size_t count = TSTACK_COUNT(checker->tstack);
+    struct tstack_state *state = malloc(sizeof *state + count * sizeof *state->types);
+    state->count = count;
+    memcpy(state->types, checker->tstack->types, count);
+    states->states[index] = state;
+    return true;
+}
+
+
+static bool check_state(struct type_checker *checker) {
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, checker->ip);
+    struct tstack_state *state = states->states[index];
+    if (state == NULL) {
+        // Did not find state.
+        return false;
+    }
+    if ((ptrdiff_t)state->count != TSTACK_COUNT(checker->tstack)) {
+        return false;
+    }
+    return memcmp(state->types, checker->tstack->types, state->count) == 0;
+}
+
 enum type_check_result type_check(struct type_checker *checker) {
     for (; checker->ip < checker->block->count; ++checker->ip) {
+        if (is_jump_dest(checker->block, checker->ip)) {
+            if (!save_state(checker)) {
+                // Previous state was saved here.
+                if (!check_state(checker)) {
+                    checker->had_error = true;
+                    fprintf(stderr, "Type error: stack not invariant after jump.");
+                }
+            }
+        }
         enum opcode instruction = checker->block->code[checker->ip];
         switch (instruction) {
         case OP_NOP:

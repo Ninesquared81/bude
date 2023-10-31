@@ -21,14 +21,21 @@ enum type {
 static_assert(TYPE_COUNT == TYPE_INT + 1);
 static_assert(TYPE_ERROR == 0);
 
+#define TSTACK_COUNT(tstack) (tstack->top - tstack->types)
+
 struct type_stack {
     enum type *top;
     enum type types[TYPE_STACK_SIZE];
 };
 
+struct tstack_state {
+    size_t count;
+    enum type types[];
+};
+
 struct type_checker_states {
     size_t size;
-    struct type_stack **tstacks;
+    struct tstack_state **states;
     int *ips;
 };
 
