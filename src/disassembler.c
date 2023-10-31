@@ -123,6 +123,30 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return simple_instruction("OP_SUB", offset);
     case OP_SWAP:
         return simple_instruction("OP_SWAP", offset);
+    case OP_SX8:
+        return simple_instruction("OP_SX8", offset);
+    case OP_SX8L:
+        return simple_instruction("OP_SX8L", offset);
+    case OP_SX16:
+        return simple_instruction("OP_SX16", offset);
+    case OP_SX16L:
+        return simple_instruction("OP_SX16L", offset);
+    case OP_SX32:
+        return simple_instruction("OP_SX32", offset);
+    case OP_SX32L:
+        return simple_instruction("OP_SX32L", offset);
+    case OP_ZX8:
+        return simple_instruction("OP_ZX8", offset);
+    case OP_ZX8L:
+        return simple_instruction("OP_ZX8L", offset);
+    case OP_ZX16:
+        return simple_instruction("OP_ZX16", offset);
+    case OP_ZX16L:
+        return simple_instruction("OP_ZX16L", offset);
+    case OP_ZX32:
+        return simple_instruction("OP_ZX32", offset);
+    case OP_ZX32L:
+        return simple_instruction("OP_ZX32L", offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
