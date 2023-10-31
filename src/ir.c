@@ -401,7 +401,7 @@ static int binary_search(struct jump_info_table *jumps, int dest) {
     int hi = jumps->count - 1;
     int lo = 0;
     while (hi > lo) {
-        int mid = (hi - lo) / 2;
+        int mid = lo + (hi - lo) / 2;
         if (jumps->dests[mid] == dest) {
             return mid;
         }
@@ -428,7 +428,8 @@ int add_jump(struct ir_block *block, int dest) {
     }
     // Binary insert.
     int index = binary_search(jumps, dest);
-    memmove(&jumps->dests[index + 1], &jumps->dests[index], jumps->count - index);
+    size_t shift = jumps->count - index;
+    memmove(&jumps->dests[index + 1], &jumps->dests[index], shift * sizeof jumps->dests[0]);
     ++jumps->count;
     jumps->dests[index] = dest;
     return index;

@@ -37,6 +37,7 @@ struct type_checker_states {
     size_t size;
     struct tstack_state **states;
     int *ips;
+    int *jump_srcs;
 };
 
 struct type_checker {

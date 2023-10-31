@@ -21,7 +21,8 @@ static void init_type_checker_states(struct type_checker_states *states,
     states->size = jumps->count;
     states->states = calloc(states->size, sizeof *states->states);
     states->ips = calloc(states->size, sizeof *states->ips);
-    memcpy(states->ips, jumps->dests, states->size);
+    states->jump_srcs = calloc(states->size, sizeof *states->jump_srcs);
+    memcpy(states->ips, jumps->dests, states->size * sizeof states->ips[0]);
 }
 
 static void free_type_checker_states(struct type_checker_states *states) {
@@ -32,6 +33,7 @@ static void free_type_checker_states(struct type_checker_states *states) {
     states->size = 0;
     free(states->states);
     free(states->ips);
+    free(states->jump_srcs);
 }
 
 void init_type_checker(struct type_checker *checker, struct ir_block *block) {
@@ -95,7 +97,7 @@ static enum opcode sign_extend(enum type type) {
 }
 
 static bool check_pointer_addition(struct type_checker *checker,
-                            enum type lhs_type, enum type rhs_type) {
+                                   enum type lhs_type, enum type rhs_type) {
     enum opcode conversion;
     if (lhs_type == TYPE_PTR) {
         if (rhs_type == TYPE_PTR) {
@@ -118,8 +120,11 @@ static size_t find_state(struct type_checker_states *states, int ip) {
     int hi = states->size - 1;
     int lo = 0;
     while (hi > lo) {
-        size_t mid = (hi - lo) / 2;
+        size_t mid = lo + (hi - lo) / 2;
         int state = states->ips[mid];
+        if (state == ip) {
+            return mid;
+        }
         if (state < ip) {
             lo = mid + 1;
         }
@@ -130,25 +135,42 @@ static size_t find_state(struct type_checker_states *states, int ip) {
     return lo;
 }
 
-static bool save_state(struct type_checker *checker) {
+static bool save_state_at(struct type_checker *checker, int ip) {
     struct type_checker_states *states = &checker->states;
-    size_t index = find_state(states, checker->ip);
+    size_t index = find_state(states, ip);
+    assert(index < (size_t)checker->block->jumps.count);
     if (states->states[index] != NULL) {
         // There was already a state saved there.
         return false;
     }
     size_t count = TSTACK_COUNT(checker->tstack);
-    struct tstack_state *state = malloc(sizeof *state + count * sizeof *state->types);
+    size_t tstack_size = count * sizeof(enum type);
+    struct tstack_state *state = malloc(sizeof *state + tstack_size);
     state->count = count;
-    memcpy(state->types, checker->tstack->types, count);
+    memcpy(state->types, checker->tstack->types, tstack_size);
     states->states[index] = state;
     return true;
 }
 
+static bool save_state(struct type_checker *checker) {
+    return save_state_at(checker, checker->ip);
+}
 
-static bool check_state(struct type_checker *checker) {
+static bool load_state(struct type_checker *checker, int ip) {
+    struct type_checker_states *states =&checker->states;
+    size_t index = find_state(states, ip);
+    struct tstack_state *state = states->states[index];
+    if (state == NULL) {
+        return false;
+    }
+    memcpy(checker->tstack->types, state->types, state->count);
+    checker->tstack->top = &checker->tstack->types[state->count];
+    return true;
+}
+
+static bool check_state_at(struct type_checker *checker, int ip) {
     struct type_checker_states *states = &checker->states;
-    size_t index = find_state(states, checker->ip);
+    size_t index = find_state(states, ip);
     struct tstack_state *state = states->states[index];
     if (state == NULL) {
         // Did not find state.
@@ -160,6 +182,70 @@ static bool check_state(struct type_checker *checker) {
     return memcmp(state->types, checker->tstack->types, state->count) == 0;
 }
 
+static bool check_state(struct type_checker *checker) {
+    return check_state_at(checker, checker->ip);
+}
+
+static int find_jump_src(struct type_checker *checker) {
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, checker->ip);
+    assert(index < (size_t)checker->block->jumps.count);
+    if (states->states[index] == NULL) {
+        // State not found.
+        return -1;
+    }
+    return states->jump_srcs[index];
+}
+
+static bool save_jump(struct type_checker *checker, int dest_offset) {
+    int dest = checker->ip + dest_offset + 1;
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, dest);
+    assert(index < (size_t)checker->block->jumps.count);
+    states->jump_srcs[index] = checker->ip;
+    if (!save_state_at(checker, dest)) {
+        // If jump was already saved.
+        return check_state_at(checker, dest);
+    }
+    return true;
+}
+
+static void check_unreachable(struct type_checker *checker) {
+    if (!is_jump_dest(checker->block, checker->ip + 1)) {
+        checker->had_error = true;
+        int start_ip = checker->ip + 1;
+        int ip = start_ip;
+        while (ip + 1 < checker->block->count && !is_jump_dest(checker->block, ip + 1)) {
+            ++ip;
+        }
+        if (ip < checker->block->count) {
+            fprintf(stderr, "Type error: code from index %d to %d is unreachable.\n",
+                    start_ip, ip);
+        }
+        else {
+            fprintf(stderr, "Type error: code from index %d to end is unreachable.\n",
+                    start_ip);
+        }
+        checker->ip = ip;
+    }
+    int src = find_jump_src(checker);
+    if (src == -1) {
+        fprintf(stderr, "Type error: could not find source of jump.\n");
+        return;
+    }
+    load_state(checker, src);
+}
+
+static void check_jump_instruction(struct type_checker *checker) {
+    int offset = read_s16(checker->block, checker->ip + 1);
+    if (!save_jump(checker, offset)) {
+        checker->had_error = true;
+        fprintf(stderr, "Type error at %d: inconsistent stack after jump instruction.\n",
+                checker->ip);
+    }
+    checker->ip += 2;
+}
+
 enum type_check_result type_check(struct type_checker *checker) {
     for (; checker->ip < checker->block->count; ++checker->ip) {
         if (is_jump_dest(checker->block, checker->ip)) {
@@ -167,7 +253,9 @@ enum type_check_result type_check(struct type_checker *checker) {
                 // Previous state was saved here.
                 if (!check_state(checker)) {
                     checker->had_error = true;
-                    fprintf(stderr, "Type error: stack not invariant after jump.");
+                    fprintf(stderr,
+                            "Type error at %d: inconsistent stack after jump instruction.\n",
+                            checker->ip);
                 }
             }
         }
@@ -428,16 +516,17 @@ enum type_check_result type_check(struct type_checker *checker) {
                 checker->had_error = true;
                 fprintf(stderr, "Type error: expected integral type for `exit`.\n");
             }
-            // TODO: work out how to handle end of control flow here.
+            check_unreachable(checker);
             break;
         }
         case OP_JUMP_COND:
         case OP_JUMP_NCOND:
             ts_pop(checker);
-            /* Fallthrough */
+            check_jump_instruction(checker);
+            break;
         case OP_JUMP:
-            fprintf(stderr, "Warning: type checking not implemented yet.\n");
-            checker->ip += 2;
+            check_jump_instruction(checker);
+            check_unreachable(checker);
             break;
         case OP_FOR_DEC_START:
         case OP_FOR_INC_START:
@@ -445,8 +534,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             /* Fallthrough */
         case OP_FOR_DEC:
         case OP_FOR_INC:
-            fprintf(stderr, "Warning: type checking not implemented yet.\n");
-            checker->ip += 2;
+            check_jump_instruction(checker);
             break;
         }
     }
