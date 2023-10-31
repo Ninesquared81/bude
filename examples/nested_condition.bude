@@ -1,6 +1,5 @@
-0 1 2 3 4 5
-while
-  if then
+5 while
+  if dupe then
     54
   else
     42
@@ -8,6 +7,7 @@ while
   end
   6 9 *
   - not
+  swap 1 - swap
 do
   42 print
 end
