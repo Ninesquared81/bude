@@ -33,7 +33,7 @@ static struct arithm_conv arithmetic_conversions[TYPE_COUNT][TYPE_COUNT] = {
     [TYPE_WORD][TYPE_BYTE] = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
     [TYPE_WORD][TYPE_INT]  = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
     [TYPE_BYTE][TYPE_WORD] = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_BYTE][TYPE_BYTE] = {TYPE_BYTE, OP_NOP, OP_NOP, OP_NOP},
+    [TYPE_BYTE][TYPE_BYTE] = {TYPE_BYTE, OP_NOP, OP_NOP, OP_ZX8},
     [TYPE_BYTE][TYPE_INT]  = {TYPE_INT,  OP_NOP, OP_NOP, OP_NOP},
     [TYPE_INT][TYPE_WORD]  = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
     [TYPE_INT][TYPE_BYTE]  = {TYPE_INT,  OP_NOP, OP_NOP, OP_NOP},
@@ -157,11 +157,13 @@ enum type_check_result type_check(struct type_checker *checker) {
                 }
                 overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
                 overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
+                overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
             }
             else {
                 result_type = TYPE_PTR;
             }
             ts_push(checker, result_type);
+            ++checker->ip;  // Skip result conversion.
             break;
         }
         case OP_AND: {
@@ -199,8 +201,10 @@ enum type_check_result type_check(struct type_checker *checker) {
             }
             overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
             overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
+            overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
             ts_push(checker, conversion.result_type);  // Quotient.
             ts_push(checker, conversion.result_type);  // Remainder.
+            ++checker->ip;  // Skip result conversion.
             break;
         }
         case OP_IDIVMOD:
@@ -215,8 +219,10 @@ enum type_check_result type_check(struct type_checker *checker) {
             }
             overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
             overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
+            overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
             ts_push(checker, conversion.result_type);
             ts_push(checker, conversion.result_type);
+            ++checker->ip;  // Skip result conversion.
             break;
         }
         case OP_DUPE: {
@@ -237,6 +243,10 @@ enum type_check_result type_check(struct type_checker *checker) {
                 fprintf(stderr, "Type error: invalid types for `*`.\n");
                 conversion.result_type = TYPE_WORD;
             }
+            overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
+            overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
+            overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
+            ++checker->ip;  // Skip result conversion.
             ts_push(checker, conversion.result_type);
             break;
         }
@@ -287,18 +297,15 @@ enum type_check_result type_check(struct type_checker *checker) {
         case OP_SUB: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
-            enum type result_type;
-            if (is_integral(lhs_type)) {
-                result_type = arithmetic_conversions[lhs_type][rhs_type].result_type;
-                if (result_type == TYPE_ERROR) {
-                    checker->had_error = true;
-                    fprintf(stderr, "Invalid types for `-`.\n");
-                    result_type = TYPE_WORD;
-                }
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type != TYPE_ERROR) {
+                overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
+                overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
+                overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
             }
             else if (lhs_type == TYPE_PTR) {
                 if (rhs_type == TYPE_PTR) {
-                    result_type = TYPE_INT;
+                    conversion.result_type = TYPE_INT;
                 }
                 else if (is_integral(rhs_type)) {
                     overwrite_instruction(checker->block, checker->ip, promote(rhs_type));
@@ -306,15 +313,16 @@ enum type_check_result type_check(struct type_checker *checker) {
                 else {
                     checker->had_error = true;
                     fprintf(stderr, "Type error: invalid types for `-`.\n");
-                    result_type = TYPE_WORD;
+                    conversion.result_type = TYPE_WORD;
                 }
             }
             else {
                 checker->had_error = true;
                 fprintf(stderr, "Type error: invalid types for `-`.\n");
-                result_type = TYPE_WORD;
+                conversion.result_type = TYPE_WORD;
             }
-            ts_push(checker, result_type);
+            ts_push(checker, conversion.result_type);
+            ++checker->ip;  // Skip result conversion.
             break;
         }
         case OP_SWAP: {
