@@ -65,8 +65,21 @@ const char *opcode_names[] = {
     [OP_OR]                = "OP_OR",
     [OP_PRINT]             = "OP_PRINT",
     [OP_PRINT_CHAR]        = "OP_PRINT_CHAR",
+    [OP_PRINT_INT]         = "OP_PRINT_INT",
     [OP_SUB]               = "OP_SUB",
     [OP_SWAP]              = "OP_SWAP",
+    [OP_SX8]               = "OP_SX8",
+    [OP_SX8L]              = "OP_SX8L",
+    [OP_SX16]              = "OP_SX16",
+    [OP_SX16L]             = "OP_SX16L",
+    [OP_SX32]              = "OP_SX32",
+    [OP_SX32L]             = "OP_SX32L",
+    [OP_ZX8]               = "OP_ZX8",
+    [OP_ZX8L]              = "OP_ZX8L",
+    [OP_ZX16]              = "OP_ZX16",
+    [OP_ZX16L]             = "OP_ZX16L",
+    [OP_ZX32]              = "OP_ZX32",
+    [OP_ZX32L]             = "OP_ZX32L",
 };
 
 const char *get_opcode_name(enum opcode opcode) {

@@ -1,1 +1,20 @@
-673 54 /% print print
+673 54 /% swap print print
+
+# -42 5 /% # swap print print
+
+# 10 -17 /% # swap print print
+
+-23 -108 /%
+
+for
+    swap -108 * +
+    if -23 - not then
+        ":>\n"
+    else
+        ":(\n"
+    end
+do
+    dupe deref print-char
+    1 +
+end
+

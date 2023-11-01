@@ -2,8 +2,9 @@
 
 # dupe print
 
-# deref 5 /%
-# print print
+dupe 1 +
+deref swap deref /%
+print print
 
 # while 1 do
 #    42

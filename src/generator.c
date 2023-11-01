@@ -129,10 +129,37 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "push", "rdx");
             break;
         case OP_DIVMOD:
-            asm_write_inst1c(assembly, "pop", "rdx", "Divisor.");
+            asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
             asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
             asm_write_inst2c(assembly, "xor", "rdx", "rdx", "Zero out extra bytes in dividend.");
-            asm_write_inst1(assembly, "div", "rdx");
+            asm_write_inst1(assembly, "div", "rcx");
+            asm_write_inst1c(assembly, "push", "rax", "Quotient.");
+            asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
+            break;
+        case OP_IDIVMOD:
+            asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
+            asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
+            asm_write_inst2(assembly, "xor", "rdx", "rdx");
+            asm_write_inst1(assembly, "idiv", "rcx");
+            asm_write_inst1c(assembly, "push", "rax", "Quotient.");
+            asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
+            break;
+        case OP_EDIVMOD:
+            asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
+            asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
+            asm_write_inst2c(assembly, "mov", "r8", "rcx", "Save divisor.");
+            asm_write_inst1(assembly, "neg", "r8");
+            asm_write_inst2c(assembly, "cmovg", "r8", "rcx", "r8 = -abs(rcx).");
+            asm_write_inst2(assembly, "mov", "r9", "rcx");
+            asm_write_inst2c(assembly, "sal", "r9", "63", "r9 = sign(rcx).");
+            asm_write_inst2(assembly, "xor", "rdx", "rdx");
+            asm_write_inst1(assembly, "idiv", "rcx");
+            asm_write_inst2c(assembly, "add", "r8", "rax", "q - sign(b)");
+            asm_write_inst2c(assembly, "add", "r9", "rdx", "r + abs(b)");
+            asm_write_inst2c(assembly, "test", "rdx", "rdx",
+                             "Ensure r >= 0 and adjust q accordingly.");
+            asm_write_inst2(assembly, "cmovl", "rax", "r8");
+            asm_write_inst2(assembly, "cmovl", "rdx", "r9");
             asm_write_inst1c(assembly, "push", "rax", "Quotient.");
             asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
             break;
@@ -234,13 +261,16 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             break;
         }
         case OP_MULT:
-            BIN_OP("mul");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2c(assembly, "imul", "rax", "[rsp]", "Multiplication is commutative.");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
         case OP_NOT:
             asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2c(assembly, "xor", "edx", "edx", "Zero out rdx.");
             asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst1(assembly, "setz", "rax");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst1(assembly, "setz", "dl");
+            asm_write_inst1(assembly, "push", "rdx");
             break;
         case OP_OR:
             asm_write_inst1c(assembly, "pop", "rdx", "'Else' value.");
@@ -251,7 +281,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             break;
         case OP_PRINT:
             asm_write_inst1c(assembly, "pop", "rdx", "Value to be printed.");
-            asm_write_inst2c(assembly, "mov", "rcx", "fmt_s64", "Format string.");
+            asm_write_inst2c(assembly, "lea", "rcx", "[fmt_u64]", "Format string.");
             asm_write_inst2c(assembly, "mov", "rbp", "rsp",
                             "Save rsp for later (rbp is non-volatile in MS x64)");
             asm_write_inst2c(assembly, "and", "spl", "0F0h", "Align stack.");
@@ -262,6 +292,15 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case OP_PRINT_CHAR:
             asm_write_inst1(assembly, "pop", "rdx");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_char]");
+            asm_write_inst2(assembly, "mov", "rbp", "rsp");
+            asm_write_inst2(assembly, "and", "spl", "0F0h");
+            asm_write_inst2(assembly, "sub", "rsp", "32");
+            asm_write_inst1(assembly, "call", "[printf]");
+            asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            break;
+        case OP_PRINT_INT:
+            asm_write_inst1(assembly, "pop", "rdx");
+            asm_write_inst2(assembly, "lea", "rcx", "[fmt_s64]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
             asm_write_inst2(assembly, "and", "spl", "0F0h");
             asm_write_inst2(assembly, "sub", "rsp", "32");
@@ -320,13 +359,11 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case OP_ZX32:
             asm_write_inst2(assembly, "movzx", "rax", "dword [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
-        case OP_ZX32L:
             break;
+        case OP_ZX32L:
             asm_write_inst2(assembly, "mov", "rax", "dword [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
-        default:
-            assert(0 && "Not implemented you silly goose!");
         }
     }
     asm_write(assembly, "  ;;\t=== END ===\n");
