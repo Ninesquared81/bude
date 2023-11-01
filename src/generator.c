@@ -277,6 +277,54 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             asm_write_inst2(assembly, "mov", "[rsp]", "rdx");
             break;
+        case OP_SX8:
+            asm_write_inst2(assembly, "movsx", "rax", "byte [rsp]");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            break;
+        case OP_SX8L:
+            asm_write_inst2(assembly, "movsx", "rax", "byte [rsp+8]");
+            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            break;
+        case OP_SX16:
+            asm_write_inst2(assembly, "movsx", "rax", "word [rsp]");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            break;
+        case OP_SX16L:
+            asm_write_inst2(assembly, "movsx", "rax", "word [rsp+8]");
+            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            break;
+        case OP_SX32:
+            asm_write_inst2(assembly, "movsx", "rax", "dword [rsp]");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            break;
+        case OP_SX32L:
+            asm_write_inst2(assembly, "movsx", "rax", "dword [rsp+8]");
+            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            break;
+        case OP_ZX8:
+            asm_write_inst2(assembly, "movzx", "rax", "byte [rsp]");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            break;
+        case OP_ZX8L:
+            asm_write_inst2(assembly, "movzx", "rax", "byte [rsp+8]");
+            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            break;
+        case OP_ZX16:
+            asm_write_inst2(assembly, "movzx", "rax", "word [rsp]");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            break;
+        case OP_ZX16L:
+            asm_write_inst2(assembly, "movzx", "rax", "word [rsp+8]");
+            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            break;
+        case OP_ZX32:
+            asm_write_inst2(assembly, "movzx", "rax", "dword [rsp]");
+            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+        case OP_ZX32L:
+            break;
+            asm_write_inst2(assembly, "mov", "rax", "dword [rsp+8]");
+            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            break;
         default:
             assert(0 && "Not implemented you silly goose!");
         }
