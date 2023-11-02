@@ -285,17 +285,9 @@ enum type_check_result type_check(struct type_checker *checker) {
             checker->ip += 4;
             ts_push(checker, TYPE_INT);
             break;
-        case OP_LOAD8:
-            ++checker->ip;
-            ts_push(checker, TYPE_WORD);
-            break;
-        case OP_LOAD16:
-            checker->ip += 2;
-            ts_push(checker, TYPE_WORD);
-            break;
-        case OP_LOAD32:
-            checker->ip += 4;
-            ts_push(checker, TYPE_WORD);
+        case OP_PUSH64:
+            checker->ip += 8;
+            ts_push(checker, TYPE_INT);
             break;
         case OP_LOAD_STRING8:
             ++checker->ip;
