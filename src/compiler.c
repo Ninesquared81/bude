@@ -80,28 +80,45 @@ static void compile_symbol(struct compiler *compiler);
 
 #define IN_RANGE(x, lower, upper) ((lower) <= (x) && (x) <= (upper))
 
+struct integer_prefix {
+    char sign;  // '\0', '-', '+'.
+    int base;   // 10, 16, 2.
+};
+
 enum integer_type {
     INT_WORD, INT_BYTE, INT_INT,
     INT_S8, INT_S16, INT_S32,
     INT_U8, INT_U16, INT_U32,
 };
 
-int parse_integer_prefix(struct token *token) {
-    struct string_view *value = &token->value;
-    if (value->start[0] != '0') return 10;
+struct integer_prefix parse_integer_prefix(struct string_view *value) {
+    // Start by assuming base 10 and no sign (e.g. `42`). This is the most common form.
+    struct integer_prefix prefix = {.sign = '\0', .base = 10};
+    char first = value->start[0];
+    if (first == '-' || first == '+') {
+        prefix.sign = first;
+        // Consume the sign. This mutates the passed string view.
+        ++value->start;
+        --value->length;
+    }
 
-    if (value->length >= 3) {
+    if (value->start[0] == '0' && value->length >= 3) {
         switch (value->start[1]) {
-        case 'b': return 2;
-        case 'x': return 16;
+        case 'B':
+        case 'b':
+            prefix.base = 2;
+            break;
+        case 'X':
+        case 'x':
+            prefix.base = 16;
+            break;
         }
     }
 
-    return 10;
+    return prefix;
 }
 
-static enum integer_type parse_integer_suffix(struct token *token) {
-    struct string_view *value = &token->value;
+static enum integer_type parse_integer_suffix(struct string_view *value) {
     if (value->length <= 1) return INT_INT;
 
     const char *end = &value->start[value->length];
@@ -151,13 +168,12 @@ static enum integer_type parse_integer_suffix(struct token *token) {
 }
 
 static void compile_integer(struct compiler *compiler) {
-    struct token token = peek_previous(compiler);
-    int base = parse_integer_prefix(&token);
-    enum integer_type type = parse_integer_suffix(&token);
-    const char *start = (base == 10) ? token.value.start : token.value.start + 2;
+    struct string_view value = peek_previous(compiler).value;
+    struct integer_prefix prefix = parse_integer_prefix(&value);
+    enum integer_type type = parse_integer_suffix(&value);
     switch (type) {
     case INT_INT: {
-        int64_t integer = strtoll(start, NULL, base);
+        int64_t integer = strtoll(value.start, NULL, prefix.base);
         write_immediate_sv(compiler->block, OP_PUSH8, integer);
         break;
     }
