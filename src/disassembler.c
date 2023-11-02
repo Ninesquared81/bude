@@ -67,13 +67,21 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
     case OP_NOP:
         return simple_instruction("OP_NOP", offset);
     case OP_PUSH8:
-        return immediate_s8_instruction("OP_PUSH8", block, offset);
+        return immediate_u8_instruction("OP_PUSH8", block, offset);
     case OP_PUSH16:
-        return immediate_s16_instruction("OP_PUSH16", block, offset);
+        return immediate_u16_instruction("OP_PUSH16", block, offset);
     case OP_PUSH32:
-        return immediate_s32_instruction("OP_PUSH32", block, offset);
+        return immediate_u32_instruction("OP_PUSH32", block, offset);
     case OP_PUSH64:
-        return immediate_s64_instruction("OP_PUSH64", block, offset);
+        return immediate_u64_instruction("OP_PUSH64", block, offset);
+    case OP_PUSH_INT8:
+        return immediate_s8_instruction("OP_PUSH_INT8", block, offset);
+    case OP_PUSH_INT16:
+        return immediate_s16_instruction("OP_PUSH_INT16", block, offset);
+    case OP_PUSH_INT32:
+        return immediate_s32_instruction("OP_PUSH_INT32", block, offset);
+    case OP_PUSH_INT64:
+        return immediate_s64_instruction("OP_PUSH_INT64", block, offset);
     case OP_LOAD_STRING8:
         return immediate_u8_instruction("OP_LOAD_STRING8", block, offset);
     case OP_LOAD_STRING16:
@@ -154,6 +162,20 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return simple_instruction("OP_ZX32", offset);
     case OP_ZX32L:
         return simple_instruction("OP_ZX32L", offset);
+    case OP_AS_BYTE:
+        return simple_instruction("OP_AS_BYTE", offset);
+    case OP_AS_U8:
+        return simple_instruction("OP_AS_U8", offset);
+    case OP_AS_U16:
+        return simple_instruction("OP_AS_U16", offset);
+    case OP_AS_U32:
+        return simple_instruction("OP_AS_U32", offset);
+    case OP_AS_S8:
+        return simple_instruction("OP_AS_S8", offset);
+    case OP_AS_S16:
+        return simple_instruction("OP_AS_S16", offset);
+    case OP_AS_S32:
+        return simple_instruction("OP_AS_S32", offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
