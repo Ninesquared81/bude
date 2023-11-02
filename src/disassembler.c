@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -7,33 +8,43 @@
 
 
 static int immediate_u8_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %u\n", name, read_u8(block, offset + 1));
+    printf("%-16s %"PRIu8"\n", name, read_u8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_u16_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %u\n", name, read_u16(block, offset + 1));
+    printf("%-16s %"PRIu16"\n", name, read_u16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_u32_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %u\n", name, read_u32(block, offset + 1));
+    printf("%-16s %"PRIu32"\n", name, read_u32(block, offset + 1));
     return offset + 5;
+}
+[[maybe_unused]]
+static int immediate_u64_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%-16s %"PRIu64"\n", name, read_u64(block, offset + 1));
+    return offset + 9;
 }
 
 static int immediate_s8_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %d\n", name, read_s8(block, offset + 1));
+    printf("%-16s %"PRId8"\n", name, read_s8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_s16_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %d\n", name, read_s16(block, offset + 1));
+    printf("%-16s %"PRId16"\n", name, read_s16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_s32_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %d\n", name, read_s32(block, offset + 1));
+    printf("%-16s %"PRId32"\n", name, read_s32(block, offset + 1));
     return offset + 5;
+}
+
+static int immediate_s64_instruction(const char *name, struct ir_block *block, int offset) {
+    printf("%-16s %"PRId64"\n", name, read_s64(block, offset + 1));
+    return offset + 9;
 }
 
 static int jump_instruction(const char *name, struct ir_block *block, int offset) {
@@ -61,12 +72,8 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return immediate_s16_instruction("OP_PUSH16", block, offset);
     case OP_PUSH32:
         return immediate_s32_instruction("OP_PUSH32", block, offset);
-    case OP_LOAD8:
-        return immediate_u8_instruction("OP_LOAD8", block, offset);
-    case OP_LOAD16:
-        return immediate_u16_instruction("OP_LOAD16", block, offset);
-    case OP_LOAD32:
-        return immediate_u32_instruction("OP_LOAD32", block, offset);
+    case OP_PUSH64:
+        return immediate_s64_instruction("OP_PUSH64", block, offset);
     case OP_LOAD_STRING8:
         return immediate_u8_instruction("OP_LOAD_STRING8", block, offset);
     case OP_LOAD_STRING16:

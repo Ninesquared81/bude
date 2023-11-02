@@ -158,13 +158,7 @@ static void compile_integer(struct compiler *compiler) {
     switch (type) {
     case INT_INT: {
         int64_t integer = strtoll(start, NULL, base);
-        if (INT32_MIN <= integer && integer <= INT32_MAX) {
-            write_immediate_sv(compiler->block, OP_PUSH8, integer);
-        }
-        else {
-            int index = write_constant(compiler->block, s64_to_u64(integer));
-            write_immediate_uv(compiler->block, OP_LOAD8, index);
-        }
+        write_immediate_sv(compiler->block, OP_PUSH8, integer);
         break;
     }
     default:

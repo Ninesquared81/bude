@@ -14,10 +14,7 @@ enum opcode {
     OP_PUSH8,
     OP_PUSH16,
     OP_PUSH32,
-    /* LOADn Imm_un -- Push a word at a given index from the constants table. */
-    OP_LOAD8,
-    OP_LOAD16,
-    OP_LOAD32,
+    OP_PUSH64,
     /* LOAD_STRINGn Imm_un -- Push a string (ptr word) to the stack. */
     OP_LOAD_STRING8,
     OP_LOAD_STRING16,
@@ -141,8 +138,8 @@ void write_immediate_s16(struct ir_block *block, enum opcode instruction, int16_
 void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32_t operand);
 void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_t operand);
 
-void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint32_t operand);
-void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int32_t operand);
+void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint64_t operand);
+void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int64_t operand);
 
 void overwrite_u8(struct ir_block *block, int start, uint8_t value);
 void overwrite_s8(struct ir_block *block, int start, int8_t value);
@@ -160,6 +157,8 @@ uint16_t read_u16(struct ir_block *block, int index);
 int16_t read_s16(struct ir_block *block, int index);
 uint32_t read_u32(struct ir_block *block, int index);
 int32_t read_s32(struct ir_block *block, int index);
+uint64_t read_u64(struct ir_block *block, int index);
+int64_t read_s64(struct ir_block *block, int index);
 
 int write_constant(struct ir_block *block, uint64_t constant);
 uint64_t read_constant(struct ir_block *block, int index);

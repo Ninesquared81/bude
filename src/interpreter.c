@@ -73,25 +73,10 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_LOAD8: {
-            ++ip;
-            uint8_t index = read_u8(interpreter->block, ip);
-            uint64_t constant = read_constant(interpreter->block, index);
-            push(interpreter->main_stack, constant);
-            break;
-        }
-        case OP_LOAD16: {
-            ip += 2;
-            uint16_t index = read_u16(interpreter->block, ip - 1);
-            uint64_t constant = read_constant(interpreter->block, index);
-            push(interpreter->main_stack, constant);
-            break;
-        }
-        case OP_LOAD32: {
-            ip += 4;
-            uint32_t index = read_u32(interpreter->block, ip - 3);
-            uint64_t constant = read_constant(interpreter->block, index);
-            push(interpreter->main_stack, constant);
+        case OP_PUSH64: {
+            ip += 8;
+            int64_t value = read_s64(interpreter->block, ip - 7);
+            push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
         case OP_LOAD_STRING8: {

@@ -39,9 +39,7 @@ const char *opcode_names[] = {
     [OP_PUSH8]             = "OP_PUSH8",
     [OP_PUSH16]            = "OP_PUSH16",
     [OP_PUSH32]            = "OP_PUSH32",
-    [OP_LOAD8]             = "OP_LOAD8",
-    [OP_LOAD16]            = "OP_LOAD16",
-    [OP_LOAD32]            = "OP_LOAD32",
+    [OP_PUSH64]            = "OP_PUSH64",
     [OP_LOAD_STRING8]      = "OP_LOAD_STRING8",
     [OP_LOAD_STRING16]     = "OP_LOAD_STRING16",
     [OP_LOAD_STRING32]     = "OP_LOAD_STRING32",
@@ -279,32 +277,59 @@ void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_
     write_immediate_u32(block, instruction, s32_to_u32(operand));
 }
 
-void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint32_t operand) {
+void write_immediate_u64(struct ir_block *block, enum opcode instruction, uint64_t operand) {
+    if (block->count + 9 > block->capacity) {
+        grow_block(block);
+    }
+    block->code[block->count++] = instruction;
+    block->code[block->count++] = operand;
+    block->code[block->count++] = operand >> 8;
+    block->code[block->count++] = operand >> 16;
+    block->code[block->count++] = operand >> 24;
+    block->code[block->count++] = operand >> 32;
+    block->code[block->count++] = operand >> 40;
+    block->code[block->count++] = operand >> 48;
+    block->code[block->count++] = operand >> 56;
+}
+
+void write_immediate_s64(struct ir_block *block, enum opcode instruction, int64_t operand) {
+    write_immediate_u64(block, instruction, s64_to_u64(operand));
+}
+
+void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint64_t operand) {
     enum opcode instruction16 = instruction8 + 1;
     enum opcode instruction32 = instruction8 + 2;
+    enum opcode instruction64 = instruction8 + 3;
     if (operand <= UINT8_MAX) {
         write_immediate_u8(block, instruction8, operand);
     }
     else if (operand <= UINT16_MAX) {
         write_immediate_u16(block, instruction16, operand);
     }
-    else {
+    else if (operand <= UINT32_MAX) {
         write_immediate_u32(block, instruction32, operand);
+    }
+    else {
+        write_immediate_u64(block, instruction64, operand);
     }
 }
 
-void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int32_t operand) {
+void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int64_t operand) {
     enum opcode instruction16 = instruction8 + 1;
     enum opcode instruction32 = instruction8 + 2;
+    enum opcode instruction64 = instruction8 + 3;
     if (INT8_MIN < operand && operand <= INT8_MAX) {
         write_immediate_s8(block, instruction8, operand);
     }
     else if (INT16_MIN < operand && operand <= INT16_MAX) {
         write_immediate_s16(block, instruction16, operand);
     }
-    else {
+    else if (INT32_MIN < operand && operand <= INT32_MAX) {
         write_immediate_s32(block, instruction32, operand);
-    }    
+    }
+    else {
+        write_immediate_s64(block, instruction64, operand);
+    }
 }
 
 void overwrite_u8(struct ir_block *block, int start, uint8_t value) {
@@ -376,6 +401,23 @@ int32_t read_s32(struct ir_block *block, int index) {
     return u32_to_s32(read_u32(block, index));
 }
 
+uint64_t read_u64(struct ir_block *block, int index) {
+    assert(0 <= index && index + 3 < block->count);
+
+    uint64_t result = block->code[index];
+    result ^= (uint64_t)block->code[index + 1] << 8;
+    result ^= (uint64_t)block->code[index + 2] << 16;
+    result ^= (uint64_t)block->code[index + 3] << 24;
+    result ^= (uint64_t)block->code[index + 4] << 32;
+    result ^= (uint64_t)block->code[index + 5] << 40;
+    result ^= (uint64_t)block->code[index + 6] << 48;
+    result ^= (uint64_t)block->code[index + 7] << 56;
+    return result;
+}
+
+int64_t read_s64(struct ir_block *block, int index) {
+    return u64_to_s64(read_u64(block, index));
+}
 
 int write_constant(struct ir_block *block, uint64_t constant) {
     struct constant_table *table = &block->constants;
