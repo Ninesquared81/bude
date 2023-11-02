@@ -25,6 +25,12 @@ static bool is_at_end(struct lexer *lexer) {
     return *lexer->current == '\0';
 }
 
+static bool match(struct lexer *lexer, char c) {
+    if (is_at_end(lexer) || !check(lexer, c)) return false;
+    advance(lexer);
+    return true;
+}
+
 static void consume_comment(struct lexer *lexer) {
     while (!is_at_end(lexer) && advance(lexer) != '\n') {
         /* Do nothing. */
@@ -143,11 +149,56 @@ static struct token symbol(struct lexer *lexer) {
     return make_token(lexer, symbol_type(lexer));
 }
 
-static struct token integer(struct lexer *lexer) {
+static void lex_hex_int(struct lexer *lexer) {
+    while (isxdigit(peek(lexer))) {
+        advance(lexer);
+    }
+}
+
+static void lex_bin_int(struct lexer *lexer) {
+    for (char c = peek(lexer); c == '0' || c == '1'; c = peek(lexer)) {
+        advance(lexer);
+    }
+}
+
+static void lex_dec_int(struct lexer *lexer) {
     while (isdigit(peek(lexer))) {
         advance(lexer);
     }
-    if (!isspace(peek(lexer)) && !is_at_end(lexer)) {
+}
+
+static bool lex_int_suffix(struct lexer *lexer) {
+    if (match(lexer, 'u') || match(lexer, 's')) {
+        if (is_at_end(lexer)) return false;
+
+        switch (advance(lexer)) {
+        case '1': return match(lexer, '6');
+        case '3': return match(lexer, '2');
+        case '8': return true;
+        }
+    }
+    else if (!match(lexer, 'w')) {
+        match(lexer, 't');
+    }
+    return is_at_end(lexer) || isspace(peek(lexer));
+}
+
+static struct token integer(struct lexer *lexer) {
+    if (!match(lexer, '0')) {
+        lex_dec_int(lexer);
+    }
+    else {
+        if (match(lexer, 'x') && isxdigit(peek(lexer))) {
+            lex_hex_int(lexer);
+        }
+        else if (match(lexer, 'b') && (check(lexer, '0') || check(lexer, '1'))) {
+            lex_bin_int(lexer);
+        }
+        else {
+            return symbol(lexer);
+        }
+    }
+    if (!lex_int_suffix(lexer)) {
         return symbol(lexer);
     }
     return make_token(lexer, TOKEN_INT);
@@ -166,18 +217,24 @@ static struct token string(struct lexer *lexer) {
     return make_token(lexer, TOKEN_STRING);
 }
 
+static bool is_integer(struct lexer *lexer) {
+    if (isdigit(peek(lexer))) return true;
+    if (match(lexer, '-') || match(lexer, '+')) {
+        return isdigit(peek(lexer));
+    }
+    return false;
+}
+
 struct token next_token(struct lexer *lexer) {
     consume_whitespace(lexer);
     lexer->start = lexer->current;
 
     if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOT);
     
-    char c = advance(lexer);
-
-    if (isdigit(c) || (c == '-' && isdigit(peek(lexer)))) {
+    if (is_integer(lexer)) {
         return integer(lexer);
     }
-    if (c == '"') {
+    if (match(lexer, '"')) {
         return string(lexer);
     }
 
