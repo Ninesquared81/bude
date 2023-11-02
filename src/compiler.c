@@ -167,20 +167,133 @@ static enum integer_type parse_integer_suffix(struct string_view *value) {
     return INT_INT;
 }
 
+static const char *integer_type_name(enum integer_type type) {
+    switch (type) {
+    case INT_WORD: return "word";
+    case INT_BYTE: return "byte";
+    case INT_INT:  return "int";
+    case INT_S8:   return "s8";
+    case INT_S16:  return "s16";
+    case INT_S32:  return "s32";
+    case INT_U8:   return "u8";
+    case INT_U16:  return "u16";
+    case INT_U32:  return "u32";
+    }
+    return "<Unknown type>";
+}
+
+static void check_range(uint64_t magnitude, char sign, enum integer_type type) {
+    uint64_t maximum;
+    switch (type) {
+    case INT_WORD:
+    case INT_INT:
+        // This has special handling.
+        return;
+    case INT_BYTE:
+        maximum = UINT8_MAX;
+        break;
+    case INT_U8:
+        maximum = UINT8_MAX;
+        break;
+    case INT_U16:
+        maximum = UINT16_MAX;
+        break;
+    case INT_U32:
+        maximum = UINT32_MAX;
+        break;
+    case INT_S8:
+        maximum = (sign == '-') ? -INT8_MIN : INT8_MAX;
+        break;
+    case INT_S16:
+        maximum = (sign == '-') ? -INT16_MIN : INT16_MAX;
+        break;
+    case INT_S32:
+        maximum = (sign == '-') ? -(int64_t)INT32_MIN : INT32_MAX;
+        break;
+    }
+    if (magnitude > maximum) {
+        fprintf(stderr,
+                "Error: integer literal not in representable range for type '%s'.\n",
+                integer_type_name(type));
+        exit(1);
+    }
+}
+
 static void compile_integer(struct compiler *compiler) {
     struct string_view value = peek_previous(compiler).value;
     struct integer_prefix prefix = parse_integer_prefix(&value);
     enum integer_type type = parse_integer_suffix(&value);
+    uint64_t magnitude = strtoull(value.start, NULL, prefix.base);
+    if (magnitude >= UINT64_MAX && errno == ERANGE) {
+        fprintf(stderr, "Error: integer literal not in representable range.\n");
+        exit(1);
+    }
+    check_range(magnitude, prefix.sign, type);
     switch (type) {
     case INT_INT: {
-        int64_t integer = strtoll(value.start, NULL, prefix.base);
-        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        int64_t integer = 0;  // Zero-initialized in case we want to continue after errors.
+        // NOTE: we get one extra value for negative literals.
+        if (prefix.sign == '-' && magnitude <= -s64_to_u64(INT64_MIN)) {
+            integer = -(int64_t)magnitude;
+        }
+        else if (magnitude <= INT64_MAX) {
+            integer = magnitude;
+        }
+        else {
+            fprintf(stderr, "Error: magnitude of signed integer literal too large.\n");
+            exit(1);
+        }
+        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
         break;
     }
-    default:
-        assert(0 && "Not implemented you silly goose.");
+    case INT_WORD: {
+        uint64_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
+        write_immediate_uv(compiler->block, OP_PUSH8, integer);
+        break;
     }
-
+    case INT_BYTE: {
+        uint8_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
+        write_immediate_uv(compiler->block, OP_PUSH8, integer);
+        write_simple(compiler->block, OP_AS_BYTE);
+        break;
+    }
+    case INT_U8: {
+        uint8_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
+        write_immediate_uv(compiler->block, OP_PUSH8, integer);
+        write_simple(compiler->block, OP_AS_U8);
+        break;
+    }
+    case INT_U16: {
+        uint16_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
+        write_immediate_uv(compiler->block, OP_PUSH8, integer);
+        write_simple(compiler->block, OP_AS_U16);
+        break;
+    }
+    case INT_U32: {
+        uint32_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
+        write_immediate_uv(compiler->block, OP_PUSH8, integer);
+        write_simple(compiler->block, OP_AS_U32);
+        break;
+    }
+    case INT_S8: {
+        int8_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
+        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        write_simple(compiler->block, OP_AS_S8);
+        break;
+    }
+    case INT_S16: {
+        int16_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
+        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        write_simple(compiler->block, OP_AS_S16);
+        break;
+    }
+    case INT_S32: {
+        int32_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
+        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        write_simple(compiler->block, OP_AS_S32);
+        break;
+    }
+    }
 }
 
 static int start_jump(struct compiler *compiler, enum opcode jump_instruction) {

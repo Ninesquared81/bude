@@ -10,11 +10,16 @@
 enum opcode {
     /* NOP -- no operation. */
     OP_NOP,
-    /* PUSHn Imm_sn -- Push a 64-bit integer to the stack. */
+    /* PUSHn Imm_un -- Push a word to the stack. */
     OP_PUSH8,
     OP_PUSH16,
     OP_PUSH32,
     OP_PUSH64,
+    /* PUSH_INTn Imm_sn -- Push a word-sized signed integer to the stack. */
+    OP_PUSH_INT8,
+    OP_PUSH_INT16,
+    OP_PUSH_INT32,
+    OP_PUSH_INT64,
     /* LOAD_STRINGn Imm_un -- Push a string (ptr word) to the stack. */
     OP_LOAD_STRING8,
     OP_LOAD_STRING16,
@@ -86,6 +91,14 @@ enum opcode {
     OP_ZX16L,
     OP_ZX32,
     OP_ZX32L,
+    /* AS_BYTE, AS_Un, AS_Sn -- Clear any excess bits and treat as an integer of that type. */
+    OP_AS_BYTE,
+    OP_AS_U8,
+    OP_AS_U16,
+    OP_AS_U32,
+    OP_AS_S8,
+    OP_AS_S16,
+    OP_AS_S32,
 };
 
 struct constant_table {
