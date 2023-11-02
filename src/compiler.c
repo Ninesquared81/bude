@@ -80,14 +80,95 @@ static void compile_symbol(struct compiler *compiler);
 
 #define IN_RANGE(x, lower, upper) ((lower) <= (x) && (x) <= (upper))
 
-static void compile_integer(struct compiler *compiler) {
-    int64_t integer = strtoll(peek_previous(compiler).value.start, NULL, 0);
-    if (INT32_MIN <= integer && integer <= INT32_MAX) {
-        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+enum integer_type {
+    INT_WORD, INT_BYTE, INT_INT,
+    INT_S8, INT_S16, INT_S32,
+    INT_U8, INT_U16, INT_U32,
+};
+
+int parse_integer_prefix(struct token *token) {
+    struct string_view *value = &token->value;
+    if (value->start[0] != '0') return 10;
+
+    if (value->length >= 3) {
+        switch (value->start[1]) {
+        case 'b': return 2;
+        case 'x': return 16;
+        }
     }
-    else {
-        int index = write_constant(compiler->block, s64_to_u64(integer));
-        write_immediate_uv(compiler->block, OP_LOAD8, index);
+
+    return 10;
+}
+
+static enum integer_type parse_integer_suffix(struct token *token) {
+    struct string_view *value = &token->value;
+    if (value->length <= 1) return INT_INT;
+
+    const char *end = &value->start[value->length];
+    switch (end[-1]) {
+    case 'W':
+    case 'w':
+        return INT_WORD;
+    case 'T':
+    case 't':
+        return INT_BYTE;
+    case '2':
+        if (end[-2] == '3' && value->length > 3) {
+            switch (end[-3]) {
+            case 'S':
+            case 's':
+                return INT_S32;
+            case 'U':
+            case 'u':
+                return INT_U32;
+            }
+        }
+        break;
+    case '6':
+        if (end[-2] == '1' && value->length > 3) {
+            switch (end[-3]) {
+            case 'S':
+            case 's':
+                return INT_S16;
+            case 'U':
+            case 'u':
+                return INT_U16;
+            }
+        }
+        break;
+    case '8':
+        switch (end[-2]) {
+        case 'S':
+        case 's':
+            return INT_S8;
+        case 'U':
+        case 'u':
+            return INT_U8;
+        }
+        break;
+    }
+    return INT_INT;
+}
+
+static void compile_integer(struct compiler *compiler) {
+    struct token token = peek_previous(compiler);
+    int base = parse_integer_prefix(&token);
+    enum integer_type type = parse_integer_suffix(&token);
+    const char *start = (base == 10) ? token.value.start : token.value.start + 2;
+    switch (type) {
+    case INT_INT: {
+        int64_t integer = strtoll(start, NULL, base);
+        if (INT32_MIN <= integer && integer <= INT32_MAX) {
+            write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        }
+        else {
+            int index = write_constant(compiler->block, s64_to_u64(integer));
+            write_immediate_uv(compiler->block, OP_LOAD8, index);
+        }
+        break;
+    }
+    default:
+        assert(0 && "Not implemented you silly goose.");
     }
 
 }
