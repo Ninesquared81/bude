@@ -15,6 +15,13 @@ enum type {
     TYPE_BYTE,
     TYPE_PTR,
     TYPE_INT,
+
+    TYPE_U8,
+    TYPE_U16,
+    TYPE_U32,
+    TYPE_S8,
+    TYPE_S16,
+    TYPE_S32,
 };
 
 #define TYPE_COUNT 5

@@ -275,17 +275,33 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         case OP_PUSH8:
             ++checker->ip;
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_WORD);
             break;
         case OP_PUSH16:
             checker->ip += 2;
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_WORD);
             break;
         case OP_PUSH32:
             checker->ip += 4;
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_WORD);
             break;
         case OP_PUSH64:
+            checker->ip += 8;
+            ts_push(checker, TYPE_WORD);
+            break;
+        case OP_PUSH_INT8:
+            ++checker->ip;
+            ts_push(checker, TYPE_INT);
+            break;
+        case OP_PUSH_INT16:
+            checker->ip += 2;
+            ts_push(checker, TYPE_INT);
+            break;
+        case OP_PUSH_INT32:
+            checker->ip += 4;
+            ts_push(checker, TYPE_INT);
+            break;
+        case OP_PUSH_INT64:
             checker->ip += 8;
             ts_push(checker, TYPE_INT);
             break;
@@ -496,6 +512,48 @@ enum type_check_result type_check(struct type_checker *checker) {
             enum type lhs_type = ts_pop(checker);
             ts_push(checker, rhs_type);
             ts_push(checker, lhs_type);
+            break;
+        }
+        case OP_AS_BYTE: {
+            ts_pop(checker);
+            overwrite_instruction(checker->block, checker->ip, OP_ZX8);
+            ts_push(checker, TYPE_BYTE);
+            break;
+        }
+        case OP_AS_U8: {
+            ts_pop(checker);
+            overwrite_instruction(checker->block, checker->ip, OP_ZX8);
+            ts_push(checker, TYPE_U8);
+            break;
+        }
+        case OP_AS_U16: {
+            ts_pop(checker);
+            overwrite_instruction(checker->block, checker->ip, OP_ZX16);
+            ts_push(checker, TYPE_U16);
+            break;
+        }
+        case OP_AS_U32: {
+            ts_pop(checker);
+            overwrite_instruction(checker->block, checker->ip, OP_ZX32);
+            ts_push(checker, TYPE_U32);
+            break;
+        }
+        case OP_AS_S8: {
+            ts_pop(checker);
+            overwrite_instruction(checker->block, checker->ip, OP_ZX8);
+            ts_push(checker, TYPE_S8);
+            break;
+        }
+        case OP_AS_S16: {
+            ts_pop(checker);
+            overwrite_instruction(checker->block, checker->ip, OP_ZX16);
+            ts_push(checker, TYPE_S16);
+            break;
+        }
+        case OP_AS_S32: {
+            ts_pop(checker);
+            overwrite_instruction(checker->block, checker->ip, OP_ZX32);
+            ts_push(checker, TYPE_S32);
             break;
         }
         case OP_SX8:
