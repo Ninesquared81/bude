@@ -40,6 +40,10 @@ const char *opcode_names[] = {
     [OP_PUSH16]            = "OP_PUSH16",
     [OP_PUSH32]            = "OP_PUSH32",
     [OP_PUSH64]            = "OP_PUSH64",
+    [OP_PUSH_INT8]         = "OP_PUSH_INT8",
+    [OP_PUSH_INT16]        = "OP_PUSH_INT16",
+    [OP_PUSH_INT32]        = "OP_PUSH_INT32",
+    [OP_PUSH_INT64]        = "OP_PUSH_INT64",
     [OP_LOAD_STRING8]      = "OP_LOAD_STRING8",
     [OP_LOAD_STRING16]     = "OP_LOAD_STRING16",
     [OP_LOAD_STRING32]     = "OP_LOAD_STRING32",
@@ -78,6 +82,13 @@ const char *opcode_names[] = {
     [OP_ZX16L]             = "OP_ZX16L",
     [OP_ZX32]              = "OP_ZX32",
     [OP_ZX32L]             = "OP_ZX32L",
+    [OP_AS_BYTE]           = "OP_AS_BYTE",
+    [OP_AS_U8]             = "OP_AS_U8",
+    [OP_AS_U16]            = "OP_AS_U16",
+    [OP_AS_U32]            = "OP_AS_U32",
+    [OP_AS_S8]             = "OP_AS_S8",
+    [OP_AS_S16]            = "OP_AS_S16",
+    [OP_AS_S32]            = "OP_AS_S32",
 };
 
 const char *get_opcode_name(enum opcode opcode) {

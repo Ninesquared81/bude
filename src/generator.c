@@ -46,26 +46,54 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             break;
         case OP_PUSH8: {
             ++ip;
+            int8_t value = read_u8(block, ip);
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu8, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case OP_PUSH16: {
+            ip += 2;
+            int16_t value = read_u16(block, ip - 1);
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu16, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case OP_PUSH32: {
+            ip += 4;
+            int32_t value = read_u32(block, ip - 3);
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu32, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case OP_PUSH64: {
+            ip += 8;
+            int64_t value = read_u64(block, ip - 7);
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu64, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case OP_PUSH_INT8: {
+            ++ip;
             int8_t value = read_s8(block, ip);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId8, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH16: {
+        case OP_PUSH_INT16: {
             ip += 2;
             int16_t value = read_s16(block, ip - 1);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId16, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH32: {
+        case OP_PUSH_INT32: {
             ip += 4;
             int32_t value = read_s32(block, ip - 3);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId32, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH64: {
+        case OP_PUSH_INT64: {
             ip += 8;
             int64_t value = read_s64(block, ip - 7);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId64, value);
@@ -350,6 +378,14 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "mov", "rax", "dword [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
+        case OP_AS_BYTE:
+        case OP_AS_U8:
+        case OP_AS_U16:
+        case OP_AS_U32:
+        case OP_AS_S8:
+        case OP_AS_S16:
+        case OP_AS_S32:
+            assert(0 && "Unreachable.");
         }
     }
     asm_write(assembly, "  ;;\t=== END ===\n");
