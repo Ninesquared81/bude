@@ -57,23 +57,47 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         case OP_PUSH8: {
             ++ip;
+            uint8_t value = read_u8(interpreter->block, ip);
+            push(interpreter->main_stack, value);
+            break;
+        }
+        case OP_PUSH16: {
+            ip += 2;
+            uint16_t value = read_u16(interpreter->block, ip - 1);
+            push(interpreter->main_stack, value);
+            break;
+        }
+        case OP_PUSH32: {
+            ip += 4;
+            uint32_t value = read_u32(interpreter->block, ip - 3);
+            push(interpreter->main_stack, value);
+            break;
+        }
+        case OP_PUSH64: {
+            ip += 8;
+            uint64_t value = read_u64(interpreter->block, ip - 7);
+            push(interpreter->main_stack, value);
+            break;
+        }
+        case OP_PUSH_INT8: {
+            ++ip;
             int8_t value = read_s8(interpreter->block, ip);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_PUSH16: {
+        case OP_PUSH_INT16: {
             ip += 2;
             int16_t value = read_s16(interpreter->block, ip - 1);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_PUSH32: {
+        case OP_PUSH_INT32: {
             ip += 4;
             int32_t value = read_s32(interpreter->block, ip - 3);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_PUSH64: {
+        case OP_PUSH_INT64: {
             ip += 8;
             int64_t value = read_s64(interpreter->block, ip - 7);
             push(interpreter->main_stack, s64_to_u64(value));
@@ -373,7 +397,16 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             a &= 0xFFFFFFFF;
             push(interpreter->main_stack, a);
             push(interpreter->main_stack, b);
+            break;
         }
+        case OP_AS_BYTE:
+        case OP_AS_U8:
+        case OP_AS_U16:
+        case OP_AS_U32:
+        case OP_AS_S8:
+        case OP_AS_S16:
+        case OP_AS_S32:
+            assert(0 && "Unreachable.");
         }
     }
     return INTERPRET_OK;
