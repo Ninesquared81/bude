@@ -24,8 +24,8 @@ enum type {
     TYPE_S32,
 };
 
-#define TYPE_COUNT 5
-static_assert(TYPE_COUNT == TYPE_INT + 1);
+#define TYPE_COUNT 11
+static_assert(TYPE_COUNT == TYPE_S32 + 1);
 static_assert(TYPE_ERROR == 0);
 
 #define TSTACK_COUNT(tstack) (tstack->top - tstack->types)

@@ -52,15 +52,100 @@ void free_type_checker(struct type_checker *checker) {
 }
 
 static struct arithm_conv arithmetic_conversions[TYPE_COUNT][TYPE_COUNT] = {
-    [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_WORD][TYPE_BYTE] = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_WORD][TYPE_INT]  = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_BYTE][TYPE_WORD] = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_BYTE][TYPE_BYTE] = {TYPE_BYTE, OP_NOP, OP_NOP, OP_ZX8},
-    [TYPE_BYTE][TYPE_INT]  = {TYPE_INT,  OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_INT][TYPE_WORD]  = {TYPE_WORD, OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_INT][TYPE_BYTE]  = {TYPE_INT,  OP_NOP, OP_NOP, OP_NOP},
-    [TYPE_INT][TYPE_INT]   = {TYPE_INT,  OP_NOP, OP_NOP, OP_NOP},
+    /* lhs_type  rhs_type    result_type lhs_conv rhs_conv result_conv */
+    [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_WORD][TYPE_BYTE] = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_WORD][TYPE_INT]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_BYTE][TYPE_WORD] = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_BYTE][TYPE_BYTE] = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_ZX8},
+    [TYPE_BYTE][TYPE_INT]  = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_INT][TYPE_WORD]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_INT][TYPE_BYTE]  = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_INT][TYPE_INT]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+
+    /* Fixed unsigned types. */
+    [TYPE_WORD][TYPE_U8]   = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_WORD][TYPE_U16]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_WORD][TYPE_U32]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U8][TYPE_WORD]   = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U16][TYPE_WORD]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U32][TYPE_WORD]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+
+    [TYPE_BYTE][TYPE_U8]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_BYTE][TYPE_U16]  = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_BYTE][TYPE_U32]  = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U8][TYPE_BYTE]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U16][TYPE_BYTE]  = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U32][TYPE_BYTE]  = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_NOP},
+
+    [TYPE_INT][TYPE_U8]    = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_INT][TYPE_U16]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_INT][TYPE_U32]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U8][TYPE_INT]    = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U16][TYPE_INT]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_U32][TYPE_INT]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+
+    [TYPE_U8][TYPE_U8]     = {TYPE_U8,   OP_NOP,   OP_NOP,   OP_ZX8},
+    [TYPE_U8][TYPE_U16]    = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_ZX16},
+    [TYPE_U8][TYPE_U32]    = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
+    [TYPE_U16][TYPE_U8]    = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_ZX16},
+    [TYPE_U16][TYPE_U16]   = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_ZX16},
+    [TYPE_U16][TYPE_U32]   = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
+    [TYPE_U32][TYPE_U8]    = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
+    [TYPE_U32][TYPE_U16]   = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
+    [TYPE_U32][TYPE_U32]   = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
+
+    [TYPE_U8][TYPE_S8]     = {TYPE_U8,   OP_NOP,   OP_SX8,   OP_ZX8},
+    [TYPE_U8][TYPE_S16]    = {TYPE_S16,  OP_NOP,   OP_SX16,  OP_ZX16},
+    [TYPE_U8][TYPE_S32]    = {TYPE_S32,  OP_NOP,   OP_SX32,  OP_ZX32},
+    [TYPE_U16][TYPE_S8]    = {TYPE_U16,  OP_NOP,   OP_SX8,   OP_ZX16},
+    [TYPE_U16][TYPE_S16]   = {TYPE_U16,  OP_NOP,   OP_SX16,  OP_ZX16},
+    [TYPE_U16][TYPE_S32]   = {TYPE_S32,  OP_NOP,   OP_SX32,  OP_ZX32},
+    [TYPE_U32][TYPE_S8]    = {TYPE_U32,  OP_NOP,   OP_SX8,   OP_ZX32},
+    [TYPE_U32][TYPE_S16]   = {TYPE_U32,  OP_NOP,   OP_SX16,  OP_ZX32},
+    [TYPE_U32][TYPE_S32]   = {TYPE_U32,  OP_NOP,   OP_SX32,  OP_ZX32},
+
+    /* Fixed signed types. */
+    [TYPE_WORD][TYPE_S8]   = {TYPE_WORD, OP_NOP,   OP_SX8,   OP_NOP},
+    [TYPE_WORD][TYPE_S16]  = {TYPE_WORD, OP_NOP,   OP_SX16,  OP_NOP},
+    [TYPE_WORD][TYPE_S32]  = {TYPE_WORD, OP_NOP,   OP_SX16,  OP_NOP},
+    [TYPE_S8][TYPE_WORD]   = {TYPE_WORD, OP_SX8L,  OP_NOP,   OP_NOP},
+    [TYPE_S16][TYPE_WORD]  = {TYPE_WORD, OP_SX16L, OP_NOP,   OP_NOP},
+    [TYPE_S32][TYPE_WORD]  = {TYPE_WORD, OP_SX32L, OP_NOP,   OP_NOP},
+
+    [TYPE_BYTE][TYPE_S8]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_ZX8},
+    [TYPE_BYTE][TYPE_S16]  = {TYPE_S16,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_BYTE][TYPE_S32]  = {TYPE_S32,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_S8][TYPE_BYTE]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_S16][TYPE_BYTE]  = {TYPE_S16,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_S32][TYPE_BYTE]  = {TYPE_S32,  OP_NOP,   OP_NOP,   OP_NOP},
+
+    [TYPE_INT][TYPE_S8]    = {TYPE_INT,  OP_NOP,   OP_SX8,   OP_NOP},
+    [TYPE_INT][TYPE_S16]   = {TYPE_INT,  OP_NOP,   OP_SX16,  OP_NOP},
+    [TYPE_INT][TYPE_S32]   = {TYPE_INT,  OP_NOP,   OP_SX32,  OP_NOP},
+    [TYPE_S8][TYPE_INT]    = {TYPE_INT,  OP_SX8L,  OP_NOP,   OP_NOP},
+    [TYPE_S16][TYPE_INT]   = {TYPE_INT,  OP_SX16L, OP_NOP,   OP_NOP},
+    [TYPE_S32][TYPE_INT]   = {TYPE_INT,  OP_SX32L, OP_NOP,   OP_NOP},
+
+    [TYPE_S8][TYPE_S8]     = {TYPE_S8,   OP_SX8L,  OP_SX8,   OP_ZX8},
+    [TYPE_S8][TYPE_S16]    = {TYPE_S16,  OP_SX8L,  OP_SX16,  OP_ZX16},
+    [TYPE_S8][TYPE_S32]    = {TYPE_S32,  OP_SX8L,  OP_SX32,  OP_ZX32},
+    [TYPE_S16][TYPE_S8]    = {TYPE_S16,  OP_SX16L, OP_SX8,   OP_ZX16},
+    [TYPE_S16][TYPE_S16]   = {TYPE_S16,  OP_SX16L, OP_SX16,  OP_ZX16},
+    [TYPE_S16][TYPE_S32]   = {TYPE_S32,  OP_SX16L, OP_SX32,  OP_ZX32},
+    [TYPE_S32][TYPE_S8]    = {TYPE_S32,  OP_SX32L, OP_SX8,   OP_ZX32},
+    [TYPE_S32][TYPE_S16]   = {TYPE_S32,  OP_SX32L, OP_SX16,  OP_ZX32},
+    [TYPE_S32][TYPE_S32]   = {TYPE_S32,  OP_SX32L, OP_SX32,  OP_ZX32},
+
+    [TYPE_S8][TYPE_U8]     = {TYPE_U8,   OP_SX8L,  OP_NOP,   OP_ZX8},
+    [TYPE_S8][TYPE_U16]    = {TYPE_U16,  OP_SX8L,  OP_NOP,   OP_ZX16},
+    [TYPE_S8][TYPE_U32]    = {TYPE_U32,  OP_SX8L,  OP_NOP,   OP_ZX32},
+    [TYPE_S16][TYPE_U8]    = {TYPE_S16,  OP_SX16L, OP_NOP,   OP_ZX16},
+    [TYPE_S16][TYPE_U16]   = {TYPE_U16,  OP_SX16L, OP_NOP,   OP_ZX16},
+    [TYPE_S16][TYPE_U32]   = {TYPE_U32,  OP_SX16L, OP_NOP,   OP_ZX32},
+    [TYPE_S32][TYPE_U8]    = {TYPE_S32,  OP_SX32L, OP_NOP,   OP_ZX32},
+    [TYPE_S32][TYPE_U16]   = {TYPE_S32,  OP_SX32L, OP_NOP,   OP_ZX32},
+    [TYPE_S32][TYPE_U32]   = {TYPE_U32,  OP_SX32L, OP_NOP,   OP_ZX32},
 };
 
 static bool is_integral(enum type type) {
@@ -68,6 +153,12 @@ static bool is_integral(enum type type) {
     case TYPE_WORD:
     case TYPE_BYTE:
     case TYPE_INT:
+    case TYPE_U8:
+    case TYPE_U16:
+    case TYPE_U32:
+    case TYPE_S8:
+    case TYPE_S16:
+    case TYPE_S32:
         return true;
     default:
         return false;
@@ -77,6 +168,9 @@ static bool is_integral(enum type type) {
 static bool is_signed(enum type type) {
     switch (type) {
     case TYPE_INT:
+    case TYPE_S8:
+    case TYPE_S16:
+    case TYPE_S32:
         return true;
     default:
         return false;
@@ -90,7 +184,15 @@ static enum opcode promote(enum type type) {
 static enum opcode sign_extend(enum type type) {
     switch (type) {
     case TYPE_BYTE:
+    case TYPE_U8:
+    case TYPE_S8:
         return OP_SX8;
+    case TYPE_U16:
+    case TYPE_S16:
+        return OP_SX16;
+    case TYPE_U32:
+    case TYPE_S32:
+        return OP_SX32;
     default:
         return OP_NOP;
     }
@@ -383,6 +485,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
             overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
             overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
+            overwrite_instruction(checker->block, checker->ip + 2, conversion.result_conv);
             ts_push(checker, conversion.result_type);  // Quotient.
             ts_push(checker, conversion.result_type);  // Remainder.
             ++checker->ip;  // Skip result conversion.
@@ -401,6 +504,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
             overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
             overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
+            overwrite_instruction(checker->block, checker->ip + 2, conversion.result_conv);
             ts_push(checker, conversion.result_type);
             ts_push(checker, conversion.result_type);
             ++checker->ip;  // Skip result conversion.

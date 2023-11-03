@@ -277,19 +277,19 @@ static void compile_integer(struct compiler *compiler) {
     }
     case INT_S8: {
         int8_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
         write_simple(compiler->block, OP_AS_S8);
         break;
     }
     case INT_S16: {
         int16_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
         write_simple(compiler->block, OP_AS_S16);
         break;
     }
     case INT_S32: {
         int32_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        write_immediate_sv(compiler->block, OP_PUSH8, integer);
+        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
         write_simple(compiler->block, OP_AS_S32);
         break;
     }
