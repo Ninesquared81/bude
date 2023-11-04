@@ -505,6 +505,20 @@ static void compile_string(struct compiler *compiler) {
     kill_region(temp_region);
 }
 
+static void compile_character(struct compiler *compiler) {
+    struct string_view value = peek_previous(compiler).value;
+    char character = value.start[1];
+    if (character == '\\') {
+        int escaped = escape_character(value.start[2]);
+        if (escaped == -1) {
+            fprintf(stderr, "Invalid escape sequence '\\%c'.\n", value.start[2]);
+            exit(1);
+        }
+        character = escaped;
+    }
+    write_immediate_u8(compiler->block, OP_PUSH_CHAR8, character);
+}
+
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
     size_t level = symbol->loop_var.level;
     if (level > compiler->for_loop_level) {
@@ -603,7 +617,10 @@ static bool compile_simple(struct compiler *compiler) {
 
 static void compile_expr(struct compiler *compiler) {
     while (!is_at_end(compiler)) {
-        if (match(compiler, TOKEN_FOR)) {
+        if (match(compiler, TOKEN_CHAR)) {
+            compile_character(compiler);
+        }
+        else if (match(compiler, TOKEN_FOR)) {
             compile_for_loop(compiler);
         }
         else if (match(compiler, TOKEN_IF)) {

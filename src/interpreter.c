@@ -103,6 +103,12 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
+        case OP_PUSH_CHAR8: {
+            ++ip;
+            uint8_t value = read_u8(interpreter->block, ip);
+            push(interpreter->main_stack, value);
+            break;
+        }
         case OP_LOAD_STRING8: {
             ++ip;
             uint8_t index = read_u8(interpreter->block, ip);

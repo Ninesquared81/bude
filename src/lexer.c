@@ -1,5 +1,7 @@
 #include <ctype.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "lexer.h"
@@ -217,6 +219,26 @@ static struct token string(struct lexer *lexer) {
     return make_token(lexer, TOKEN_STRING);
 }
 
+static struct token character(struct lexer *lexer) {
+    // Currently, only 8-bit characters (ASCII) are supported.
+    if (check(lexer, '\'')) {
+        fprintf(stderr, "Error: empty character literal.\n");
+        exit(1);
+    }
+    match(lexer, '\\');
+    if (is_at_end(lexer)) {
+        fprintf(stderr, "Error: unexpected EOF in character literal.\n");
+        exit(1);
+    }
+    advance(lexer);
+    if (!match(lexer, '\'')) {
+        fprintf(stderr, "Error: unterminated character literal.\n");
+        exit(1);
+    }
+
+    return make_token(lexer, TOKEN_CHAR);
+}
+
 static bool is_integer(struct lexer *lexer) {
     if (isdigit(peek(lexer))) return true;
     if (match(lexer, '-') || match(lexer, '+')) {
@@ -236,6 +258,9 @@ struct token next_token(struct lexer *lexer) {
     }
     if (match(lexer, '"')) {
         return string(lexer);
+    }
+    if (match(lexer, '\'')) {
+        return character(lexer);
     }
 
     return symbol(lexer);

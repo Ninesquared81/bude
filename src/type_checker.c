@@ -407,6 +407,10 @@ enum type_check_result type_check(struct type_checker *checker) {
             checker->ip += 8;
             ts_push(checker, TYPE_INT);
             break;
+        case OP_PUSH_CHAR8:
+            ++checker->ip;
+            ts_push(checker, TYPE_BYTE);
+            break;
         case OP_LOAD_STRING8:
             ++checker->ip;
             ts_push(checker, TYPE_PTR);

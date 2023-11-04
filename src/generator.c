@@ -100,9 +100,16 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
+        case OP_PUSH_CHAR8: {
+            ++ip;
+            uint8_t value = read_u8(block, ip);
+            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu8, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
         case OP_LOAD_STRING8: {
             ++ip;
-            int8_t index = read_u8(block, ip);
+            uint8_t index = read_u8(block, ip);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu8"]", index);
             asm_write_inst1(assembly, "push", "rax");
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
@@ -110,7 +117,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         }
         case OP_LOAD_STRING16: {
             ip += 2;
-            int16_t index = read_u16(block, ip - 1);
+            uint16_t index = read_u16(block, ip - 1);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
             asm_write_inst1(assembly, "push", "rax");
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
@@ -118,7 +125,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         }
         case OP_LOAD_STRING32: {
             ip += 4;
-            int32_t index = read_u32(block, ip - 3);
+            uint32_t index = read_u32(block, ip - 3);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
             asm_write_inst1(assembly, "push", "rax");
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);

@@ -44,6 +44,7 @@ const char *opcode_names[] = {
     [OP_PUSH_INT16]        = "OP_PUSH_INT16",
     [OP_PUSH_INT32]        = "OP_PUSH_INT32",
     [OP_PUSH_INT64]        = "OP_PUSH_INT64",
+    [OP_PUSH_CHAR8]        = "OP_PUSH_CHAR8",
     [OP_LOAD_STRING8]      = "OP_LOAD_STRING8",
     [OP_LOAD_STRING16]     = "OP_LOAD_STRING16",
     [OP_LOAD_STRING32]     = "OP_LOAD_STRING32",

@@ -20,7 +20,9 @@ enum opcode {
     OP_PUSH_INT16,
     OP_PUSH_INT32,
     OP_PUSH_INT64,
-    /* LOAD_STRINGn Imm_un -- Push a string (ptr word) to the stack. */
+    /* PUSH_CHAR8 Imm_u8 -- Push an ASCII character to the stack. */
+    OP_PUSH_CHAR8,
+    /* LOAD_STRINGn Imm_un -- Load a string (ptr word) onto the stack from the strings table. */
     OP_LOAD_STRING8,
     OP_LOAD_STRING16,
     OP_LOAD_STRING32,

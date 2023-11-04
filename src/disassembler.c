@@ -82,6 +82,8 @@ static int disassemble_instruction(struct ir_block *block, int offset) {
         return immediate_s32_instruction("OP_PUSH_INT32", block, offset);
     case OP_PUSH_INT64:
         return immediate_s64_instruction("OP_PUSH_INT64", block, offset);
+    case OP_PUSH_CHAR8:
+        return immediate_u8_instruction("OP_PUSH_CHAR8", block, offset);
     case OP_LOAD_STRING8:
         return immediate_u8_instruction("OP_LOAD_STRING8", block, offset);
     case OP_LOAD_STRING16:
