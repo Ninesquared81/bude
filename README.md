@@ -35,6 +35,7 @@ To create a Windows executable file, run:
 ```shellsession
 $ ./bin/bude.exe ./examples/hello_world.bude -a -f hello_world.asm
 $ fasm hello_world.asm
+# FASM output #
 $ ./hello_world.exe
 Hello, World!
 ```
@@ -60,6 +61,8 @@ for the result expressions of some operations.
 
 `"Lorem ipsum"` &rarr; _p_ _i_ : Push the specified string to the stack
 along with its length.
+
+`'q'` &rarr; _c_ : Push the specified character to the stack.
 
 `42` &rarr; _i_ : Push the specified integer to the stack.
 
@@ -102,11 +105,17 @@ _w1_ _w2_ `swap` &rarr; _w2_ _w1_ : Swap the top two elements on the stack.
 
 _w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
 
-### Conrol flow constructs
+### Control flow constructs
 
 `if` _condition_ `then` _then-body_ [`elif` _elif-condition_ `then` _elif-then-body_ &hellip;]
 [`else` _else-body_] `end`
 
 `while` _condition_ `do` _body_ `end`
 
-`for` _count_ `do` _body_ `end`
+`for` [<_loop-var_> (`to`|`from`)] _count_ `do` _body_ `end`
+
+The `for` loop has two forms. The simple form (`for` _count_ &hellip;) loops the number of
+times specified by _count_. The counting form (`for` <_loop-var_> `to` _count_ &hellip;,
+`for` <_loop-var_> `from` _count_ &hellip;) creates a loop variable and binds it to the name
+specified, which can be accessed inside the loop. The value stored in the loop variable either
+starts at zero and counts up `to` _count_ or counts down to zero `from` _count_.
