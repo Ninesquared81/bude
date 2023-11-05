@@ -1,5 +1,7 @@
 "Hello, World!\n" pop
 
+0 print
+
 # dupe print
 
 dupe 1 +

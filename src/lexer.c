@@ -197,7 +197,8 @@ static struct token integer(struct lexer *lexer) {
             lex_bin_int(lexer);
         }
         else {
-            return symbol(lexer);
+            // Decimal integers can start with '0'.
+            lex_dec_int(lexer);
         }
     }
     if (!lex_int_suffix(lexer)) {
