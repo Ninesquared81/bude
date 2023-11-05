@@ -41,7 +41,8 @@ $ ./hello_world.exe
 Hello, World!
 ```
 
-This assumes FASM has been installed and is in the PATH variable.
+This assumes FASM has been installed and is in the PATH variable. Note that the
+actual output of FASM may vary.
 
 ## Language Features
 
