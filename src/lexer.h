@@ -1,6 +1,9 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include <stddef.h>
+
+#include "location.h"
 #include "string_view.h"
 
 enum token_type {
@@ -43,14 +46,18 @@ enum token_type {
 struct token {
     enum token_type type;
     struct string_view value;
+    struct location location;
 };
 
 struct lexer {
     const char *start;
     const char *current;
+    struct location position;
+    struct location start_position;
+    const char *filename;
 };
 
-void init_lexer(struct lexer *lexer, const char *src);
+void init_lexer(struct lexer *lexer, const char *src, const char *filename);
 struct token next_token(struct lexer *lexer);
 
 #endif

@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,12 +7,34 @@
 
 #include "lexer.h"
 
-void init_lexer(struct lexer *lexer, const char *src) {
+void init_lexer(struct lexer *lexer, const char *src, const char *filename) {
     lexer->start = src;
     lexer->current = src;
+    struct location init_location = {1, 1};
+    lexer->position = init_location;
+    lexer->start_position = init_location;
+    lexer->filename = filename;
+}
+
+static void lex_error(struct lexer *lexer, const char *restrict message, ...) {
+    report_location(lexer->filename, &lexer->start_position);
+    fprintf(stderr, "Syntax Error: ");
+    va_list args;
+    va_start(args, message);
+    vfprintf(stderr, message, args);
+    va_end(args);
+    fprintf(stderr, "\n");
 }
 
 static char advance(struct lexer *lexer) {
+    struct location *pos = &lexer->position;
+    if (*lexer->current == '\n') {
+        ++pos->line;
+        pos->column = 1;
+    }
+    else {
+        ++pos->column;
+    }
     return *lexer->current++;
 }
 
@@ -61,6 +84,7 @@ static struct token make_token(struct lexer *lexer, enum token_type type) {
             .start = lexer->start,
             .length = lexer->current - lexer->start
         },
+        .location = lexer->start_position,
     };
 }
 
@@ -208,12 +232,16 @@ static struct token integer(struct lexer *lexer) {
 }
 
 static struct token string(struct lexer *lexer) {
-    while (!check(lexer, '"')) {
+    while (!is_at_end(lexer) && !check(lexer, '"')) {
         char c = advance(lexer);
         if (c == '\\') {
             // Escape sequence.
             advance(lexer);
         }
+    }
+    if (is_at_end(lexer)) {
+        lex_error(lexer, "unterminated string literal.");
+        exit(1);
     }
     // Consume the closing '"'.
     advance(lexer);
@@ -223,17 +251,17 @@ static struct token string(struct lexer *lexer) {
 static struct token character(struct lexer *lexer) {
     // Currently, only 8-bit characters (ASCII) are supported.
     if (check(lexer, '\'')) {
-        fprintf(stderr, "Error: empty character literal.\n");
+        lex_error(lexer, "empty character literal.");
         exit(1);
     }
     match(lexer, '\\');
     if (is_at_end(lexer)) {
-        fprintf(stderr, "Error: unexpected EOF in character literal.\n");
+        lex_error(lexer, "unterminated character literal.");
         exit(1);
     }
     advance(lexer);
     if (!match(lexer, '\'')) {
-        fprintf(stderr, "Error: unterminated character literal.\n");
+        lex_error(lexer, "unterminated character literal.");
         exit(1);
     }
 
@@ -248,9 +276,14 @@ static bool is_integer(struct lexer *lexer) {
     return false;
 }
 
+static void start_token(struct lexer *lexer) {
+    lexer->start = lexer->current;
+    lexer->start_position = lexer->position;
+}
+
 struct token next_token(struct lexer *lexer) {
     consume_whitespace(lexer);
-    lexer->start = lexer->current;
+    start_token(lexer);
 
     if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOT);
     

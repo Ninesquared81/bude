@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,13 +23,34 @@ struct compiler {
     size_t for_loop_level;
 };
 
-static void init_compiler(struct compiler *compiler, const char *src, struct ir_block *block) {
-    init_lexer(&compiler->lexer, src);
+static void init_compiler(struct compiler *compiler, const char *src,
+                          struct ir_block *block, const char *filename) {
+    init_lexer(&compiler->lexer, src, filename);
     compiler->block = block;
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
     init_symbol_dictionary(&compiler->symbols);
     compiler->for_loop_level = 0;
+}
+
+static void parse_error(struct compiler *compiler, const char *restrict message, ...) {
+    report_location(compiler->lexer.filename, &compiler->previous_token.location);
+    fprintf(stderr, "Parse error: ");
+    va_list args;
+    va_start(args, message);
+    vfprintf(stderr, message, args);
+    va_end(args);
+    fprintf(stderr, "\n");
+}
+
+static void compile_error(struct compiler *compiler, const char *restrict message, ...) {
+    report_location(compiler->lexer.filename, &compiler->previous_token.location);
+    fprintf(stderr, "Compile error: ");
+    va_list args;
+    va_start(args, message);
+    vfprintf(stderr, message, args);
+    va_end(args);
+    fprintf(stderr, "\n");
 }
 
 static struct token advance(struct compiler *compiler) {
@@ -51,14 +73,14 @@ static bool match(struct compiler *compiler, enum token_type type) {
 
 static void expect_consume(struct compiler *compiler, enum token_type type, const char *message) {
     if (!match(compiler, type)) {
-        fprintf(stderr, "Error: %s\n", message);
+        parse_error(compiler, "%s", message);
         exit(1);
     }
 }
 
 static void expect_keep(struct compiler *compiler, enum token_type type, const char *message) {
     if (!check(compiler, type)) {
-        fprintf(stderr, "Error: %s\n", message);
+        parse_error(compiler, "%s", message);
         exit(1);
     }
 }
@@ -182,13 +204,13 @@ static const char *integer_type_name(enum integer_type type) {
     return "<Unknown type>";
 }
 
-static void check_range(uint64_t magnitude, char sign, enum integer_type type) {
+static bool check_range(uint64_t magnitude, char sign, enum integer_type type) {
     uint64_t maximum;
     switch (type) {
     case INT_WORD:
     case INT_INT:
         // This has special handling.
-        return;
+        return true;
     case INT_BYTE:
         maximum = UINT8_MAX;
         break;
@@ -211,12 +233,7 @@ static void check_range(uint64_t magnitude, char sign, enum integer_type type) {
         maximum = (sign == '-') ? -(int64_t)INT32_MIN : INT32_MAX;
         break;
     }
-    if (magnitude > maximum) {
-        fprintf(stderr,
-                "Error: integer literal not in representable range for type '%s'.\n",
-                integer_type_name(type));
-        exit(1);
-    }
+    return magnitude <= maximum;
 }
 
 static void compile_integer(struct compiler *compiler) {
@@ -225,10 +242,15 @@ static void compile_integer(struct compiler *compiler) {
     enum integer_type type = parse_integer_suffix(&value);
     uint64_t magnitude = strtoull(value.start, NULL, prefix.base);
     if (magnitude >= UINT64_MAX && errno == ERANGE) {
-        fprintf(stderr, "Error: integer literal not in representable range.\n");
+        parse_error(compiler, "integer literal not in representable range.");
         exit(1);
     }
-    check_range(magnitude, prefix.sign, type);
+    if (!check_range(magnitude, prefix.sign, type)) {
+        parse_error(compiler,
+                    "integer literal not in representable range for type '%s'.\n",
+                    integer_type_name(type));
+        exit(1);
+    }
     switch (type) {
     case INT_INT: {
         int64_t integer = 0;  // Zero-initialized in case we want to continue after errors.
@@ -240,7 +262,7 @@ static void compile_integer(struct compiler *compiler) {
             integer = magnitude;
         }
         else {
-            fprintf(stderr, "Error: magnitude of signed integer literal too large.\n");
+            parse_error(compiler, "magnitude of signed integer literal too large.");
             exit(1);
         }
         write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
@@ -305,7 +327,7 @@ static int start_jump(struct compiler *compiler, enum opcode jump_instruction) {
 
 static void patch_jump(struct compiler *compiler, int instruction_offset, int jump) {
     if (jump < INT16_MIN || jump > INT16_MAX) {
-        fprintf(stderr, "Jump too big.\n");
+        compile_error(compiler, "Jump too big.");
         exit(1);
     }
     overwrite_s16(compiler->block, instruction_offset + 1, jump);
@@ -481,13 +503,9 @@ static void compile_string(struct compiler *compiler) {
     start_view(current, start, temp_region);
     for (const char *c = start; *c != '"'; ++c) {
         if (*c == '\\') {
-            if (c[1] == '\0') {
-                fprintf(stderr, "Unexpected EOF\n.");
-                exit(1);
-            }
             int escaped = escape_character(c[1]);
             if (escaped == -1) {
-                fprintf(stderr, "Invalid escape sequence '\\%c'.\n", c[1]);
+                parse_error(compiler, "invalid escape sequence '\\%c'.\n", c[1]);
                 exit(1);
             }
             current = store_char(current, escaped, temp_region);
@@ -511,7 +529,7 @@ static void compile_character(struct compiler *compiler) {
     if (character == '\\') {
         int escaped = escape_character(value.start[2]);
         if (escaped == -1) {
-            fprintf(stderr, "Invalid escape sequence '\\%c'.\n", value.start[2]);
+            parse_error(compiler, "invalid escape sequence '\\%c'.\n", value.start[2]);
             exit(1);
         }
         character = escaped;
@@ -524,8 +542,8 @@ static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *sy
     if (level > compiler->for_loop_level) {
         // TODO: protect against too-long symbol names.
         assert(symbol->name.length <= INT_MAX);
-        fprintf(stderr, "Loop variable '%.*s' referenced outside defining loop.\n",
-                (int)symbol->name.length, symbol->name.start);
+        compile_error(compiler, "loop variable '%.*s' referenced outside defining loop.\n",
+                      (int)symbol->name.length, symbol->name.start);
         exit(1);
     }
     uint16_t offset = compiler->for_loop_level - level;  // Offset from top of aux.
@@ -538,7 +556,8 @@ static void compile_symbol(struct compiler *compiler) {
     if (symbol == NULL) {
         // TODO: protect against really long symbol names.
         assert(symbol_text.length <= INT_MAX);
-        fprintf(stderr, "Unknown symbol '%.*s'.\n", (int)symbol_text.length, symbol_text.start);
+        compile_error(compiler, "unknown symbol '%.*s'.\n",
+                      (int)symbol_text.length, symbol_text.start);
         exit(1);
     }
     switch (symbol->type) {
@@ -646,9 +665,9 @@ static void compile_expr(struct compiler *compiler) {
     }
 }
 
-void compile(const char *src, struct ir_block *block) {
+void compile(const char *src, struct ir_block *block, const char *filename) {
     struct compiler compiler;
-    init_compiler(&compiler, src, block);
+    init_compiler(&compiler, src, block, filename);
     compile_expr(&compiler);
     write_simple(compiler.block, OP_NOP);
 }
