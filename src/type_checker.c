@@ -598,7 +598,7 @@ enum type_check_result type_check(struct type_checker *checker) {
                     conversion.result_type = TYPE_INT;
                 }
                 else if (is_integral(rhs_type)) {
-                    overwrite_instruction(checker->block, checker->ip, promote(rhs_type));
+                    overwrite_instruction(checker->block, checker->ip - 1, promote(rhs_type));
                 }
                 else {
                     checker->had_error = true;
