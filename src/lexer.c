@@ -250,18 +250,24 @@ static struct token string(struct lexer *lexer) {
 
 static struct token character(struct lexer *lexer) {
     // Currently, only 8-bit characters (ASCII) are supported.
-    if (check(lexer, '\'')) {
-        lex_error(lexer, "empty character literal.");
-        exit(1);
+    int length = 0;
+    while (!is_at_end(lexer) && !check(lexer, '\'')) {
+        ++length;
+        if (match(lexer, '\\')) {
+            if (is_at_end(lexer)) break;
+        }
+        advance(lexer);
     }
-    match(lexer, '\\');
-    if (is_at_end(lexer)) {
+    if (is_at_end(lexer) || !match(lexer, '\'')) {
         lex_error(lexer, "unterminated character literal.");
         exit(1);
     }
-    advance(lexer);
-    if (!match(lexer, '\'')) {
-        lex_error(lexer, "unterminated character literal.");
+    if (length == 0) {
+        lex_error(lexer, "empty character literal");
+        exit(1);
+    }
+    if (length > 1) {
+        lex_error(lexer, "character literal contains multiple characters");
         exit(1);
     }
 
