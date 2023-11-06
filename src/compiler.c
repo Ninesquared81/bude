@@ -33,6 +33,10 @@ static void init_compiler(struct compiler *compiler, const char *src,
     compiler->for_loop_level = 0;
 }
 
+static void free_compiler(struct compiler *compiler) {
+    free_symbol_dictionary(&compiler->symbols);
+}
+
 static void parse_error(struct compiler *compiler, const char *restrict message, ...) {
     report_location(compiler->lexer.filename, &compiler->previous_token.location);
     fprintf(stderr, "Parse error: ");
@@ -670,5 +674,6 @@ void compile(const char *src, struct ir_block *block, const char *filename) {
     init_compiler(&compiler, src, block, filename);
     compile_expr(&compiler);
     write_simple(compiler.block, OP_NOP);
+    free_compiler(&compiler);
 }
 

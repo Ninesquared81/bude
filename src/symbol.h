@@ -36,6 +36,7 @@ struct symbol_dictionary {
 };
 
 void init_symbol_dictionary(struct symbol_dictionary *dict);
+void free_symbol_dictionary(struct symbol_dictionary *dict);
 void insert_symbol(struct symbol_dictionary *dict, struct symbol *symbol);
 struct symbol *lookup_symbol(const struct symbol_dictionary *dict, const struct string_view *sv);
 

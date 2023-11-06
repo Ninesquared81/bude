@@ -18,6 +18,12 @@ void init_symbol_dictionary(struct symbol_dictionary *dict) {
     dict->slots = calloc(SYMDICT_INIT_SIZE, sizeof dict->slots[0]);
 }
 
+void free_symbol_dictionary(struct symbol_dictionary *dict) {
+    free(dict->slots);
+    dict->capacity = 0;
+    dict->count = 0;
+}
+
 static bool check_name(const struct symdict_slot *slot, uint32_t hash,
                        const struct string_view *name) {
     return slot->hash == hash && sv_eq(&slot->symbol.name, name);
