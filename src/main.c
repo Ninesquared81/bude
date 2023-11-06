@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
 
     struct ir_block block;
     init_block(&block);
-    compile(inbuf, &block);
+    compile(inbuf, &block, opts.filename);
     free(inbuf);
     if (opts.optimise) {
         optimise(&block);
