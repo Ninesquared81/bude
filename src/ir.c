@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "ir.h"
+#include "location.h"
 #include "region.h"
 #include "type_punning.h"
 
@@ -141,10 +142,12 @@ static void *reallocate_array(void *array, size_t old_count, size_t new_count, s
     return new;
 }
 
-void init_block(struct ir_block *block) {
+void init_block(struct ir_block *block, const char *restrict filename) {
     block->code = allocate_array(BLOCK_INIT_SIZE, sizeof *block->code);
+    block->locations = allocate_array(BLOCK_INIT_SIZE, sizeof *block->locations);
     block->capacity = BLOCK_INIT_SIZE;
     block->count = 0;
+    block->filename = filename;
     block->max_for_loop_level = 0;
     init_constant_table(&block->constants);
     init_jump_info_table(&block->jumps);
@@ -159,7 +162,9 @@ void init_block(struct ir_block *block) {
 
 void free_block(struct ir_block *block) {
     free_array(block->code, block->capacity, sizeof *block->code);
+    free_array(block->locations, block->capacity, sizeof *block->locations);
     block->code = NULL;
+    block->locations = NULL;
     block->capacity = 0;
     block->count = 0;
     free_constant_table(&block->constants);

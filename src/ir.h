@@ -125,6 +125,8 @@ struct ir_block {
     int capacity;
     int count;
     uint8_t *code;
+    struct location *locations;
+    const char *filename;
     size_t max_for_loop_level;
     struct constant_table constants;
     struct jump_info_table jumps;
@@ -135,7 +137,7 @@ struct ir_block {
 const char *get_opcode_name(enum opcode opcode);
 bool is_jump(enum opcode instruction);
 
-void init_block(struct ir_block *block);
+void init_block(struct ir_block *block, const char *filename);
 void free_block(struct ir_block *block);
 void init_constant_table(struct constant_table *table);
 void free_constant_table(struct constant_table *table);

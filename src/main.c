@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
     load_source(opts.filename, inbuf);
 
     struct ir_block block;
-    init_block(&block);
+    init_block(&block, opts.filename);
     compile(inbuf, &block, opts.filename);
     free(inbuf);
     if (opts.optimise) {

@@ -1,8 +1,10 @@
+#include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "location.h"
 #include "type_checker.h"
 
 struct arithm_conv {
@@ -11,6 +13,16 @@ struct arithm_conv {
     enum opcode rhs_conv;
     enum opcode result_conv;
 };
+
+static void type_error(struct type_checker *checker, const char *restrict message, ...) {
+    report_location(checker->block->filename, &checker->block->locations[checker->ip]);
+    fprintf(stderr, "Type error: ");
+    va_list args;
+    va_start(args, message);
+    vfprintf(stderr, message, args);
+    va_end(args);
+    fprintf(stderr, ".\n");
+}
 
 void reset_type_stack(struct type_stack *tstack) {
     tstack->top = tstack->types;
@@ -204,7 +216,7 @@ static bool check_pointer_addition(struct type_checker *checker,
     if (lhs_type == TYPE_PTR) {
         if (rhs_type == TYPE_PTR) {
             checker->had_error = true;
-            fprintf(stderr, "Type error: cannot add two pointers.\n");
+            type_error(checker, "cannot add two pointers");
         }
         conversion = promote(rhs_type);
     }
@@ -329,19 +341,19 @@ static void check_unreachable(struct type_checker *checker) {
             ++ip;
         }
         if (ip + 1 < checker->block->count) {
-            fprintf(stderr, "Type error: code from index %d to %d is unreachable.\n",
-                    start_ip, ip);
+            type_error(checker, "code from index %d to %d is unreachable",
+                       start_ip, ip);
         }
         else {
-            fprintf(stderr, "Type error: code from index %d to end is unreachable.\n",
-                    start_ip);
+            type_error(checker, "code from index %d to end is unreachable",
+                       start_ip);
             return;
         }
         checker->ip = ip;
     }
     int src = find_jump_src(checker);
     if (src == -1) {
-        fprintf(stderr, "Type error: could not find source of jump.\n");
+        type_error(checker, "could not find source of jump");
         return;
     }
     load_state(checker, src);
@@ -351,8 +363,8 @@ static void check_jump_instruction(struct type_checker *checker) {
     int offset = read_s16(checker->block, checker->ip + 1);
     if (!save_jump(checker, offset)) {
         checker->had_error = true;
-        fprintf(stderr, "Type error at %d: inconsistent stack after jump instruction.\n",
-                checker->ip);
+        type_error(checker, "inconsistent stack after jump instruction",
+                   checker->ip);
     }
     checker->ip += 2;
 }
@@ -364,9 +376,7 @@ enum type_check_result type_check(struct type_checker *checker) {
                 // Previous state was saved here.
                 if (!check_state(checker)) {
                     checker->had_error = true;
-                    fprintf(stderr,
-                            "Type error at %d: inconsistent stack after jump instruction.\n",
-                            checker->ip);
+                    type_error(checker, "inconsistent stack after jump instruction", checker->ip);
                 }
             }
         }
@@ -439,7 +449,7 @@ enum type_check_result type_check(struct type_checker *checker) {
                 result_type = conversion.result_type;
                 if (result_type == TYPE_ERROR) {
                     checker->had_error = true;
-                    fprintf(stderr, "Type error in `+`.\n");
+                    fprintf(stderr, "Type error in `+`");
                     result_type = TYPE_WORD;  // Continue with a word.
                 }
                 overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
@@ -458,7 +468,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             enum type lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
                 checker->had_error = true;
-                fprintf(stderr, "Mismatched types for `and`.\n");
+                type_error(checker, "mismatched types for `and`");
                 lhs_type = TYPE_WORD;
             }
             ts_push(checker, lhs_type);
@@ -467,7 +477,7 @@ enum type_check_result type_check(struct type_checker *checker) {
         case OP_DEREF:
             if (ts_pop(checker) != TYPE_PTR) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: expected pointer.\n");
+                type_error(checker, "expected pointer");
             }
             ts_push(checker, TYPE_BYTE);
             break;
@@ -477,7 +487,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: invalid types for `divmod`.\n");
+                type_error(checker, "invalid types for `divmod`");
                 conversion.result_type = TYPE_WORD;
             }
             if (is_signed(conversion.result_type)) {
@@ -502,7 +512,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: invalid types for `idivmod`.\n");
+                type_error(checker, "invalid types for `idivmod`");
                 conversion.result_type = TYPE_WORD;
             }
             overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
@@ -530,7 +540,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: invalid types for `*`.\n");
+                type_error(checker, "invalid types for `*`");
                 conversion.result_type = TYPE_WORD;
             }
             overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
@@ -549,7 +559,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             enum type lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: mismatched tyes for `or`:.\n");
+                type_error(checker, "mismatched tyes for `or`:");
                 lhs_type = TYPE_WORD;  // In case of an error, recover by using a word.
             }
             ts_push(checker, lhs_type);
@@ -568,7 +578,7 @@ enum type_check_result type_check(struct type_checker *checker) {
         case OP_PRINT_CHAR: {
             if (ts_pop(checker) != TYPE_BYTE) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: expected byte for `print-char`.\n");
+                type_error(checker, "expected byte for `print-char`");
             }
             break;
         }
@@ -580,7 +590,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             }
             else {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: invalid type for `OP_PRINT_CHAR`.\n");
+                type_error(checker, "invalid type for `OP_PRINT_CHAR`");
             }
             break;
         }
@@ -602,13 +612,13 @@ enum type_check_result type_check(struct type_checker *checker) {
                 }
                 else {
                     checker->had_error = true;
-                    fprintf(stderr, "Type error: invalid types for `-`.\n");
+                    type_error(checker, "invalid types for `-`");
                     conversion.result_type = TYPE_WORD;
                 }
             }
             else {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: invalid types for `-`.\n");
+                type_error(checker, "invalid types for `-`");
                 conversion.result_type = TYPE_WORD;
             }
             ts_push(checker, conversion.result_type);
@@ -682,7 +692,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             enum type type = ts_pop(checker);
             if (!is_integral(type)) {
                 checker->had_error = true;
-                fprintf(stderr, "Type error: expected integral type for `exit`.\n");
+                type_error(checker, "expected integral type for `exit`");
             }
             check_unreachable(checker);
             break;
@@ -713,7 +723,7 @@ void ts_push(struct type_checker *checker, enum type type) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top >= &tstack->types[TYPE_STACK_SIZE]) {
         checker->had_error = true;
-        fprintf(stderr, "Insufficient stack space.\n");
+        type_error(checker, "insufficient stack space");
         return;
     }
     *tstack->top++ = type;
@@ -723,7 +733,7 @@ enum type ts_pop(struct type_checker *checker) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top == tstack->types) {
         checker->had_error = true;
-        fprintf(stderr, "Insufficient stack space.\n");
+        type_error(checker, "insufficient stack space");
         return TYPE_ERROR;
     }
     return *--tstack->top;
@@ -733,7 +743,7 @@ enum type ts_peek(struct type_checker *checker) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top == tstack->types) {
         checker->had_error = true;
-        fprintf(stderr, "Insufficient stack space.\n");
+        type_error(checker, "insufficient stack space");
         return TYPE_ERROR;
     }
     return tstack->top[-1];
