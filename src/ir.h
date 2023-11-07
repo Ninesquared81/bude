@@ -146,17 +146,24 @@ void free_jump_info_table(struct jump_info_table *table);
 void init_string_table(struct string_table *table);
 void free_string_table(struct string_table *table);
 
-void write_simple(struct ir_block *block, enum opcode instruction);
+void write_simple(struct ir_block *block, enum opcode instruction, struct location *location);
 
-void write_immediate_u8(struct ir_block *block, enum opcode instruction, uint8_t operand);
-void write_immediate_s8(struct ir_block *block, enum opcode instruction, int8_t operand);
-void write_immediate_u16(struct ir_block *block, enum opcode instruction, uint16_t operand);
-void write_immediate_s16(struct ir_block *block, enum opcode instruction, int16_t operand);
-void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32_t operand);
-void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_t operand);
-
-void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint64_t operand);
-void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int64_t operand);
+void write_immediate_u8(struct ir_block *block, enum opcode instruction, uint8_t operand,
+                        struct location *location);
+void write_immediate_s8(struct ir_block *block, enum opcode instruction, int8_t operand,
+                        struct location *location);
+void write_immediate_u16(struct ir_block *block, enum opcode instruction, uint16_t operand,
+                         struct location *location);
+void write_immediate_s16(struct ir_block *block, enum opcode instruction, int16_t operand,
+                         struct location *location);
+void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32_t operand,
+                         struct location *location);
+void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_t operand,
+                         struct location *location);
+void write_immediate_u64(struct ir_block *block, enum opcode instruction, uint64_t operand,
+                         struct location *location);
+void write_immediate_s64(struct ir_block *block, enum opcode instruction, int64_t operand,
+                         struct location *location);
 
 void overwrite_u8(struct ir_block *block, int start, uint8_t value);
 void overwrite_s8(struct ir_block *block, int start, int8_t value);
@@ -164,6 +171,8 @@ void overwrite_u16(struct ir_block *block, int start, uint16_t value);
 void overwrite_s16(struct ir_block *block, int start, int16_t value);
 void overwrite_u32(struct ir_block *block, int start, uint32_t value);
 void overwrite_s32(struct ir_block *block, int start, int32_t value);
+void overwrite_u64(struct ir_block *block, int start, uint64_t value);
+void overwrite_s64(struct ir_block *block, int start, int64_t value);
 
 
 void overwrite_instruction(struct ir_block *block, int index, enum opcode instruction);

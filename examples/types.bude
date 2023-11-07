@@ -1,6 +1,6 @@
 "Hello, World!\n" pop
 
-0 print
+0 print-char
 
 # dupe print
 

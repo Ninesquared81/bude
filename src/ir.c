@@ -247,42 +247,51 @@ static void grow_string_table(struct string_table *table) {
     table->capacity = new_capacity;
 }
 
-void write_simple(struct ir_block *block, enum opcode instruction) {
+void write_simple(struct ir_block *block, enum opcode instruction, struct location *location) {
     if (block->count + 1 > block->capacity) {
         grow_block(block);
     }
+    block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
 }
 
-void write_immediate_u8(struct ir_block *block, enum opcode instruction, uint8_t operand) {
+void write_immediate_u8(struct ir_block *block, enum opcode instruction, uint8_t operand,
+                        struct location *location) {
     if (block->count + 2 > block->capacity) {
         grow_block(block);
     }
+    block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
     block->code[block->count++] = operand;
 }
 
-void write_immediate_s8(struct ir_block *block, enum opcode instruction, int8_t operand) {
-    write_immediate_u8(block, instruction, s8_to_u8(operand));
+void write_immediate_s8(struct ir_block *block, enum opcode instruction, int8_t operand,
+                        struct location *location) {
+    write_immediate_u8(block, instruction, s8_to_u8(operand), location);
 }
 
-void write_immediate_u16(struct ir_block *block, enum opcode instruction, uint16_t operand) {
+void write_immediate_u16(struct ir_block *block, enum opcode instruction, uint16_t operand,
+                        struct location *location) {
     if (block->count + 3 > block->capacity) {
         grow_block(block);
     }
+    block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
     block->code[block->count++] = operand;
     block->code[block->count++] = operand >> 8;
 }
 
-void write_immediate_s16(struct ir_block *block, enum opcode instruction, int16_t operand) {
-    write_immediate_u16(block, instruction, s16_to_u16(operand));
+void write_immediate_s16(struct ir_block *block, enum opcode instruction, int16_t operand,
+                        struct location *location) {
+    write_immediate_u16(block, instruction, s16_to_u16(operand), location);
 }
 
-void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32_t operand) {
+void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32_t operand,
+                        struct location *location) {
     if (block->count + 5 > block->capacity) {
         grow_block(block);
     }
+    block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
     block->code[block->count++] = operand;
     block->code[block->count++] = operand >> 8;
@@ -290,14 +299,17 @@ void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32
     block->code[block->count++] = operand >> 24;
 }
 
-void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_t operand) {
-    write_immediate_u32(block, instruction, s32_to_u32(operand));
+void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_t operand,
+                        struct location *location) {
+    write_immediate_u32(block, instruction, s32_to_u32(operand), location);
 }
 
-void write_immediate_u64(struct ir_block *block, enum opcode instruction, uint64_t operand) {
+void write_immediate_u64(struct ir_block *block, enum opcode instruction, uint64_t operand,
+                        struct location *location) {
     if (block->count + 9 > block->capacity) {
         grow_block(block);
     }
+    block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
     block->code[block->count++] = operand;
     block->code[block->count++] = operand >> 8;
@@ -309,44 +321,9 @@ void write_immediate_u64(struct ir_block *block, enum opcode instruction, uint64
     block->code[block->count++] = operand >> 56;
 }
 
-void write_immediate_s64(struct ir_block *block, enum opcode instruction, int64_t operand) {
-    write_immediate_u64(block, instruction, s64_to_u64(operand));
-}
-
-void write_immediate_uv(struct ir_block *block, enum opcode instruction8, uint64_t operand) {
-    enum opcode instruction16 = instruction8 + 1;
-    enum opcode instruction32 = instruction8 + 2;
-    enum opcode instruction64 = instruction8 + 3;
-    if (operand <= UINT8_MAX) {
-        write_immediate_u8(block, instruction8, operand);
-    }
-    else if (operand <= UINT16_MAX) {
-        write_immediate_u16(block, instruction16, operand);
-    }
-    else if (operand <= UINT32_MAX) {
-        write_immediate_u32(block, instruction32, operand);
-    }
-    else {
-        write_immediate_u64(block, instruction64, operand);
-    }
-}
-
-void write_immediate_sv(struct ir_block *block, enum opcode instruction8, int64_t operand) {
-    enum opcode instruction16 = instruction8 + 1;
-    enum opcode instruction32 = instruction8 + 2;
-    enum opcode instruction64 = instruction8 + 3;
-    if (INT8_MIN < operand && operand <= INT8_MAX) {
-        write_immediate_s8(block, instruction8, operand);
-    }
-    else if (INT16_MIN < operand && operand <= INT16_MAX) {
-        write_immediate_s16(block, instruction16, operand);
-    }
-    else if (INT32_MIN < operand && operand <= INT32_MAX) {
-        write_immediate_s32(block, instruction32, operand);
-    }
-    else {
-        write_immediate_s64(block, instruction64, operand);
-    }
+void write_immediate_s64(struct ir_block *block, enum opcode instruction, int64_t operand,
+                        struct location *location) {
+    write_immediate_u64(block, instruction, s64_to_u64(operand), location);
 }
 
 void overwrite_u8(struct ir_block *block, int start, uint8_t value) {
@@ -379,6 +356,22 @@ void overwrite_u32(struct ir_block *block, int start, uint32_t value) {
 
 void overwrite_s32(struct ir_block *block, int start, int32_t value) {
     overwrite_u32(block, start, s32_to_u32(value));
+}
+
+void overwrite_u64(struct ir_block *block, int start, uint64_t value) {
+    assert(0 <= start && start + 7 < block->count);
+    block->code[start] = value;
+    block->code[start + 1] = value >> 8;
+    block->code[start + 2] = value >> 16;
+    block->code[start + 3] = value >> 24;
+    block->code[start + 4] = value >> 32;
+    block->code[start + 5] = value >> 40;
+    block->code[start + 6] = value >> 48;
+    block->code[start + 7] = value >> 56;
+}
+
+void overwrite_s64(struct ir_block *block, int start, int64_t value) {
+    overwrite_u64(block, start, s64_to_u64(value));
 }
 
 void overwrite_instruction(struct ir_block *block, int index, enum opcode instruction) {

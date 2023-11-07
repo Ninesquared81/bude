@@ -101,10 +101,78 @@ static struct token peek_previous(struct compiler *compiler) {
     return compiler->previous_token;
 }
 
-static void compile_expr(struct compiler *compiler);
-static void compile_symbol(struct compiler *compiler);
+static void emit_simple(struct compiler *compiler, enum opcode instruction) {
+    write_simple(compiler->block, instruction, &compiler->previous_token.location);
+}
+
+static void emit_immediate_u8(struct compiler *compiler, enum opcode instruction,
+                              uint8_t operand) {
+    write_immediate_u8(compiler->block, instruction, operand,
+                       &compiler->previous_token.location);
+}
+
+static void emit_immediate_u16(struct compiler *compiler, enum opcode instruction,
+                               uint16_t operand) {
+    write_immediate_u16(compiler->block, instruction, operand,
+                        &compiler->previous_token.location);
+}
+
+static void emit_immediate_s16(struct compiler *compiler, enum opcode instruction,
+                               int16_t operand) {
+    write_immediate_s16(compiler->block, instruction, operand,
+                        &compiler->previous_token.location);
+}
+
+static void emit_immediate_uv(struct compiler *compiler, enum opcode instruction8,
+                              uint64_t operand) {
+    enum opcode instruction16 = instruction8 + 1;
+    enum opcode instruction32 = instruction8 + 2;
+    enum opcode instruction64 = instruction8 + 3;
+    if (operand <= UINT8_MAX) {
+        write_immediate_u8(compiler->block, instruction8, operand,
+                           &compiler->previous_token.location);
+    }
+    else if (operand <= UINT16_MAX) {
+        write_immediate_u16(compiler->block, instruction16, operand,
+                            &compiler->previous_token.location);
+    }
+    else if (operand <= UINT32_MAX) {
+        write_immediate_u32(compiler->block, instruction32, operand,
+                            &compiler->previous_token.location);
+    }
+    else {
+        write_immediate_u64(compiler->block, instruction64, operand,
+                            &compiler->previous_token.location);
+    }
+}
 
 #define IN_RANGE(x, lower, upper) ((lower) <= (x) && (x) <= (upper))
+
+static void emit_immediate_sv(struct compiler *compiler, enum opcode instruction8,
+                              int64_t operand) {
+    enum opcode instruction16 = instruction8 + 1;
+    enum opcode instruction32 = instruction8 + 2;
+    enum opcode instruction64 = instruction8 + 3;
+    if (IN_RANGE(operand, INT8_MIN, INT8_MAX)) {
+        write_immediate_s8(compiler->block, instruction8, operand,
+                           &compiler->previous_token.location);
+    }
+    else if (IN_RANGE(operand, INT16_MIN, INT16_MAX)) {
+        write_immediate_s16(compiler->block, instruction16, operand,
+                            &compiler->previous_token.location);
+    }
+    else if (IN_RANGE(operand, INT32_MIN, INT32_MAX)) {
+        write_immediate_s32(compiler->block, instruction32, operand,
+                            &compiler->previous_token.location);
+    }
+    else {
+        write_immediate_s64(compiler->block, instruction64, operand,
+                            &compiler->previous_token.location);
+    }
+}
+
+static void compile_expr(struct compiler *compiler);
+static void compile_symbol(struct compiler *compiler);
 
 struct integer_prefix {
     char sign;  // '\0', '-', '+'.
@@ -269,54 +337,54 @@ static void compile_integer(struct compiler *compiler) {
             parse_error(compiler, "magnitude of signed integer literal too large.");
             exit(1);
         }
-        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
+        emit_immediate_sv(compiler, OP_PUSH_INT8, integer);
         break;
     }
     case INT_WORD: {
         uint64_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        write_immediate_uv(compiler->block, OP_PUSH8, integer);
+        emit_immediate_uv(compiler, OP_PUSH8, integer);
         break;
     }
     case INT_BYTE: {
         uint8_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        write_immediate_uv(compiler->block, OP_PUSH8, integer);
-        write_simple(compiler->block, OP_AS_BYTE);
+        emit_immediate_uv(compiler, OP_PUSH8, integer);
+        emit_simple(compiler, OP_AS_BYTE);
         break;
     }
     case INT_U8: {
         uint8_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        write_immediate_uv(compiler->block, OP_PUSH8, integer);
-        write_simple(compiler->block, OP_AS_U8);
+        emit_immediate_uv(compiler, OP_PUSH8, integer);
+        emit_simple(compiler, OP_AS_U8);
         break;
     }
     case INT_U16: {
         uint16_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        write_immediate_uv(compiler->block, OP_PUSH8, integer);
-        write_simple(compiler->block, OP_AS_U16);
+        emit_immediate_uv(compiler, OP_PUSH8, integer);
+        emit_simple(compiler, OP_AS_U16);
         break;
     }
     case INT_U32: {
         uint32_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        write_immediate_uv(compiler->block, OP_PUSH8, integer);
-        write_simple(compiler->block, OP_AS_U32);
+        emit_immediate_uv(compiler, OP_PUSH8, integer);
+        emit_simple(compiler, OP_AS_U32);
         break;
     }
     case INT_S8: {
         int8_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
-        write_simple(compiler->block, OP_AS_S8);
+        emit_immediate_sv(compiler, OP_PUSH_INT8, integer);
+        emit_simple(compiler, OP_AS_S8);
         break;
     }
     case INT_S16: {
         int16_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
-        write_simple(compiler->block, OP_AS_S16);
+        emit_immediate_sv(compiler, OP_PUSH_INT8, integer);
+        emit_simple(compiler, OP_AS_S16);
         break;
     }
     case INT_S32: {
         int32_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        write_immediate_sv(compiler->block, OP_PUSH_INT8, integer);
-        write_simple(compiler->block, OP_AS_S32);
+        emit_immediate_sv(compiler, OP_PUSH_INT8, integer);
+        emit_simple(compiler, OP_AS_S32);
         break;
     }
     }
@@ -325,7 +393,7 @@ static void compile_integer(struct compiler *compiler) {
 static int start_jump(struct compiler *compiler, enum opcode jump_instruction) {
     assert(is_jump(jump_instruction));
     int jump_offset = compiler->block->count;
-    write_immediate_s16(compiler->block, jump_instruction, 0);
+    emit_immediate_s16(compiler, jump_instruction, 0);
     return jump_offset;
 }
 
@@ -442,7 +510,7 @@ static void compile_for_loop(struct compiler *compiler) {
     compile_expr(compiler);  // Loop body.
 
     int loop_jump = body_start - compiler->block->count - 1;
-    write_immediate_s16(compiler->block, update_instruction, loop_jump);
+    emit_immediate_s16(compiler, update_instruction, loop_jump);
     add_jump(compiler->block, body_start);
 
     int skip_jump = compiler->block->count - offset - 1;
@@ -459,7 +527,7 @@ static void compile_loop(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `while` condition.");
 
     int body_start = compiler->block->count;
-    write_immediate_s16(compiler->block, OP_JUMP_NCOND, 0);
+    emit_immediate_s16(compiler, OP_JUMP_NCOND, 0);
     compile_expr(compiler);  // Loop body.
 
     /*   [while]
@@ -473,7 +541,7 @@ static void compile_loop(struct compiler *compiler) {
      */
 
     int loop_jump = condition_start - compiler->block->count - 1;  // Negative.
-    write_immediate_s16(compiler->block, OP_JUMP, loop_jump);
+    emit_immediate_s16(compiler, OP_JUMP, loop_jump);
     add_jump(compiler->block, condition_start);
 
     int exit_jump = compiler->block->count - body_start - 1;  // Positive.
@@ -523,7 +591,7 @@ static void compile_string(struct compiler *compiler) {
         }
     }
     uint32_t index = write_string(compiler->block, &builder);
-    write_immediate_uv(compiler->block, OP_LOAD_STRING8, index);
+    emit_immediate_uv(compiler, OP_LOAD_STRING8, index);
     kill_region(temp_region);
 }
 
@@ -538,7 +606,7 @@ static void compile_character(struct compiler *compiler) {
         }
         character = escaped;
     }
-    write_immediate_u8(compiler->block, OP_PUSH_CHAR8, character);
+    emit_immediate_u8(compiler, OP_PUSH_CHAR8, character);
 }
 
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
@@ -551,7 +619,7 @@ static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *sy
         exit(1);
     }
     uint16_t offset = compiler->for_loop_level - level;  // Offset from top of aux.
-    write_immediate_u16(compiler->block, OP_GET_LOOP_VAR, offset);
+    emit_immediate_u16(compiler, OP_GET_LOOP_VAR, offset);
 }
 
 static void compile_symbol(struct compiler *compiler) {
@@ -572,62 +640,61 @@ static void compile_symbol(struct compiler *compiler) {
 }
 
 static bool compile_simple(struct compiler *compiler) {
-#define BIN_OP(block, op)                          \
+#define BIN_OP(compiler, op)                          \
     do {                                           \
-        write_simple(block, OP_NOP);               \
-        write_simple(block, OP_NOP);               \
-        write_simple(block, op);                   \
-        write_simple(block, OP_NOP);               \
+        emit_simple(compiler, OP_NOP);               \
+        emit_simple(compiler, OP_NOP);               \
+        emit_simple(compiler, op);                   \
+        emit_simple(compiler, OP_NOP);               \
     } while (0);
 
-    struct ir_block *block = compiler->block;
     switch (peek(compiler).type) {
     case TOKEN_AND:
-        BIN_OP(block, OP_AND);
+        BIN_OP(compiler, OP_AND);
         break;
     case TOKEN_DEREF:
-        write_simple(block, OP_DEREF);
+        emit_simple(compiler, OP_DEREF);
         break;
     case TOKEN_DUPE:
-        write_simple(block, OP_DUPE);
+        emit_simple(compiler, OP_DUPE);
         break;
     case TOKEN_EXIT:
-        write_simple(block, OP_EXIT);
+        emit_simple(compiler, OP_EXIT);
         break;
     case TOKEN_MINUS:
-        BIN_OP(block, OP_SUB);
+        BIN_OP(compiler, OP_SUB);
         break;
     case TOKEN_NOT:
-        write_simple(block, OP_NOT);
+        emit_simple(compiler, OP_NOT);
         break;
     case TOKEN_OR:
-        BIN_OP(block, OP_OR);
+        BIN_OP(compiler, OP_OR);
         break;
     case TOKEN_PLUS:
-        BIN_OP(block, OP_ADD);
+        BIN_OP(compiler, OP_ADD);
         break;
     case TOKEN_POP:
-        write_simple(block, OP_POP);
+        emit_simple(compiler, OP_POP);
         break;
     case TOKEN_PRINT:
-        write_simple(block, OP_NOP);  // Conversion.
-        write_simple(block, OP_PRINT);
+        emit_simple(compiler, OP_NOP);  // Conversion.
+        emit_simple(compiler, OP_PRINT);
         break;
     case TOKEN_PRINT_CHAR:
-        write_simple(block, OP_PRINT_CHAR);
+        emit_simple(compiler, OP_PRINT_CHAR);
         break;
     case TOKEN_SLASH_PERCENT:
-        write_simple(block, OP_NOP);  // LHS conversion.
-        write_simple(block, OP_NOP);  // RHS conversion.
-        write_simple(block, OP_DIVMOD);
-        write_simple(block, OP_NOP);  // Quotient conversion.
-        write_simple(block, OP_NOP);  // Remainder conversion.
+        emit_simple(compiler, OP_NOP);  // LHS conversion.
+        emit_simple(compiler, OP_NOP);  // RHS conversion.
+        emit_simple(compiler, OP_DIVMOD);
+        emit_simple(compiler, OP_NOP);  // Quotient conversion.
+        emit_simple(compiler, OP_NOP);  // Remainder conversion.
         break;
     case TOKEN_STAR:
-        BIN_OP(block, OP_MULT);
+        BIN_OP(compiler, OP_MULT);
         break;
     case TOKEN_SWAP:
-        write_simple(block, OP_SWAP);
+        emit_simple(compiler, OP_SWAP);
         break;
     default:
         /* All other tokens fall through. */
@@ -673,7 +740,7 @@ void compile(const char *src, struct ir_block *block, const char *filename) {
     struct compiler compiler;
     init_compiler(&compiler, src, block, filename);
     compile_expr(&compiler);
-    write_simple(compiler.block, OP_NOP);
+    emit_simple(&compiler, OP_NOP);
     free_compiler(&compiler);
 }
 
