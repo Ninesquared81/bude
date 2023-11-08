@@ -82,13 +82,6 @@ static void expect_consume(struct compiler *compiler, enum token_type type, cons
     }
 }
 
-static void expect_keep(struct compiler *compiler, enum token_type type, const char *message) {
-    if (!check(compiler, type)) {
-        parse_error(compiler, "%s", message);
-        exit(1);
-    }
-}
-
 static bool is_at_end(struct compiler *compiler) {
     return compiler->current_token.type == TOKEN_EOT;
 }
