@@ -522,7 +522,7 @@ static void compile_for_loop(struct compiler *compiler) {
     add_jump(compiler->block, compiler->block->count);
 
     --compiler->for_loop_level;
-    expect_keep(compiler, TOKEN_END, "Expect `end` after `for` loop.");
+    expect_consume(compiler, TOKEN_END, "Expect `end` after `for` loop.");
 }
 
 static void compile_loop(struct compiler *compiler) {
