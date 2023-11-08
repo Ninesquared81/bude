@@ -1,7 +1,6 @@
 "Hello, World!\n" pop
 
-0 print-char
-
+0b00101101t print-char
 # dupe print
 
 dupe 1 +
@@ -26,3 +25,5 @@ print
 0xfft print
 
 -128s8 print
+
+55 4 /% print

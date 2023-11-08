@@ -201,10 +201,14 @@ struct integer_prefix parse_integer_prefix(struct string_view *value) {
         case 'B':
         case 'b':
             prefix.base = 2;
+            value->start += 2;
+            value->length -= 2;
             break;
         case 'X':
         case 'x':
             prefix.base = 16;
+            value->start += 2;
+            value->length -= 2;
             break;
         }
     }
