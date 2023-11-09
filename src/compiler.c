@@ -75,7 +75,8 @@ static bool match(struct compiler *compiler, enum token_type type) {
     return false;
 }
 
-static void expect_consume(struct compiler *compiler, enum token_type type, const char *message) {
+static void expect_consume(struct compiler *compiler, enum token_type type,
+                           const char *message) {
     if (!match(compiler, type)) {
         parse_error(compiler, "%s", message);
         exit(1);
