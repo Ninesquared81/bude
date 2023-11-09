@@ -146,7 +146,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                     filename = argv[++i];  // Consume the next argument as the filename.
                 }
                 else {
-                    fprintf(stderr, "'%s' option missing required argument 'filename'.\n", arg);
+                    fprintf(stderr, "'%s' option missing required argument 'file'.\n", arg);
                     exit(1);
                 }
                 opts->output_filename = filename;
@@ -201,7 +201,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
 
 check_filename:
     if (opts->filename == NULL) {
-        fprintf(stderr, "Error: missing positional argument.\n");
+        fprintf(stderr, "Error: missing positional argument 'file'.\n");
         print_usage(stderr, name);
         exit(1);
     }
