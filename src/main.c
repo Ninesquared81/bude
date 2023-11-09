@@ -46,8 +46,8 @@ static void print_help(FILE *file, const char *name) {
             "  -f <filename>     write the output to the specified file\n"
             "  -h, -?, --help    display this help message and exit\n"
             "  -i, --interpret   interpret ir code (enabled by default)\n"
-            "  -o, --optimise    optimise ir code\n"
             "  --version         display the version number and exit\n"
+            "  -O, --optimise    optimise ir code\n"
             "  --                treat all following arguments as positional\n"
         );
 }
@@ -102,7 +102,7 @@ static void parse_short_opt(const char *name, const char *arg,
             opts->interpret = true;
             *had_i = true;
             break;
-        case 'o':
+        case 'O':
             opts->optimise = true;
             break;
         default:
@@ -128,10 +128,10 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             case 'd':
             case 'h': case '?':
             case 'i':
-            case 'o':
+            case 'O':
                 parse_short_opt(name, arg, opts, &had_i, &had_a);
                 break;
-            case 'f': {
+            case 'o': {
                 const char *filename = NULL;
                 if (arg[2] != '\0') {
                     // Argument pasted on the end.
