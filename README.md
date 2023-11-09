@@ -33,7 +33,7 @@ $ ./bin/bude.exe -h
 To create a Windows executable file, run:
 
 ```shellsession
-$ ./bin/bude.exe ./examples/hello_world.bude -a -f hello_world.asm
+$ ./bin/bude.exe ./examples/hello_world.bude -a -o hello_world.asm
 $ fasm hello_world.asm
 flat assembler  version 1.73.31  (1048576 kilobytes memory)
 3 passes, 0.1 seconds, 2560 bytes.
