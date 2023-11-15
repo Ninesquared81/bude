@@ -7,106 +7,172 @@
 #include "string_builder.h"
 #include "string_view.h"
 
-enum opcode {
+enum t_opcode {
     /* NOP -- no operation. */
-    OP_NOP,
+    T_OP_NOP,
     /* PUSHn Imm_un -- Push a word to the stack. */
-    OP_PUSH8,
-    OP_PUSH16,
-    OP_PUSH32,
-    OP_PUSH64,
+    T_OP_PUSH8,
+    T_OP_PUSH16,
+    T_OP_PUSH32,
+    T_OP_PUSH64,
     /* PUSH_INTn Imm_sn -- Push a word-sized signed integer to the stack. */
-    OP_PUSH_INT8,
-    OP_PUSH_INT16,
-    OP_PUSH_INT32,
-    OP_PUSH_INT64,
+    T_OP_PUSH_INT8,
+    T_OP_PUSH_INT16,
+    T_OP_PUSH_INT32,
+    T_OP_PUSH_INT64,
     /* PUSH_CHAR8 Imm_u8 -- Push an ASCII character to the stack. */
-    OP_PUSH_CHAR8,
+    T_OP_PUSH_CHAR8,
     /* LOAD_STRINGn Imm_un -- Load a string (ptr word) onto the stack from the strings table. */
-    OP_LOAD_STRING8,
-    OP_LOAD_STRING16,
-    OP_LOAD_STRING32,
+    T_OP_LOAD_STRING8,
+    T_OP_LOAD_STRING16,
+    T_OP_LOAD_STRING32,
     /* POP -- Pop and discard the top stack element. */
-    OP_POP,
+    T_OP_POP,
     /* ADD -- Add top two stack elements. */
-    OP_ADD,
+    T_OP_ADD,
     /* AND -- Logical (value-preserving) and operation of top two elements. */
-    OP_AND,
+    T_OP_AND,
     /* DEREF -- Dereference (byte) ptr at top of stack. */
-    OP_DEREF,
+    T_OP_DEREF,
     /* DIVMOD -- Unsigned division and reaminder. */
-    OP_DIVMOD,
+    T_OP_DIVMOD,
     /* IDIVMOD -- Signed (truncated) division and remainder. */
-    OP_IDIVMOD,
+    T_OP_IDIVMOD,
     /* EDIVMOD -- Signed (Euclidean) divion and remainder (remaninder non-negative). */
-    OP_EDIVMOD,
+    T_OP_EDIVMOD,
     /* DUPE -- Duplicate top stack element. */
-    OP_DUPE,
+    T_OP_DUPE,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
-    OP_EXIT,
+    T_OP_EXIT,
     /* FOR_DEC_START -- Initialise a for loop counter to the top element. */
-    OP_FOR_DEC_START,
+    T_OP_FOR_DEC_START,
     /* FOR_DEC -- Decrement a for loop counter by 1 and loop while it's not zero. */
-    OP_FOR_DEC,
+    T_OP_FOR_DEC,
     /* FOR_INC_START -- Initialise a for loop counter to zero and the target to the top element. */
-    OP_FOR_INC_START,
+    T_OP_FOR_INC_START,
     /* FOR_INC Imm_s16 -- Increment a for loop counter by 1 and jump a given distance if
        the counter is not equal to the target. */
-    OP_FOR_INC,
+    T_OP_FOR_INC,
     /* GET_LOOP_VAR Imm_u16 -- Get the loop variable a given distance from the current loop. */
-    OP_GET_LOOP_VAR,
+    T_OP_GET_LOOP_VAR,
     /* JUMP Imm_s16 -- Jump a given distance. */
-    OP_JUMP,
+    T_OP_JUMP,
     /* JUMP_COND Imm_s16 -- Jump the given distance if the top element is non-zero (true). */
-    OP_JUMP_COND,
+    T_OP_JUMP_COND,
     /* JUMP_NCOND Imm_s16 -- Jump the given distance if the top element is zero (false). */
-    OP_JUMP_NCOND,
+    T_OP_JUMP_NCOND,
     /* MULT -- Multiply the top two stack elements. */
-    OP_MULT,
+    T_OP_MULT,
     /* NOT -- Logical not operation of the top two stack elements. */
-    OP_NOT,
+    T_OP_NOT,
     /* OR -- Logical (value-preserving) or operation of top two stack elements. */
-    OP_OR,
+    T_OP_OR,
     /* PRINT -- Print the top element of the stack as a word. */
-    OP_PRINT,
+    T_OP_PRINT,
     /* PRINT_CHAR -- Print the top element of the stack as a character. */
-    OP_PRINT_CHAR,
+    T_OP_PRINT_CHAR,
     /* PRINT_INT -- Print the top element of the stack as a signed integer. */
-    OP_PRINT_INT,
+    T_OP_PRINT_INT,
     /* SUB -- Subtract the top stack element from the next element. */
-    OP_SUB,
+    T_OP_SUB,
     /* SWAP -- Swap the top two stack elements. */
-    OP_SWAP,
-    /* SXn, SXnL -- sign extend an n-bit integer. The -L versions operate on the
-       element under the top (i.e. the left-hand side of a binary operation). */
-    OP_SX8,
-    OP_SX8L,
-    OP_SX16,
-    OP_SX16L,
-    OP_SX32,
-    OP_SX32L,
-    /* ZXn, ZXnL -- zero extend an n-bit integer. The -L versions operate on the
-       element under the top (i.e. the left-hand side of a binary operation). */
-    OP_ZX8,
-    OP_ZX8L,
-    OP_ZX16,
-    OP_ZX16L,
-    OP_ZX32,
-    OP_ZX32L,
+    T_OP_SWAP,
     /* AS_BYTE, AS_Un, AS_Sn -- Clear any excess bits and treat as an integer of that type. */
-    OP_AS_BYTE,
-    OP_AS_U8,
-    OP_AS_U16,
-    OP_AS_U32,
-    OP_AS_S8,
-    OP_AS_S16,
-    OP_AS_S32,
+    T_OP_AS_BYTE,
+    T_OP_AS_U8,
+    T_OP_AS_U16,
+    T_OP_AS_U32,
+    T_OP_AS_S8,
+    T_OP_AS_S16,
+    T_OP_AS_S32,
 };
 
-struct constant_table {
-    int capacity;
-    int count;
-    uint64_t *data;
+enum w_opcode {
+    /* NOP -- no operation. */
+    W_OP_NOP,
+    /* PUSHn Imm_un -- Push a word to the stack. */
+    W_OP_PUSH8,
+    W_OP_PUSH16,
+    W_OP_PUSH32,
+    W_OP_PUSH64,
+    /* PUSH_INTn Imm_sn -- Push a word-sized signed integer to the stack. */
+    W_OP_PUSH_INT8,
+    W_OP_PUSH_INT16,
+    W_OP_PUSH_INT32,
+    W_OP_PUSH_INT64,
+    /* PUSH_CHAR8 Imm_u8 -- Push an ASCII character to the stack. */
+    W_OP_PUSH_CHAR8,
+    /* LOAD_STRINGn Imm_un -- Load a string (ptr word) onto the stack from the strings table. */
+    W_OP_LOAD_STRING8,
+    W_OP_LOAD_STRING16,
+    W_OP_LOAD_STRING32,
+    /* POP -- Pop and discard the top stack element. */
+    W_OP_POP,
+    /* ADD -- Add top two stack elements. */
+    W_OP_ADD,
+    /* AND -- Logical (value-preserving) and operation of top two elements. */
+    W_OP_AND,
+    /* DEREF -- Dereference (byte) ptr at top of stack. */
+    W_OP_DEREF,
+    /* DIVMOD -- Unsigned division and reaminder. */
+    W_OP_DIVMOD,
+    /* IDIVMOD -- Signed (truncated) division and remainder. */
+    W_OP_IDIVMOD,
+    /* EDIVMOD -- Signed (Euclidean) divion and remainder (remaninder non-negative). */
+    W_OP_EDIVMOD,
+    /* DUPE -- Duplicate top stack element. */
+    W_OP_DUPE,
+    /* EXIT -- Exit the program, using the top of the stack as the exit code. */
+    W_OP_EXIT,
+    /* FOR_DEC_START -- Initialise a for loop counter to the top element. */
+    W_OP_FOR_DEC_START,
+    /* FOR_DEC -- Decrement a for loop counter by 1 and loop while it's not zero. */
+    W_OP_FOR_DEC,
+    /* FOR_INC_START -- Initialise a for loop counter to zero and the target to the top element. */
+    W_OP_FOR_INC_START,
+    /* FOR_INC Imm_s16 -- Increment a for loop counter by 1 and jump a given distance if
+       the counter is not equal to the target. */
+    W_OP_FOR_INC,
+    /* GET_LOOP_VAR Imm_u16 -- Get the loop variable a given distance from the current loop. */
+    W_OP_GET_LOOP_VAR,
+    /* JUMP Imm_s16 -- Jump a given distance. */
+    W_OP_JUMP,
+    /* JUMP_COND Imm_s16 -- Jump the given distance if the top element is non-zero (true). */
+    W_OP_JUMP_COND,
+    /* JUMP_NCOND Imm_s16 -- Jump the given distance if the top element is zero (false). */
+    W_OP_JUMP_NCOND,
+    /* MULT -- Multiply the top two stack elements. */
+    W_OP_MULT,
+    /* NOT -- Logical not operation of the top two stack elements. */
+    W_OP_NOT,
+    /* OR -- Logical (value-preserving) or operation of top two stack elements. */
+    W_OP_OR,
+    /* PRINT -- Print the top element of the stack as a word. */
+    W_OP_PRINT,
+    /* PRINT_CHAR -- Print the top element of the stack as a character. */
+    W_OP_PRINT_CHAR,
+    /* PRINT_INT -- Print the top element of the stack as a signed integer. */
+    W_OP_PRINT_INT,
+    /* SUB -- Subtract the top stack element from the next element. */
+    W_OP_SUB,
+    /* SWAP -- Swap the top two stack elements. */
+    W_OP_SWAP,
+    /* SXn, SXnL -- sign extend an n-bit integer. The -L versions operate on the
+       element under the top (i.e. the left-hand side of a binary operation). */
+    W_OP_SX8,
+    W_OP_SX8L,
+    W_OP_SX16,
+    W_OP_SX16L,
+    W_OP_SX32,
+    W_OP_SX32L,
+    /* ZXn, ZXnL -- zero extend an n-bit integer. The -L versions operate on the
+       element under the top (i.e. the left-hand side of a binary operation). */
+    W_OP_ZX8,
+    W_OP_ZX8L,
+    W_OP_ZX16,
+    W_OP_ZX16L,
+    W_OP_ZX32,
+    W_OP_ZX32L,
 };
 
 struct jump_info_table {
@@ -121,79 +187,85 @@ struct string_table {
     struct string_view *views;
 };
 
-struct ir_block {
+// Typed IR block.
+struct tir_block {
     int capacity;
     int count;
     uint8_t *code;
     struct location *locations;
     const char *filename;
     size_t max_for_loop_level;
-    struct constant_table constants;
     struct jump_info_table jumps;
     struct string_table strings;
     struct region *static_memory;
 };
 
-const char *get_opcode_name(enum opcode opcode);
-bool is_jump(enum opcode instruction);
+// Word-oriented (untyped) IR block.
+struct wir_block {
+    int capacity;
+    int count;
+    uint8_t *code;
+    size_t max_for_loop_level;
+    struct jump_info_table jumps;
+    struct string_table strings;
+    struct region *static_memory;
+};
 
-void init_block(struct ir_block *block, const char *filename);
-void free_block(struct ir_block *block);
-void init_constant_table(struct constant_table *table);
-void free_constant_table(struct constant_table *table);
+const char *get_t_opcode_name(enum t_opcode opcode);
+bool is_jump(enum t_opcode instruction);
+
+void init_tir_block(struct tir_block *block, const char *filename);
+void free_tir_block(struct tir_block *block);
 void init_jump_info_table(struct jump_info_table *table);
 void free_jump_info_table(struct jump_info_table *table);
 void init_string_table(struct string_table *table);
 void free_string_table(struct string_table *table);
 
-void write_simple(struct ir_block *block, enum opcode instruction, struct location *location);
+void write_simple(struct tir_block *block, enum t_opcode instruction, struct location *location);
 
-void write_immediate_u8(struct ir_block *block, enum opcode instruction, uint8_t operand,
+void write_immediate_u8(struct tir_block *block, enum t_opcode instruction, uint8_t operand,
                         struct location *location);
-void write_immediate_s8(struct ir_block *block, enum opcode instruction, int8_t operand,
+void write_immediate_s8(struct tir_block *block, enum t_opcode instruction, int8_t operand,
                         struct location *location);
-void write_immediate_u16(struct ir_block *block, enum opcode instruction, uint16_t operand,
+void write_immediate_u16(struct tir_block *block, enum t_opcode instruction, uint16_t operand,
                          struct location *location);
-void write_immediate_s16(struct ir_block *block, enum opcode instruction, int16_t operand,
+void write_immediate_s16(struct tir_block *block, enum t_opcode instruction, int16_t operand,
                          struct location *location);
-void write_immediate_u32(struct ir_block *block, enum opcode instruction, uint32_t operand,
+void write_immediate_u32(struct tir_block *block, enum t_opcode instruction, uint32_t operand,
                          struct location *location);
-void write_immediate_s32(struct ir_block *block, enum opcode instruction, int32_t operand,
+void write_immediate_s32(struct tir_block *block, enum t_opcode instruction, int32_t operand,
                          struct location *location);
-void write_immediate_u64(struct ir_block *block, enum opcode instruction, uint64_t operand,
+void write_immediate_u64(struct tir_block *block, enum t_opcode instruction, uint64_t operand,
                          struct location *location);
-void write_immediate_s64(struct ir_block *block, enum opcode instruction, int64_t operand,
+void write_immediate_s64(struct tir_block *block, enum t_opcode instruction, int64_t operand,
                          struct location *location);
 
-void overwrite_u8(struct ir_block *block, int start, uint8_t value);
-void overwrite_s8(struct ir_block *block, int start, int8_t value);
-void overwrite_u16(struct ir_block *block, int start, uint16_t value);
-void overwrite_s16(struct ir_block *block, int start, int16_t value);
-void overwrite_u32(struct ir_block *block, int start, uint32_t value);
-void overwrite_s32(struct ir_block *block, int start, int32_t value);
-void overwrite_u64(struct ir_block *block, int start, uint64_t value);
-void overwrite_s64(struct ir_block *block, int start, int64_t value);
+void overwrite_u8(struct tir_block *block, int start, uint8_t value);
+void overwrite_s8(struct tir_block *block, int start, int8_t value);
+void overwrite_u16(struct tir_block *block, int start, uint16_t value);
+void overwrite_s16(struct tir_block *block, int start, int16_t value);
+void overwrite_u32(struct tir_block *block, int start, uint32_t value);
+void overwrite_s32(struct tir_block *block, int start, int32_t value);
+void overwrite_u64(struct tir_block *block, int start, uint64_t value);
+void overwrite_s64(struct tir_block *block, int start, int64_t value);
 
 
-void overwrite_instruction(struct ir_block *block, int index, enum opcode instruction);
+void overwrite_instruction(struct tir_block *block, int index, enum t_opcode instruction);
 
-uint8_t read_u8(struct ir_block *block, int index);
-int8_t read_s8(struct ir_block *block, int index);
-uint16_t read_u16(struct ir_block *block, int index);
-int16_t read_s16(struct ir_block *block, int index);
-uint32_t read_u32(struct ir_block *block, int index);
-int32_t read_s32(struct ir_block *block, int index);
-uint64_t read_u64(struct ir_block *block, int index);
-int64_t read_s64(struct ir_block *block, int index);
+uint8_t read_u8(struct tir_block *block, int index);
+int8_t read_s8(struct tir_block *block, int index);
+uint16_t read_u16(struct tir_block *block, int index);
+int16_t read_s16(struct tir_block *block, int index);
+uint32_t read_u32(struct tir_block *block, int index);
+int32_t read_s32(struct tir_block *block, int index);
+uint64_t read_u64(struct tir_block *block, int index);
+int64_t read_s64(struct tir_block *block, int index);
 
-int write_constant(struct ir_block *block, uint64_t constant);
-uint64_t read_constant(struct ir_block *block, int index);
+uint32_t write_string(struct tir_block *block, struct string_builder *builder);
+struct string_view *read_string(struct tir_block *block, uint32_t index);
 
-uint32_t write_string(struct ir_block *block, struct string_builder *builder);
-struct string_view *read_string(struct ir_block *block, uint32_t index);
-
-int add_jump(struct ir_block *block, int dest);
-int find_jump(struct ir_block *block, int dest);
-bool is_jump_dest(struct ir_block *block, int dest);
+int add_jump(struct tir_block *block, int dest);
+int find_jump(struct tir_block *block, int dest);
+bool is_jump_dest(struct tir_block *block, int dest);
 
 #endif
