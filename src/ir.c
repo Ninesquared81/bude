@@ -194,11 +194,13 @@ static void *reallocate_array(void *array, size_t old_count, size_t new_count, s
     return new;
 }
 
-void init_tir_block(struct tir_block *block, const char *restrict filename) {
+void init_block(struct ir_block *block, enum ir_instruction_set instruction_set,
+                const char *restrict filename) {
     block->code = allocate_array(BLOCK_INIT_SIZE, sizeof *block->code);
     block->locations = allocate_array(BLOCK_INIT_SIZE, sizeof *block->locations);
     block->capacity = BLOCK_INIT_SIZE;
     block->count = 0;
+    block->instruction_set = instruction_set;
     block->filename = filename;
     block->max_for_loop_level = 0;
     init_jump_info_table(&block->jumps);
@@ -211,7 +213,7 @@ void init_tir_block(struct tir_block *block, const char *restrict filename) {
     }
 }
 
-void free_tir_block(struct tir_block *block) {
+void free_block(struct ir_block *block) {
     free_array(block->code, block->capacity, sizeof *block->code);
     free_array(block->locations, block->capacity, sizeof *block->locations);
     block->code = NULL;
@@ -248,7 +250,7 @@ void free_string_table(struct string_table *table) {
     table->count = 0;
 }
 
-static void grow_block(struct tir_block *block) {
+static void grow_block(struct ir_block *block) {
     int old_capacity = block->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : BLOCK_INIT_SIZE;
     block->code = reallocate_array(block->code, old_capacity, new_capacity,
@@ -276,7 +278,7 @@ static void grow_string_table(struct string_table *table) {
     table->capacity = new_capacity;
 }
 
-void write_simple(struct tir_block *block, enum t_opcode instruction, struct location *location) {
+void write_simple(struct ir_block *block, opcode instruction, struct location *location) {
     if (block->count + 1 > block->capacity) {
         grow_block(block);
     }
@@ -284,7 +286,7 @@ void write_simple(struct tir_block *block, enum t_opcode instruction, struct loc
     block->code[block->count++] = instruction;
 }
 
-void write_immediate_u8(struct tir_block *block, enum t_opcode instruction, uint8_t operand,
+void write_immediate_u8(struct ir_block *block, opcode instruction, uint8_t operand,
                         struct location *location) {
     if (block->count + 2 > block->capacity) {
         grow_block(block);
@@ -294,12 +296,12 @@ void write_immediate_u8(struct tir_block *block, enum t_opcode instruction, uint
     block->code[block->count++] = operand;
 }
 
-void write_immediate_s8(struct tir_block *block, enum t_opcode instruction, int8_t operand,
+void write_immediate_s8(struct ir_block *block, opcode instruction, int8_t operand,
                         struct location *location) {
     write_immediate_u8(block, instruction, s8_to_u8(operand), location);
 }
 
-void write_immediate_u16(struct tir_block *block, enum t_opcode instruction, uint16_t operand,
+void write_immediate_u16(struct ir_block *block, opcode instruction, uint16_t operand,
                         struct location *location) {
     if (block->count + 3 > block->capacity) {
         grow_block(block);
@@ -310,12 +312,12 @@ void write_immediate_u16(struct tir_block *block, enum t_opcode instruction, uin
     block->code[block->count++] = operand >> 8;
 }
 
-void write_immediate_s16(struct tir_block *block, enum t_opcode instruction, int16_t operand,
+void write_immediate_s16(struct ir_block *block, opcode instruction, int16_t operand,
                         struct location *location) {
     write_immediate_u16(block, instruction, s16_to_u16(operand), location);
 }
 
-void write_immediate_u32(struct tir_block *block, enum t_opcode instruction, uint32_t operand,
+void write_immediate_u32(struct ir_block *block, opcode instruction, uint32_t operand,
                         struct location *location) {
     if (block->count + 5 > block->capacity) {
         grow_block(block);
@@ -328,12 +330,12 @@ void write_immediate_u32(struct tir_block *block, enum t_opcode instruction, uin
     block->code[block->count++] = operand >> 24;
 }
 
-void write_immediate_s32(struct tir_block *block, enum t_opcode instruction, int32_t operand,
+void write_immediate_s32(struct ir_block *block, opcode instruction, int32_t operand,
                         struct location *location) {
     write_immediate_u32(block, instruction, s32_to_u32(operand), location);
 }
 
-void write_immediate_u64(struct tir_block *block, enum t_opcode instruction, uint64_t operand,
+void write_immediate_u64(struct ir_block *block, opcode instruction, uint64_t operand,
                         struct location *location) {
     if (block->count + 9 > block->capacity) {
         grow_block(block);
@@ -350,32 +352,32 @@ void write_immediate_u64(struct tir_block *block, enum t_opcode instruction, uin
     block->code[block->count++] = operand >> 56;
 }
 
-void write_immediate_s64(struct tir_block *block, enum t_opcode instruction, int64_t operand,
+void write_immediate_s64(struct ir_block *block, opcode instruction, int64_t operand,
                         struct location *location) {
     write_immediate_u64(block, instruction, s64_to_u64(operand), location);
 }
 
-void overwrite_u8(struct tir_block *block, int start, uint8_t value) {
+void overwrite_u8(struct ir_block *block, int start, uint8_t value) {
     assert(0 <= start && start < block->count);
     block->code[start] = value;
 }
 
-void overwrite_s8(struct tir_block *block, int start, int8_t value) {
+void overwrite_s8(struct ir_block *block, int start, int8_t value) {
     overwrite_u8(block, start, s8_to_u8(value));
 }
 
-void overwrite_u16(struct tir_block *block, int start, uint16_t value) {
+void overwrite_u16(struct ir_block *block, int start, uint16_t value) {
     assert(0 <= start && start + 1 < block->count);  // Make sure there's space.
     // Note: The IR instruction set is little-endian.
     block->code[start] = value;  // LSB.
     block->code[start + 1] = value >> 8;  // MSB. 
 }
 
-void overwrite_s16(struct tir_block *block, int start, int16_t value) {
+void overwrite_s16(struct ir_block *block, int start, int16_t value) {
     overwrite_u16(block, start, s16_to_u16(value));
 }
 
-void overwrite_u32(struct tir_block *block, int start, uint32_t value) {
+void overwrite_u32(struct ir_block *block, int start, uint32_t value) {
     assert(0 <= start && start + 3 < block->count);
     block->code[start] = value;
     block->code[start + 1] = value >> 8;
@@ -383,11 +385,11 @@ void overwrite_u32(struct tir_block *block, int start, uint32_t value) {
     block->code[start + 3] = value >> 24;
 }
 
-void overwrite_s32(struct tir_block *block, int start, int32_t value) {
+void overwrite_s32(struct ir_block *block, int start, int32_t value) {
     overwrite_u32(block, start, s32_to_u32(value));
 }
 
-void overwrite_u64(struct tir_block *block, int start, uint64_t value) {
+void overwrite_u64(struct ir_block *block, int start, uint64_t value) {
     assert(0 <= start && start + 7 < block->count);
     block->code[start] = value;
     block->code[start + 1] = value >> 8;
@@ -399,34 +401,34 @@ void overwrite_u64(struct tir_block *block, int start, uint64_t value) {
     block->code[start + 7] = value >> 56;
 }
 
-void overwrite_s64(struct tir_block *block, int start, int64_t value) {
+void overwrite_s64(struct ir_block *block, int start, int64_t value) {
     overwrite_u64(block, start, s64_to_u64(value));
 }
 
-void overwrite_instruction(struct tir_block *block, int index, enum t_opcode instruction) {
+void overwrite_instruction(struct ir_block *block, int index, opcode instruction) {
     // An instruction opcode is basically just a u8.
     overwrite_u8(block, index, instruction);
 }
 
-uint8_t read_u8(struct tir_block *block, int index) {
+uint8_t read_u8(struct ir_block *block, int index) {
     assert(0 <= index && index < block->count);
     return block->code[index];
 }
 
-int8_t read_s8(struct tir_block *block, int index) {
+int8_t read_s8(struct ir_block *block, int index) {
     return u8_to_s8(read_u8(block, index));
 }
 
-uint16_t read_u16(struct tir_block *block, int index) {
+uint16_t read_u16(struct ir_block *block, int index) {
     assert(0 <= index && index + 1 < block->count);
     return block->code[index] ^ (block->code[index + 1] << 8);
 }
 
-int16_t read_s16(struct tir_block *block, int index) {
+int16_t read_s16(struct ir_block *block, int index) {
     return u16_to_s16(read_u16(block, index));
 }
 
-uint32_t read_u32(struct tir_block *block, int index) {
+uint32_t read_u32(struct ir_block *block, int index) {
     assert(0 <= index && index + 3 < block->count);
 
     uint32_t result = block->code[index];
@@ -436,11 +438,11 @@ uint32_t read_u32(struct tir_block *block, int index) {
     return result;
 }
 
-int32_t read_s32(struct tir_block *block, int index) {
+int32_t read_s32(struct ir_block *block, int index) {
     return u32_to_s32(read_u32(block, index));
 }
 
-uint64_t read_u64(struct tir_block *block, int index) {
+uint64_t read_u64(struct ir_block *block, int index) {
     assert(0 <= index && index + 3 < block->count);
 
     uint64_t result = block->code[index];
@@ -454,11 +456,11 @@ uint64_t read_u64(struct tir_block *block, int index) {
     return result;
 }
 
-int64_t read_s64(struct tir_block *block, int index) {
+int64_t read_s64(struct ir_block *block, int index) {
     return u64_to_s64(read_u64(block, index));
 }
 
-uint32_t write_string(struct tir_block *block, struct string_builder *builder) {
+uint32_t write_string(struct ir_block *block, struct string_builder *builder) {
     struct string_view view = build_string_in_region(builder, block->static_memory);
     if (view.start == NULL) {
         fprintf(stderr, "Failed to allocate string.\n");
@@ -472,7 +474,7 @@ uint32_t write_string(struct tir_block *block, struct string_builder *builder) {
     return table->count - 1;
 }
 
-struct string_view *read_string(struct tir_block *block, uint32_t index) {
+struct string_view *read_string(struct ir_block *block, uint32_t index) {
     assert(index < block->strings.count);
     return &block->strings.views[index];
 }
@@ -495,7 +497,7 @@ static int binary_search(struct jump_info_table *jumps, int dest) {
     return lo;
 }
 
-int add_jump(struct tir_block *block, int dest) {
+int add_jump(struct ir_block *block, int dest) {
     struct jump_info_table *jumps = &block->jumps;
     if (jumps->count + 1 > jumps->capacity) {
         grow_jump_info_table(jumps);
@@ -515,13 +517,13 @@ int add_jump(struct tir_block *block, int dest) {
     return index;
 }
 
-int find_jump(struct tir_block *block, int dest) {
+int find_jump(struct ir_block *block, int dest) {
     // Binary search.
     struct jump_info_table *jumps = &block->jumps;
     int index = binary_search(jumps, dest);
     return (index < jumps->count && jumps->dests[index] == dest) ? index : -1;  // -1: search failed.
 }
 
-bool is_jump_dest(struct tir_block *block, int dest) {
+bool is_jump_dest(struct ir_block *block, int dest) {
     return find_jump(block, dest) != -1;
 }

@@ -37,77 +37,77 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             // We need a label.
             asm_label(assembly, "addr_%d", ip);
         }
-        enum opcode instruction = block->code[ip];
-        if (instruction == OP_NOP) continue;
+        enum w_opcode instruction = block->code[ip];
+        if (instruction == W_OP_NOP) continue;
         asm_write(assembly, "  ;;\t=== %s ===\n", get_opcode_name(instruction));
         switch (instruction) {
-        case OP_NOP:
+        case W_OP_NOP:
             // Do nothing.
             break;
-        case OP_PUSH8: {
+        case W_OP_PUSH8: {
             ++ip;
             int8_t value = read_u8(block, ip);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu8, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH16: {
+        case W_OP_PUSH16: {
             ip += 2;
             int16_t value = read_u16(block, ip - 1);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu16, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH32: {
+        case W_OP_PUSH32: {
             ip += 4;
             int32_t value = read_u32(block, ip - 3);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu32, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH64: {
+        case W_OP_PUSH64: {
             ip += 8;
             int64_t value = read_u64(block, ip - 7);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu64, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH_INT8: {
+        case W_OP_PUSH_INT8: {
             ++ip;
             int8_t value = read_s8(block, ip);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId8, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH_INT16: {
+        case W_OP_PUSH_INT16: {
             ip += 2;
             int16_t value = read_s16(block, ip - 1);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId16, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH_INT32: {
+        case W_OP_PUSH_INT32: {
             ip += 4;
             int32_t value = read_s32(block, ip - 3);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId32, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH_INT64: {
+        case W_OP_PUSH_INT64: {
             ip += 8;
             int64_t value = read_s64(block, ip - 7);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId64, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_PUSH_CHAR8: {
+        case W_OP_PUSH_CHAR8: {
             ++ip;
             uint8_t value = read_u8(block, ip);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu8, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
-        case OP_LOAD_STRING8: {
+        case W_OP_LOAD_STRING8: {
             ++ip;
             uint8_t index = read_u8(block, ip);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu8"]", index);
@@ -115,7 +115,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
             break;
         }
-        case OP_LOAD_STRING16: {
+        case W_OP_LOAD_STRING16: {
             ip += 2;
             uint16_t index = read_u16(block, ip - 1);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
@@ -123,7 +123,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
             break;
         }
-        case OP_LOAD_STRING32: {
+        case W_OP_LOAD_STRING32: {
             ip += 4;
             uint32_t index = read_u32(block, ip - 3);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
@@ -131,25 +131,25 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
             break;
         }
-        case OP_POP:
+        case W_OP_POP:
             asm_write_inst1(assembly, "pop", "rax");
             break;
-        case OP_ADD:
+        case W_OP_ADD:
             BIN_OP("add");
             break;
-        case OP_AND:
+        case W_OP_AND:
             asm_write_inst1c(assembly, "pop", "rdx", "'Then' value.");
             asm_write_inst2c(assembly, "mov", "rax", "[rsp]", "'Else' value.");
             asm_write_inst2(assembly, "test", "rax", "rax");
             asm_write_inst2(assembly, "cmovnz", "rax", "rdx");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_DEREF:
+        case W_OP_DEREF:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movzx", "rdx", "byte [rax]");
             asm_write_inst1(assembly, "push", "rdx");
             break;
-        case OP_DIVMOD:
+        case W_OP_DIVMOD:
             asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
             asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
             asm_write_inst2c(assembly, "xor", "rdx", "rdx", "Zero out extra bytes in dividend.");
@@ -157,7 +157,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1c(assembly, "push", "rax", "Quotient.");
             asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
             break;
-        case OP_IDIVMOD:
+        case W_OP_IDIVMOD:
             asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
             asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
             asm_write_inst2(assembly, "xor", "rdx", "rdx");
@@ -165,7 +165,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1c(assembly, "push", "rax", "Quotient.");
             asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
             break;
-        case OP_EDIVMOD:
+        case W_OP_EDIVMOD:
             asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
             asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
             asm_write_inst2c(assembly, "mov", "r8", "rcx", "Save divisor.");
@@ -184,14 +184,14 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1c(assembly, "push", "rax", "Quotient.");
             asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
             break;
-        case OP_DUPE:
+        case W_OP_DUPE:
             asm_write_inst1(assembly, "push", "qword [rsp]");
             break;
-        case OP_EXIT:
+        case W_OP_EXIT:
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
             break;
-        case OP_FOR_DEC_START: {
+        case W_OP_FOR_DEC_START: {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
@@ -203,7 +203,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "add", "rsi", "8");
             break;
         }
-        case OP_FOR_DEC: {
+        case W_OP_FOR_DEC: {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
@@ -214,7 +214,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
             break;
         }
-        case OP_FOR_INC_START: {
+        case W_OP_FOR_INC_START: {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
@@ -229,7 +229,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Zero out loop counter.");
             break;
         }
-        case OP_FOR_INC: {
+        case W_OP_FOR_INC: {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
@@ -241,7 +241,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
             break;
         }
-        case OP_GET_LOOP_VAR: {
+        case W_OP_GET_LOOP_VAR: {
             ip += 2;
             uint16_t offset = read_u16(block, ip - 1);
             if (offset == 0) {
@@ -256,14 +256,14 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             }
             break;
         }
-        case OP_JUMP: {
+        case W_OP_JUMP: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip - 1 + jump;  // -1 since jumps are calculated from the opcode.
             asm_write_inst1f(assembly, "jmp", "addr_%d", jump_addr);
             break;
         }
-        case OP_JUMP_COND: {
+        case W_OP_JUMP_COND: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip - 1 + jump;
@@ -272,7 +272,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1f(assembly, "jnz", "addr_%d", jump_addr);
             break;
         }
-        case OP_JUMP_NCOND: {
+        case W_OP_JUMP_NCOND: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip -1 + jump;
@@ -281,26 +281,26 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1f(assembly, "jz", "addr_%d", jump_addr);
             break;
         }
-        case OP_MULT:
+        case W_OP_MULT:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2c(assembly, "imul", "rax", "[rsp]", "Multiplication is commutative.");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_NOT:
+        case W_OP_NOT:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2c(assembly, "xor", "edx", "edx", "Zero out rdx.");
             asm_write_inst2(assembly, "test", "rax", "rax");
             asm_write_inst1(assembly, "setz", "dl");
             asm_write_inst1(assembly, "push", "rdx");
             break;
-        case OP_OR:
+        case W_OP_OR:
             asm_write_inst1c(assembly, "pop", "rdx", "'Else' value.");
             asm_write_inst2c(assembly, "mov", "rax", "[rsp]", "'Then' value.");
             asm_write_inst2(assembly, "test", "rax", "rax");
             asm_write_inst2(assembly, "cmovz", "rax", "rdx");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_PRINT:
+        case W_OP_PRINT:
             asm_write_inst1c(assembly, "pop", "rdx", "Value to be printed.");
             asm_write_inst2c(assembly, "lea", "rcx", "[fmt_u64]", "Format string.");
             asm_write_inst2c(assembly, "mov", "rbp", "rsp",
@@ -310,7 +310,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2c(assembly, "mov", "rsp", "rbp", "Restore cached version of rsp.");
             break;
-        case OP_PRINT_CHAR:
+        case W_OP_PRINT_CHAR:
             asm_write_inst1(assembly, "pop", "rdx");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_char]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
@@ -319,7 +319,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
             break;
-        case OP_PRINT_INT:
+        case W_OP_PRINT_INT:
             asm_write_inst1(assembly, "pop", "rdx");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_s64]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
@@ -328,71 +328,63 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
             break;
-        case OP_SUB:
+        case W_OP_SUB:
             BIN_OP("sub");
             break;
-        case OP_SWAP:
+        case W_OP_SWAP:
             asm_write_inst2(assembly, "mov", "rax", "[rsp]");
             asm_write_inst2(assembly, "mov", "rdx", "[rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             asm_write_inst2(assembly, "mov", "[rsp]", "rdx");
             break;
-        case OP_SX8:
+        case W_OP_SX8:
             asm_write_inst2(assembly, "movsx", "rax", "byte [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_SX8L:
+        case W_OP_SX8L:
             asm_write_inst2(assembly, "movsx", "rax", "byte [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
-        case OP_SX16:
+        case W_OP_SX16:
             asm_write_inst2(assembly, "movsx", "rax", "word [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_SX16L:
+        case W_OP_SX16L:
             asm_write_inst2(assembly, "movsx", "rax", "word [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
-        case OP_SX32:
+        case W_OP_SX32:
             asm_write_inst2(assembly, "movsx", "rax", "dword [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_SX32L:
+        case W_OP_SX32L:
             asm_write_inst2(assembly, "movsx", "rax", "dword [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
-        case OP_ZX8:
+        case W_OP_ZX8:
             asm_write_inst2(assembly, "movzx", "rax", "byte [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_ZX8L:
+        case W_OP_ZX8L:
             asm_write_inst2(assembly, "movzx", "rax", "byte [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
-        case OP_ZX16:
+        case W_OP_ZX16:
             asm_write_inst2(assembly, "movzx", "rax", "word [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_ZX16L:
+        case W_OP_ZX16L:
             asm_write_inst2(assembly, "movzx", "rax", "word [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
-        case OP_ZX32:
+        case W_OP_ZX32:
             asm_write_inst2(assembly, "movzx", "rax", "dword [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
-        case OP_ZX32L:
+        case W_OP_ZX32L:
             asm_write_inst2(assembly, "mov", "rax", "dword [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
-        case OP_AS_BYTE:
-        case OP_AS_U8:
-        case OP_AS_U16:
-        case OP_AS_U32:
-        case OP_AS_S8:
-        case OP_AS_S16:
-        case OP_AS_S32:
-            assert(0 && "Unreachable.");
         }
     }
     asm_write(assembly, "  ;;\t=== END ===\n");
@@ -437,13 +429,6 @@ void generate_constants(struct asm_block *assembly, struct ir_block *block) {
         asm_write(assembly, "\tdb\t");
         asm_write_string(assembly, block->strings.views[i].start);
         asm_write(assembly, "\n\n");
-    }
-    if (block->constants.count > 0) {
-        struct constant_table *constants = &block->constants;
-        asm_label(assembly, "constants");
-        for (int i = 0; i < constants->count; ++i) {
-            asm_write_inst1f(assembly, "dq", "%"PRIu64, constants->data[i]);
-        }
     }
 }
 

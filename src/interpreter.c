@@ -50,66 +50,66 @@ static void jump(struct ir_block *block, int offset, int *ip) {
 
 enum interpret_result interpret(struct interpreter *interpreter) {
     for (int ip = 0; ip < interpreter->block->count; ++ip) {
-        enum opcode instruction = interpreter->block->code[ip];
+        enum w_opcode instruction = interpreter->block->code[ip];
         switch (instruction) {
-        case OP_NOP:
+        case W_OP_NOP:
             // Do nothing.
             break;
-        case OP_PUSH8: {
+        case W_OP_PUSH8: {
             ++ip;
             uint8_t value = read_u8(interpreter->block, ip);
             push(interpreter->main_stack, value);
             break;
         }
-        case OP_PUSH16: {
+        case W_OP_PUSH16: {
             ip += 2;
             uint16_t value = read_u16(interpreter->block, ip - 1);
             push(interpreter->main_stack, value);
             break;
         }
-        case OP_PUSH32: {
+        case W_OP_PUSH32: {
             ip += 4;
             uint32_t value = read_u32(interpreter->block, ip - 3);
             push(interpreter->main_stack, value);
             break;
         }
-        case OP_PUSH64: {
+        case W_OP_PUSH64: {
             ip += 8;
             uint64_t value = read_u64(interpreter->block, ip - 7);
             push(interpreter->main_stack, value);
             break;
         }
-        case OP_PUSH_INT8: {
+        case W_OP_PUSH_INT8: {
             ++ip;
             int8_t value = read_s8(interpreter->block, ip);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_PUSH_INT16: {
+        case W_OP_PUSH_INT16: {
             ip += 2;
             int16_t value = read_s16(interpreter->block, ip - 1);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_PUSH_INT32: {
+        case W_OP_PUSH_INT32: {
             ip += 4;
             int32_t value = read_s32(interpreter->block, ip - 3);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_PUSH_INT64: {
+        case W_OP_PUSH_INT64: {
             ip += 8;
             int64_t value = read_s64(interpreter->block, ip - 7);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
-        case OP_PUSH_CHAR8: {
+        case W_OP_PUSH_CHAR8: {
             ++ip;
             uint8_t value = read_u8(interpreter->block, ip);
             push(interpreter->main_stack, value);
             break;
         }
-        case OP_LOAD_STRING8: {
+        case W_OP_LOAD_STRING8: {
             ++ip;
             uint8_t index = read_u8(interpreter->block, ip);
             struct string_view *view = read_string(interpreter->block, index);
@@ -117,7 +117,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, view->length);
             break;
         }
-        case OP_LOAD_STRING16: {
+        case W_OP_LOAD_STRING16: {
             ip += 2;
             uint16_t index = read_u16(interpreter->block, ip);
             struct string_view *view = read_string(interpreter->block, index);
@@ -125,7 +125,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, view->length);
             break;
         }
-        case OP_LOAD_STRING32: {
+        case W_OP_LOAD_STRING32: {
             ip += 4;
             uint32_t index = read_u32(interpreter->block, ip);
             struct string_view *view = read_string(interpreter->block, index);
@@ -133,45 +133,45 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, view->length);
             break;
         }
-        case OP_POP: pop(interpreter->main_stack); break;
-        case OP_ADD: BIN_OP(+, interpreter->main_stack); break;
-        case OP_DEREF: {
+        case W_OP_POP: pop(interpreter->main_stack); break;
+        case W_OP_ADD: BIN_OP(+, interpreter->main_stack); break;
+        case W_OP_DEREF: {
             stack_word addr = pop(interpreter->main_stack);
             push(interpreter->main_stack, *(unsigned char *)(uintptr_t)addr);
             break;
         }
-        case OP_DUPE: {
+        case W_OP_DUPE: {
             stack_word a = pop(interpreter->main_stack);
             push(interpreter->main_stack, a);
             push(interpreter->main_stack, a);
             break;
         }
-        case OP_EXIT: {
+        case W_OP_EXIT: {
             int64_t exit_code = u64_to_s64(pop(interpreter->main_stack));
             if (exit_code < INT_MIN) exit_code = INT_MIN;
             if (exit_code > INT_MAX) exit_code = INT_MAX;
             exit(exit_code);
         }
-        case OP_AND: {
+        case W_OP_AND: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             stack_word result = (!a) ? a : b;
             push(interpreter->main_stack, result);
             break;
         }
-        case OP_OR: {
+        case W_OP_OR: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             stack_word result = (a) ? a : b;
             push(interpreter->main_stack, result);
             break;
         }
-        case OP_JUMP: {
+        case W_OP_JUMP: {
             int offset = read_s16(interpreter->block, ip + 1);
             jump(interpreter->block, offset, &ip);
             break;
         }
-        case OP_JUMP_COND: {
+        case W_OP_JUMP_COND: {
             int offset = read_s16(interpreter->block, ip + 1);
             bool condition = pop(interpreter->main_stack);
             if (condition) {
@@ -182,7 +182,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_JUMP_NCOND: {
+        case W_OP_JUMP_NCOND: {
             int offset = read_s16(interpreter->block, ip + 1);
             bool condition = pop(interpreter->main_stack);
             if (!condition) {
@@ -193,7 +193,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_FOR_DEC_START: {
+        case W_OP_FOR_DEC_START: {
             int skip_jump = read_s16(interpreter->block, ip + 1);
             stack_word counter = pop(interpreter->main_stack);
             if (counter != 0) {
@@ -205,7 +205,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_FOR_DEC: {
+        case W_OP_FOR_DEC: {
             int loop_jump = read_s16(interpreter->block, ip + 1);
             stack_word counter = pop(interpreter->loop_stack);
             if (--counter != 0) {
@@ -217,7 +217,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_FOR_INC_START: {
+        case W_OP_FOR_INC_START: {
             int skip_jump = read_s16(interpreter->block, ip + 1);
             stack_word counter = pop(interpreter->main_stack);
             if (counter != 0) {
@@ -230,7 +230,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_FOR_INC: {
+        case W_OP_FOR_INC: {
             int loop_jump = read_s16(interpreter->block, ip + 1);
             stack_word target = peek(interpreter->auxiliary_stack);
             stack_word counter = pop(interpreter->loop_stack);
@@ -244,35 +244,35 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             break;
         }
-        case OP_GET_LOOP_VAR: {
+        case W_OP_GET_LOOP_VAR: {
             ip += 2;
             uint16_t offset = read_u16(interpreter->block, ip - 1);
             stack_word loop_var = peek_nth(interpreter->loop_stack, offset);
             push(interpreter->main_stack, loop_var);
             break;
         }
-        case OP_MULT: BIN_OP(*, interpreter->main_stack); break;
-        case OP_NOT: {
+        case W_OP_MULT: BIN_OP(*, interpreter->main_stack); break;
+        case W_OP_NOT: {
             bool condition = pop(interpreter->main_stack);
             push(interpreter->main_stack, !condition);
             break;
         }
-        case OP_SUB: BIN_OP(-, interpreter->main_stack); break;
-        case OP_DIVMOD: {
+        case W_OP_SUB: BIN_OP(-, interpreter->main_stack); break;
+        case W_OP_DIVMOD: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             push(interpreter->main_stack, a / b);
             push(interpreter->main_stack, a % b);
             break;
         }
-        case OP_IDIVMOD: {
+        case W_OP_IDIVMOD: {
             int64_t b = u64_to_s64(pop(interpreter->main_stack));
             int64_t a = u64_to_s64(pop(interpreter->main_stack));
             push(interpreter->main_stack, a / b);
             push(interpreter->main_stack, a % b);
             break;
         }
-        case OP_EDIVMOD: {
+        case W_OP_EDIVMOD: {
             int64_t b = u64_to_s64(pop(interpreter->main_stack));
             int64_t a = u64_to_s64(pop(interpreter->main_stack));
             int64_t q = a / b;
@@ -287,23 +287,23 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, r);
             break;
         }
-        case OP_SWAP: {
+        case W_OP_SWAP: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             push(interpreter->main_stack, b);
             push(interpreter->main_stack, a);
             break;
         }
-        case OP_PRINT:
+        case W_OP_PRINT:
             printf("%"PRIsw"\n", pop(interpreter->main_stack));
             break;
-        case OP_PRINT_CHAR:
+        case W_OP_PRINT_CHAR:
             printf("%c", (char)(uint8_t)pop(interpreter->main_stack));
             break;
-        case OP_PRINT_INT:
+        case W_OP_PRINT_INT:
             printf("%"PRIssw"\n", u64_to_s64(pop(interpreter->main_stack)));
             break;
-        case OP_SX8: {
+        case W_OP_SX8: {
             stack_word b = pop(interpreter->main_stack);
             b &= 0xFF;  // Mask off higher bits.
             uint64_t sign = b >> 7;
@@ -312,7 +312,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_SX8L: {
+        case W_OP_SX8L: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             a &= 0xFF;  // Mask off higher bits.
@@ -323,7 +323,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_SX16: {
+        case W_OP_SX16: {
             stack_word b = pop(interpreter->main_stack);
             b &= 0xFFFF;  // Mask off higher bits.
             uint64_t sign = b >> 15;
@@ -332,7 +332,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_SX16L: {
+        case W_OP_SX16L: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             a &= 0xFFFF;  // Mask off higher bits.
@@ -343,7 +343,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_SX32: {
+        case W_OP_SX32: {
             stack_word b = pop(interpreter->main_stack);
             b &= 0xFFFFFFFF;  // Mask off higher bits.
             uint64_t sign = b >> 31;
@@ -352,7 +352,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_SX32L: {
+        case W_OP_SX32L: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             a &= 0xFFFFFFFF;  // Mask off higher bits.
@@ -363,13 +363,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_ZX8: {
+        case W_OP_ZX8: {
             stack_word b = pop(interpreter->main_stack);
             b &= 0xFF;
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_ZX8L: {
+        case W_OP_ZX8L: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             a &= 0xFF;
@@ -377,13 +377,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_ZX16: {
+        case W_OP_ZX16: {
             stack_word b = pop(interpreter->main_stack);
             b &= 0xFFFF;
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_ZX16L: {
+        case W_OP_ZX16L: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             a &= 0xFFFF;
@@ -391,13 +391,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_ZX32: {
+        case W_OP_ZX32: {
             stack_word b = pop(interpreter->main_stack);
             b &= 0xFFFFFFFF;
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_ZX32L: {
+        case W_OP_ZX32L: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);
             a &= 0xFFFFFFFF;
@@ -405,14 +405,6 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, b);
             break;
         }
-        case OP_AS_BYTE:
-        case OP_AS_U8:
-        case OP_AS_U16:
-        case OP_AS_U32:
-        case OP_AS_S8:
-        case OP_AS_S16:
-        case OP_AS_S32:
-            assert(0 && "Unreachable.");
         }
     }
     return INTERPRET_OK;

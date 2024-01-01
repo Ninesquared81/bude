@@ -175,6 +175,11 @@ enum w_opcode {
     W_OP_ZX32L,
 };
 
+enum ir_instruction_set {
+    IR_TYPED,
+    IR_WORD_ORIENTED,
+};
+
 struct jump_info_table {
     int capacity;
     int count;
@@ -187,12 +192,13 @@ struct string_table {
     struct string_view *views;
 };
 
-// Typed IR block.
-struct tir_block {
+
+struct ir_block {
     int capacity;
     int count;
     uint8_t *code;
     struct location *locations;
+    enum ir_instruction_set instruction_set;
     const char *filename;
     size_t max_for_loop_level;
     struct jump_info_table jumps;
@@ -200,72 +206,80 @@ struct tir_block {
     struct region *static_memory;
 };
 
-// Word-oriented (untyped) IR block.
-struct wir_block {
-    int capacity;
-    int count;
-    uint8_t *code;
-    size_t max_for_loop_level;
-    struct jump_info_table jumps;
-    struct string_table strings;
-    struct region *static_memory;
-};
+typedef int opcode;
 
 const char *get_t_opcode_name(enum t_opcode opcode);
-bool is_jump(enum t_opcode instruction);
+const char *get_w_opcode_name(enum w_opcode opcode);
 
-void init_tir_block(struct tir_block *block, const char *filename);
-void free_tir_block(struct tir_block *block);
+#define get_opcode_name(opcode)                 \
+    _Generic((opcode),                          \
+             enum t_opcode: get_t_opcode_name,  \
+             enum w_opcode: get_w_opcode_name   \
+        )(opcode)
+
+bool is_t_jump(enum t_opcode instruction);
+bool is_w_jump(enum w_opcode instruction);
+
+#define is_jump(instruction)\
+    _Generic((instruction),\
+             enum t_opcode: is_t_jump,  \
+             enum w_opcode: is_w_jump   \
+        )(instruction)
+        
+
+void init_block(struct ir_block *block, enum ir_instruction_set instruction_set,
+                const char *filename);
+void free_block(struct ir_block *block);
 void init_jump_info_table(struct jump_info_table *table);
 void free_jump_info_table(struct jump_info_table *table);
 void init_string_table(struct string_table *table);
 void free_string_table(struct string_table *table);
 
-void write_simple(struct tir_block *block, enum t_opcode instruction, struct location *location);
+void write_simple(struct ir_block *block, opcode instruction, struct location *location);
 
-void write_immediate_u8(struct tir_block *block, enum t_opcode instruction, uint8_t operand,
+void write_immediate_u8(struct ir_block *block, opcode instruction, uint8_t operand,
                         struct location *location);
-void write_immediate_s8(struct tir_block *block, enum t_opcode instruction, int8_t operand,
+void write_immediate_s8(struct ir_block *block, opcode instruction, int8_t operand,
                         struct location *location);
-void write_immediate_u16(struct tir_block *block, enum t_opcode instruction, uint16_t operand,
+void write_immediate_u16(struct ir_block *block, opcode instruction, uint16_t operand,
                          struct location *location);
-void write_immediate_s16(struct tir_block *block, enum t_opcode instruction, int16_t operand,
+void write_immediate_s16(struct ir_block *block, opcode instruction, int16_t operand,
                          struct location *location);
-void write_immediate_u32(struct tir_block *block, enum t_opcode instruction, uint32_t operand,
+void write_immediate_u32(struct ir_block *block, opcode instruction, uint32_t operand,
                          struct location *location);
-void write_immediate_s32(struct tir_block *block, enum t_opcode instruction, int32_t operand,
+void write_immediate_s32(struct ir_block *block, opcode instruction, int32_t operand,
                          struct location *location);
-void write_immediate_u64(struct tir_block *block, enum t_opcode instruction, uint64_t operand,
+void write_immediate_u64(struct ir_block *block, opcode instruction, uint64_t operand,
                          struct location *location);
-void write_immediate_s64(struct tir_block *block, enum t_opcode instruction, int64_t operand,
+void write_immediate_s64(struct ir_block *block, opcode instruction, int64_t operand,
                          struct location *location);
 
-void overwrite_u8(struct tir_block *block, int start, uint8_t value);
-void overwrite_s8(struct tir_block *block, int start, int8_t value);
-void overwrite_u16(struct tir_block *block, int start, uint16_t value);
-void overwrite_s16(struct tir_block *block, int start, int16_t value);
-void overwrite_u32(struct tir_block *block, int start, uint32_t value);
-void overwrite_s32(struct tir_block *block, int start, int32_t value);
-void overwrite_u64(struct tir_block *block, int start, uint64_t value);
-void overwrite_s64(struct tir_block *block, int start, int64_t value);
+void overwrite_u8(struct ir_block *block, int start, uint8_t value);
+void overwrite_s8(struct ir_block *block, int start, int8_t value);
+void overwrite_u16(struct ir_block *block, int start, uint16_t value);
+void overwrite_s16(struct ir_block *block, int start, int16_t value);
+void overwrite_u32(struct ir_block *block, int start, uint32_t value);
+void overwrite_s32(struct ir_block *block, int start, int32_t value);
+void overwrite_u64(struct ir_block *block, int start, uint64_t value);
+void overwrite_s64(struct ir_block *block, int start, int64_t value);
 
 
-void overwrite_instruction(struct tir_block *block, int index, enum t_opcode instruction);
+void overwrite_instruction(struct ir_block *block, int index, opcode instruction);
 
-uint8_t read_u8(struct tir_block *block, int index);
-int8_t read_s8(struct tir_block *block, int index);
-uint16_t read_u16(struct tir_block *block, int index);
-int16_t read_s16(struct tir_block *block, int index);
-uint32_t read_u32(struct tir_block *block, int index);
-int32_t read_s32(struct tir_block *block, int index);
-uint64_t read_u64(struct tir_block *block, int index);
-int64_t read_s64(struct tir_block *block, int index);
+uint8_t read_u8(struct ir_block *block, int index);
+int8_t read_s8(struct ir_block *block, int index);
+uint16_t read_u16(struct ir_block *block, int index);
+int16_t read_s16(struct ir_block *block, int index);
+uint32_t read_u32(struct ir_block *block, int index);
+int32_t read_s32(struct ir_block *block, int index);
+uint64_t read_u64(struct ir_block *block, int index);
+int64_t read_s64(struct ir_block *block, int index);
 
-uint32_t write_string(struct tir_block *block, struct string_builder *builder);
-struct string_view *read_string(struct tir_block *block, uint32_t index);
+uint32_t write_string(struct ir_block *block, struct string_builder *builder);
+struct string_view *read_string(struct ir_block *block, uint32_t index);
 
-int add_jump(struct tir_block *block, int dest);
-int find_jump(struct tir_block *block, int dest);
-bool is_jump_dest(struct tir_block *block, int dest);
+int add_jump(struct ir_block *block, int dest);
+int find_jump(struct ir_block *block, int dest);
+bool is_jump_dest(struct ir_block *block, int dest);
 
 #endif
