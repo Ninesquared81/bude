@@ -235,6 +235,13 @@ void free_jump_info_table(struct jump_info_table *table);
 void init_string_table(struct string_table *table);
 void free_string_table(struct string_table *table);
 
+void copy_jump_info_table(struct jump_info_table *restrict dest,
+                          struct jump_info_table *restrict src);
+void copy_string_table(struct string_table *restrict dest,
+                       struct string_table *restrict src);
+
+void inherit_metadata(struct ir_block *restrict dest, struct ir_block *restrict src);
+
 void write_simple(struct ir_block *block, opcode instruction, struct location *location);
 
 void write_immediate_u8(struct ir_block *block, opcode instruction, uint8_t operand,

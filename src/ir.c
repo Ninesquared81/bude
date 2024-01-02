@@ -250,6 +250,38 @@ void free_string_table(struct string_table *table) {
     table->count = 0;
 }
 
+void copy_jump_info_table(struct jump_info_table *restrict dest,
+                          struct jump_info_table *restrict src) {
+    int new_count = dest->count + src->count;
+    if (new_count > dest->capacity) {
+        dest->dests = reallocate_array(dest->dests, dest->capacity, new_count,
+                                       sizeof dest->dests[0]);
+        dest->capacity = new_count;
+    }
+    memcpy(&dest->dests[dest->count], src->dests, src->count * sizeof src->dests[0]);
+    dest->count = new_count;
+}
+
+void copy_string_table(struct string_table *restrict dest,
+                       struct string_table *restrict src) {
+    size_t new_count = dest->count + src->count;
+    if (new_count > dest->capacity) {
+        dest->views = reallocate_array(dest->views, dest->capacity, new_count,
+                                       sizeof dest->views[0]);
+        dest->capacity = new_count;
+    }
+    memcpy(&dest->views[dest->count], src->views, src->count * sizeof src->views[0]);
+    dest->count = new_count;
+}
+
+void inherit_metadata(struct ir_block *restrict dest, struct ir_block *restrict src) {
+    dest->filename = src->filename;
+    dest->max_for_loop_level = src->max_for_loop_level;
+    copy_jump_info_table(&dest->jumps, &src->jumps);
+    copy_string_table(&dest->strings, &src->strings);
+    dest->static_memory = copy_region(src->static_memory);
+}
+
 static void grow_block(struct ir_block *block) {
     int old_capacity = block->capacity;
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : BLOCK_INIT_SIZE;

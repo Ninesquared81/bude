@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 
 #include "region.h"
 
@@ -40,6 +41,16 @@ void kill_region(struct region *region) {
         region = region->next;
         free(prev);
     }
+}
+
+struct region *copy_region(const struct region *region) {
+    struct region *new = new_region(region->size);
+    memcpy(new->bytes, region->bytes, region->alloc_count);
+    new->alloc_count = region->alloc_count;
+    if (region->next != NULL) {
+        new->next = copy_region(region->next);
+    }
+    return new;
 }
 
 void *region_alloc(struct region *region, size_t size) {
