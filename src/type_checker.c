@@ -752,35 +752,35 @@ enum type_check_result type_check(struct type_checker *checker) {
         case T_OP_JUMP_COND:
             ts_pop(checker);
             check_jump_instruction(checker);
-            emit_simple(checker, W_OP_JUMP_COND);
+            copy_immediate_u16(checker, W_OP_JUMP_COND);
             break;
         case T_OP_JUMP_NCOND:
             ts_pop(checker);
             check_jump_instruction(checker);
-            emit_simple(checker, W_OP_JUMP_NCOND);
+            copy_immediate_u16(checker, W_OP_JUMP_NCOND);
             break;
         case T_OP_JUMP:
             check_jump_instruction(checker);
+            copy_immediate_u16(checker, W_OP_JUMP);
             check_unreachable(checker);
-            emit_simple(checker, W_OP_JUMP);
             break;
         case T_OP_FOR_DEC_START:
             ts_pop(checker);
             check_jump_instruction(checker);
-            emit_simple(checker, W_OP_FOR_DEC_START);
+            copy_immediate_u16(checker, W_OP_FOR_DEC_START);
             break;
         case T_OP_FOR_INC_START:
             ts_pop(checker);
             check_jump_instruction(checker);
-            emit_simple(checker, W_OP_FOR_INC_START);
+            copy_immediate_u16(checker, W_OP_FOR_INC_START);
             break;
         case T_OP_FOR_DEC:
             check_jump_instruction(checker);
-            emit_simple(checker, W_OP_FOR_DEC);
+            copy_immediate_u16(checker, W_OP_FOR_DEC);
             break;
         case T_OP_FOR_INC:
             check_jump_instruction(checker);
-            emit_simple(checker, W_OP_FOR_INC);
+            copy_immediate_u16(checker, W_OP_FOR_INC);
             break;
         }
     }
