@@ -49,7 +49,8 @@ struct type_checker_states {
 
 struct type_checker {
     struct type_checker_states states;
-    struct ir_block *block;
+    struct ir_block *in_block;
+    struct ir_block *out_block;
     struct type_stack *tstack;
     int ip;
     bool had_error;
@@ -62,7 +63,8 @@ enum type_check_result {
 
 void reset_type_stack(struct type_stack *tstack);
 
-void init_type_checker(struct type_checker *checker, struct ir_block *block);
+void init_type_checker(struct type_checker *checker, struct ir_block *in_block,
+                       struct ir_block *out_block);
 void free_type_checker(struct type_checker *checker);
 
 void ts_push(struct type_checker *checker, enum type type);

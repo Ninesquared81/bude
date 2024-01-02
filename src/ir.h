@@ -282,4 +282,6 @@ int add_jump(struct ir_block *block, int dest);
 int find_jump(struct ir_block *block, int dest);
 bool is_jump_dest(struct ir_block *block, int dest);
 
+void ir_error(struct ir_block *block, size_t index, const char *message);
+
 #endif

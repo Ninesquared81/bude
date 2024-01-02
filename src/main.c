@@ -242,41 +242,42 @@ int main(int argc, char *argv[]) {
     parse_args(argc, argv, &opts);
     load_source(opts.filename, inbuf);
 
-    struct ir_block block;
-    init_block(&block, opts.filename);
-    compile(inbuf, &block, opts.filename);
+    struct ir_block tblock, wblock;
+    init_block(&tblock, IR_TYPED, opts.filename);
+    init_block(&wblock, IR_WORD_ORIENTED, opts.filename);
+    compile(inbuf, &tblock, opts.filename);
     free(inbuf);
     if (opts.optimise) {
-        optimise(&block);
+        optimise(&tblock);
     }
     if (opts.dump_ir) {
         printf("=== Before type checking: ===\n");
-        disassemble_block(&block);
+        disassemble_block(&tblock);
         printf("------------------------------------------------\n");
     }
     struct type_checker checker;
-    init_type_checker(&checker, &block);
+    init_type_checker(&checker, &tblock, &wblock);
     if (type_check(&checker) == TYPE_CHECK_ERROR) {
         // Error message(s) already emitted.
         exit(1);
     }
     if (opts.dump_ir) {
         printf("=== After type checking: ===\n");
-        disassemble_block(&block);
+        disassemble_block(&wblock);
         if (opts.interpret) {
             printf("------------------------------------------------\n");
         }
     }
     if (opts.interpret) {
         struct interpreter interpreter;
-        init_interpreter(&interpreter, &block);
+        init_interpreter(&interpreter, &wblock);
         interpret(&interpreter);
         free_interpreter(&interpreter);
     }
     if (opts.generate_asm) {
         struct asm_block *assembly = malloc(sizeof *assembly);
         init_assembly(assembly);
-        if (generate(&block, assembly) != GENERATE_OK) {
+        if (generate(&wblock, assembly) != GENERATE_OK) {
             fprintf(stderr, "Failed to write assembly code.\n");
             exit(1);
         }
@@ -297,7 +298,8 @@ int main(int argc, char *argv[]) {
         }
         free(assembly);
     }
-    free_block(&block);
+    free_block(&tblock);
+    free_block(&wblock);
 
     return 0;
 }

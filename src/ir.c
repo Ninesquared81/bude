@@ -527,3 +527,9 @@ int find_jump(struct ir_block *block, int dest) {
 bool is_jump_dest(struct ir_block *block, int dest) {
     return find_jump(block, dest) != -1;
 }
+
+void ir_error(struct ir_block *block, size_t index, const char *message) {
+    report_location(block->filename, &block->locations[index]);
+    fprintf(stderr, message);
+}
+

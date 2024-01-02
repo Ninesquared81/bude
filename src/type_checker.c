@@ -9,14 +9,13 @@
 
 struct arithm_conv {
     enum type result_type;
-    enum opcode lhs_conv;
-    enum opcode rhs_conv;
-    enum opcode result_conv;
+    enum w_opcode lhs_conv;
+    enum w_opcode rhs_conv;
+    enum w_opcode result_conv;
 };
 
 static void type_error(struct type_checker *checker, const char *restrict message, ...) {
-    report_location(checker->block->filename, &checker->block->locations[checker->ip]);
-    fprintf(stderr, "Type error: ");
+    ir_error(checker->in_block, checker->ip, "Type error: ");
     va_list args;
     va_start(args, message);
     vfprintf(stderr, message, args);
@@ -48,9 +47,11 @@ static void free_type_checker_states(struct type_checker_states *states) {
     free(states->jump_srcs);
 }
 
-void init_type_checker(struct type_checker *checker, struct ir_block *block) {
-    init_type_checker_states(&checker->states, &block->jumps);
-    checker->block = block;
+void init_type_checker(struct type_checker *checker, struct ir_block *in_block,
+                       struct ir_block *out_block) {
+    init_type_checker_states(&checker->states, &in_block->jumps);
+    checker->in_block = in_block;
+    checker->out_block = out_block;
     checker->tstack = malloc(sizeof *checker->tstack);
     checker->ip = 0;
     checker->had_error = false;
@@ -63,101 +64,137 @@ void free_type_checker(struct type_checker *checker) {
     checker->tstack = NULL;
 }
 
+static void emit_simple(struct type_checker *checker, enum w_opcode instruction) {
+    write_simple(checker->out_block, instruction, &checker->in_block->locations[checker->ip]);
+}
+
+static void emit_simple_nnop(struct type_checker *checker, enum w_opcode instruction) {
+    if (instruction != W_OP_NOP) emit_simple(checker, instruction);
+}
+
+static void copy_immediate_u8(struct type_checker *checker, enum w_opcode instruction) {
+    uint8_t value = read_u8(checker->in_block, checker->ip + 1);
+    write_immediate_u8(checker->out_block, instruction, value,
+                       &checker->in_block->locations[checker->ip]);
+    checker->ip += 1;
+}
+
+static void copy_immediate_u16(struct type_checker *checker, enum w_opcode instruction) {
+    uint16_t value = read_u16(checker->in_block, checker->ip + 1);
+    write_immediate_u16(checker->out_block, instruction, value,
+                        &checker->in_block->locations[checker->ip]);
+    checker->ip += 2;
+}
+
+static void copy_immediate_u32(struct type_checker *checker, enum w_opcode instruction) {
+    uint32_t value = read_u32(checker->in_block, checker->ip + 1);
+    write_immediate_u32(checker->out_block, instruction, value,
+                        &checker->in_block->locations[checker->ip]);
+    checker->ip += 4;
+}
+
+static void copy_immediate_u64(struct type_checker *checker, enum w_opcode instruction) {
+    uint64_t value = read_u64(checker->in_block, checker->ip + 1);
+    write_immediate_u64(checker->out_block, instruction, value,
+                        &checker->in_block->locations[checker->ip]);
+    checker->ip += 8;
+}
+
 static struct arithm_conv arithmetic_conversions[TYPE_COUNT][TYPE_COUNT] = {
     /* lhs_type  rhs_type    result_type lhs_conv rhs_conv result_conv */
-    [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_WORD][TYPE_BYTE] = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_WORD][TYPE_INT]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_BYTE][TYPE_WORD] = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_BYTE][TYPE_BYTE] = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_ZX8},
-    [TYPE_BYTE][TYPE_INT]  = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_INT][TYPE_WORD]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_INT][TYPE_BYTE]  = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_INT][TYPE_INT]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_WORD][TYPE_BYTE] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_WORD][TYPE_INT]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_BYTE][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_BYTE][TYPE_BYTE] = {TYPE_BYTE, W_OP_NOP,   W_OP_NOP,   W_OP_ZX8},
+    [TYPE_BYTE][TYPE_INT]  = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_INT][TYPE_WORD]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_INT][TYPE_BYTE]  = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_INT][TYPE_INT]   = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
 
     /* Fixed unsigned types. */
-    [TYPE_WORD][TYPE_U8]   = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_WORD][TYPE_U16]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_WORD][TYPE_U32]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U8][TYPE_WORD]   = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U16][TYPE_WORD]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U32][TYPE_WORD]  = {TYPE_WORD, OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_WORD][TYPE_U8]   = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_WORD][TYPE_U16]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_WORD][TYPE_U32]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U8][TYPE_WORD]   = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U16][TYPE_WORD]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U32][TYPE_WORD]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
 
-    [TYPE_BYTE][TYPE_U8]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_BYTE][TYPE_U16]  = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_BYTE][TYPE_U32]  = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U8][TYPE_BYTE]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U16][TYPE_BYTE]  = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U32][TYPE_BYTE]  = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_BYTE][TYPE_U8]   = {TYPE_BYTE, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_BYTE][TYPE_U16]  = {TYPE_U16,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_BYTE][TYPE_U32]  = {TYPE_U32,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U8][TYPE_BYTE]   = {TYPE_BYTE, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U16][TYPE_BYTE]  = {TYPE_U16,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U32][TYPE_BYTE]  = {TYPE_U32,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
 
-    [TYPE_INT][TYPE_U8]    = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_INT][TYPE_U16]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_INT][TYPE_U32]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U8][TYPE_INT]    = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U16][TYPE_INT]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_U32][TYPE_INT]   = {TYPE_INT,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_INT][TYPE_U8]    = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_INT][TYPE_U16]   = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_INT][TYPE_U32]   = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U8][TYPE_INT]    = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U16][TYPE_INT]   = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_U32][TYPE_INT]   = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
 
-    [TYPE_U8][TYPE_U8]     = {TYPE_U8,   OP_NOP,   OP_NOP,   OP_ZX8},
-    [TYPE_U8][TYPE_U16]    = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_ZX16},
-    [TYPE_U8][TYPE_U32]    = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
-    [TYPE_U16][TYPE_U8]    = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_ZX16},
-    [TYPE_U16][TYPE_U16]   = {TYPE_U16,  OP_NOP,   OP_NOP,   OP_ZX16},
-    [TYPE_U16][TYPE_U32]   = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
-    [TYPE_U32][TYPE_U8]    = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
-    [TYPE_U32][TYPE_U16]   = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
-    [TYPE_U32][TYPE_U32]   = {TYPE_U32,  OP_NOP,   OP_NOP,   OP_ZX32},
+    [TYPE_U8][TYPE_U8]     = {TYPE_U8,   W_OP_NOP,   W_OP_NOP,   W_OP_ZX8},
+    [TYPE_U8][TYPE_U16]    = {TYPE_U16,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX16},
+    [TYPE_U8][TYPE_U32]    = {TYPE_U32,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX32},
+    [TYPE_U16][TYPE_U8]    = {TYPE_U16,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX16},
+    [TYPE_U16][TYPE_U16]   = {TYPE_U16,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX16},
+    [TYPE_U16][TYPE_U32]   = {TYPE_U32,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX32},
+    [TYPE_U32][TYPE_U8]    = {TYPE_U32,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX32},
+    [TYPE_U32][TYPE_U16]   = {TYPE_U32,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX32},
+    [TYPE_U32][TYPE_U32]   = {TYPE_U32,  W_OP_NOP,   W_OP_NOP,   W_OP_ZX32},
 
-    [TYPE_U8][TYPE_S8]     = {TYPE_U8,   OP_NOP,   OP_SX8,   OP_ZX8},
-    [TYPE_U8][TYPE_S16]    = {TYPE_S16,  OP_NOP,   OP_SX16,  OP_ZX16},
-    [TYPE_U8][TYPE_S32]    = {TYPE_S32,  OP_NOP,   OP_SX32,  OP_ZX32},
-    [TYPE_U16][TYPE_S8]    = {TYPE_U16,  OP_NOP,   OP_SX8,   OP_ZX16},
-    [TYPE_U16][TYPE_S16]   = {TYPE_U16,  OP_NOP,   OP_SX16,  OP_ZX16},
-    [TYPE_U16][TYPE_S32]   = {TYPE_S32,  OP_NOP,   OP_SX32,  OP_ZX32},
-    [TYPE_U32][TYPE_S8]    = {TYPE_U32,  OP_NOP,   OP_SX8,   OP_ZX32},
-    [TYPE_U32][TYPE_S16]   = {TYPE_U32,  OP_NOP,   OP_SX16,  OP_ZX32},
-    [TYPE_U32][TYPE_S32]   = {TYPE_U32,  OP_NOP,   OP_SX32,  OP_ZX32},
+    [TYPE_U8][TYPE_S8]     = {TYPE_U8,   W_OP_NOP,   W_OP_SX8,   W_OP_ZX8},
+    [TYPE_U8][TYPE_S16]    = {TYPE_S16,  W_OP_NOP,   W_OP_SX16,  W_OP_ZX16},
+    [TYPE_U8][TYPE_S32]    = {TYPE_S32,  W_OP_NOP,   W_OP_SX32,  W_OP_ZX32},
+    [TYPE_U16][TYPE_S8]    = {TYPE_U16,  W_OP_NOP,   W_OP_SX8,   W_OP_ZX16},
+    [TYPE_U16][TYPE_S16]   = {TYPE_U16,  W_OP_NOP,   W_OP_SX16,  W_OP_ZX16},
+    [TYPE_U16][TYPE_S32]   = {TYPE_S32,  W_OP_NOP,   W_OP_SX32,  W_OP_ZX32},
+    [TYPE_U32][TYPE_S8]    = {TYPE_U32,  W_OP_NOP,   W_OP_SX8,   W_OP_ZX32},
+    [TYPE_U32][TYPE_S16]   = {TYPE_U32,  W_OP_NOP,   W_OP_SX16,  W_OP_ZX32},
+    [TYPE_U32][TYPE_S32]   = {TYPE_U32,  W_OP_NOP,   W_OP_SX32,  W_OP_ZX32},
 
     /* Fixed signed types. */
-    [TYPE_WORD][TYPE_S8]   = {TYPE_WORD, OP_NOP,   OP_SX8,   OP_NOP},
-    [TYPE_WORD][TYPE_S16]  = {TYPE_WORD, OP_NOP,   OP_SX16,  OP_NOP},
-    [TYPE_WORD][TYPE_S32]  = {TYPE_WORD, OP_NOP,   OP_SX16,  OP_NOP},
-    [TYPE_S8][TYPE_WORD]   = {TYPE_WORD, OP_SX8L,  OP_NOP,   OP_NOP},
-    [TYPE_S16][TYPE_WORD]  = {TYPE_WORD, OP_SX16L, OP_NOP,   OP_NOP},
-    [TYPE_S32][TYPE_WORD]  = {TYPE_WORD, OP_SX32L, OP_NOP,   OP_NOP},
+    [TYPE_WORD][TYPE_S8]   = {TYPE_WORD, W_OP_NOP,   W_OP_SX8,   W_OP_NOP},
+    [TYPE_WORD][TYPE_S16]  = {TYPE_WORD, W_OP_NOP,   W_OP_SX16,  W_OP_NOP},
+    [TYPE_WORD][TYPE_S32]  = {TYPE_WORD, W_OP_NOP,   W_OP_SX16,  W_OP_NOP},
+    [TYPE_S8][TYPE_WORD]   = {TYPE_WORD, W_OP_SX8L,  W_OP_NOP,   W_OP_NOP},
+    [TYPE_S16][TYPE_WORD]  = {TYPE_WORD, W_OP_SX16L, W_OP_NOP,   W_OP_NOP},
+    [TYPE_S32][TYPE_WORD]  = {TYPE_WORD, W_OP_SX32L, W_OP_NOP,   W_OP_NOP},
 
-    [TYPE_BYTE][TYPE_S8]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_ZX8},
-    [TYPE_BYTE][TYPE_S16]  = {TYPE_S16,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_BYTE][TYPE_S32]  = {TYPE_S32,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_S8][TYPE_BYTE]   = {TYPE_BYTE, OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_S16][TYPE_BYTE]  = {TYPE_S16,  OP_NOP,   OP_NOP,   OP_NOP},
-    [TYPE_S32][TYPE_BYTE]  = {TYPE_S32,  OP_NOP,   OP_NOP,   OP_NOP},
+    [TYPE_BYTE][TYPE_S8]   = {TYPE_BYTE, W_OP_NOP,   W_OP_NOP,   W_OP_ZX8},
+    [TYPE_BYTE][TYPE_S16]  = {TYPE_S16,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_BYTE][TYPE_S32]  = {TYPE_S32,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_S8][TYPE_BYTE]   = {TYPE_BYTE, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_S16][TYPE_BYTE]  = {TYPE_S16,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_S32][TYPE_BYTE]  = {TYPE_S32,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
 
-    [TYPE_INT][TYPE_S8]    = {TYPE_INT,  OP_NOP,   OP_SX8,   OP_NOP},
-    [TYPE_INT][TYPE_S16]   = {TYPE_INT,  OP_NOP,   OP_SX16,  OP_NOP},
-    [TYPE_INT][TYPE_S32]   = {TYPE_INT,  OP_NOP,   OP_SX32,  OP_NOP},
-    [TYPE_S8][TYPE_INT]    = {TYPE_INT,  OP_SX8L,  OP_NOP,   OP_NOP},
-    [TYPE_S16][TYPE_INT]   = {TYPE_INT,  OP_SX16L, OP_NOP,   OP_NOP},
-    [TYPE_S32][TYPE_INT]   = {TYPE_INT,  OP_SX32L, OP_NOP,   OP_NOP},
+    [TYPE_INT][TYPE_S8]    = {TYPE_INT,  W_OP_NOP,   W_OP_SX8,   W_OP_NOP},
+    [TYPE_INT][TYPE_S16]   = {TYPE_INT,  W_OP_NOP,   W_OP_SX16,  W_OP_NOP},
+    [TYPE_INT][TYPE_S32]   = {TYPE_INT,  W_OP_NOP,   W_OP_SX32,  W_OP_NOP},
+    [TYPE_S8][TYPE_INT]    = {TYPE_INT,  W_OP_SX8L,  W_OP_NOP,   W_OP_NOP},
+    [TYPE_S16][TYPE_INT]   = {TYPE_INT,  W_OP_SX16L, W_OP_NOP,   W_OP_NOP},
+    [TYPE_S32][TYPE_INT]   = {TYPE_INT,  W_OP_SX32L, W_OP_NOP,   W_OP_NOP},
 
-    [TYPE_S8][TYPE_S8]     = {TYPE_S8,   OP_SX8L,  OP_SX8,   OP_ZX8},
-    [TYPE_S8][TYPE_S16]    = {TYPE_S16,  OP_SX8L,  OP_SX16,  OP_ZX16},
-    [TYPE_S8][TYPE_S32]    = {TYPE_S32,  OP_SX8L,  OP_SX32,  OP_ZX32},
-    [TYPE_S16][TYPE_S8]    = {TYPE_S16,  OP_SX16L, OP_SX8,   OP_ZX16},
-    [TYPE_S16][TYPE_S16]   = {TYPE_S16,  OP_SX16L, OP_SX16,  OP_ZX16},
-    [TYPE_S16][TYPE_S32]   = {TYPE_S32,  OP_SX16L, OP_SX32,  OP_ZX32},
-    [TYPE_S32][TYPE_S8]    = {TYPE_S32,  OP_SX32L, OP_SX8,   OP_ZX32},
-    [TYPE_S32][TYPE_S16]   = {TYPE_S32,  OP_SX32L, OP_SX16,  OP_ZX32},
-    [TYPE_S32][TYPE_S32]   = {TYPE_S32,  OP_SX32L, OP_SX32,  OP_ZX32},
+    [TYPE_S8][TYPE_S8]     = {TYPE_S8,   W_OP_SX8L,  W_OP_SX8,   W_OP_ZX8},
+    [TYPE_S8][TYPE_S16]    = {TYPE_S16,  W_OP_SX8L,  W_OP_SX16,  W_OP_ZX16},
+    [TYPE_S8][TYPE_S32]    = {TYPE_S32,  W_OP_SX8L,  W_OP_SX32,  W_OP_ZX32},
+    [TYPE_S16][TYPE_S8]    = {TYPE_S16,  W_OP_SX16L, W_OP_SX8,   W_OP_ZX16},
+    [TYPE_S16][TYPE_S16]   = {TYPE_S16,  W_OP_SX16L, W_OP_SX16,  W_OP_ZX16},
+    [TYPE_S16][TYPE_S32]   = {TYPE_S32,  W_OP_SX16L, W_OP_SX32,  W_OP_ZX32},
+    [TYPE_S32][TYPE_S8]    = {TYPE_S32,  W_OP_SX32L, W_OP_SX8,   W_OP_ZX32},
+    [TYPE_S32][TYPE_S16]   = {TYPE_S32,  W_OP_SX32L, W_OP_SX16,  W_OP_ZX32},
+    [TYPE_S32][TYPE_S32]   = {TYPE_S32,  W_OP_SX32L, W_OP_SX32,  W_OP_ZX32},
 
-    [TYPE_S8][TYPE_U8]     = {TYPE_U8,   OP_SX8L,  OP_NOP,   OP_ZX8},
-    [TYPE_S8][TYPE_U16]    = {TYPE_U16,  OP_SX8L,  OP_NOP,   OP_ZX16},
-    [TYPE_S8][TYPE_U32]    = {TYPE_U32,  OP_SX8L,  OP_NOP,   OP_ZX32},
-    [TYPE_S16][TYPE_U8]    = {TYPE_S16,  OP_SX16L, OP_NOP,   OP_ZX16},
-    [TYPE_S16][TYPE_U16]   = {TYPE_U16,  OP_SX16L, OP_NOP,   OP_ZX16},
-    [TYPE_S16][TYPE_U32]   = {TYPE_U32,  OP_SX16L, OP_NOP,   OP_ZX32},
-    [TYPE_S32][TYPE_U8]    = {TYPE_S32,  OP_SX32L, OP_NOP,   OP_ZX32},
-    [TYPE_S32][TYPE_U16]   = {TYPE_S32,  OP_SX32L, OP_NOP,   OP_ZX32},
-    [TYPE_S32][TYPE_U32]   = {TYPE_U32,  OP_SX32L, OP_NOP,   OP_ZX32},
+    [TYPE_S8][TYPE_U8]     = {TYPE_U8,   W_OP_SX8L,  W_OP_NOP,   W_OP_ZX8},
+    [TYPE_S8][TYPE_U16]    = {TYPE_U16,  W_OP_SX8L,  W_OP_NOP,   W_OP_ZX16},
+    [TYPE_S8][TYPE_U32]    = {TYPE_U32,  W_OP_SX8L,  W_OP_NOP,   W_OP_ZX32},
+    [TYPE_S16][TYPE_U8]    = {TYPE_S16,  W_OP_SX16L, W_OP_NOP,   W_OP_ZX16},
+    [TYPE_S16][TYPE_U16]   = {TYPE_U16,  W_OP_SX16L, W_OP_NOP,   W_OP_ZX16},
+    [TYPE_S16][TYPE_U32]   = {TYPE_U32,  W_OP_SX16L, W_OP_NOP,   W_OP_ZX32},
+    [TYPE_S32][TYPE_U8]    = {TYPE_S32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
+    [TYPE_S32][TYPE_U16]   = {TYPE_S32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
+    [TYPE_S32][TYPE_U32]   = {TYPE_U32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
 };
 
 static bool is_integral(enum type type) {
@@ -189,30 +226,30 @@ static bool is_signed(enum type type) {
     }
 }
 
-static enum opcode promote(enum type type) {
+static enum w_opcode promote(enum type type) {
     return arithmetic_conversions[TYPE_INT][type].rhs_conv;
 }
 
-static enum opcode sign_extend(enum type type) {
+static enum w_opcode sign_extend(enum type type) {
     switch (type) {
     case TYPE_BYTE:
     case TYPE_U8:
     case TYPE_S8:
-        return OP_SX8;
+        return W_OP_SX8;
     case TYPE_U16:
     case TYPE_S16:
-        return OP_SX16;
+        return W_OP_SX16;
     case TYPE_U32:
     case TYPE_S32:
-        return OP_SX32;
+        return W_OP_SX32;
     default:
-        return OP_NOP;
+        return W_OP_NOP;
     }
 }
 
 static bool check_pointer_addition(struct type_checker *checker,
                                    enum type lhs_type, enum type rhs_type) {
-    enum opcode conversion;
+    enum w_opcode conversion = W_OP_NOP;
     if (lhs_type == TYPE_PTR) {
         if (rhs_type == TYPE_PTR) {
             checker->had_error = true;
@@ -226,7 +263,7 @@ static bool check_pointer_addition(struct type_checker *checker,
     else {
         return false;
     }
-    overwrite_instruction(checker->block, checker->ip - 1, conversion);
+    emit_simple_nnop(checker, conversion);
     return true;
 }
 
@@ -252,7 +289,7 @@ static size_t find_state(struct type_checker_states *states, int ip) {
 static bool save_state_at(struct type_checker *checker, int ip) {
     struct type_checker_states *states = &checker->states;
     size_t index = find_state(states, ip);
-    assert(index < (size_t)checker->block->jumps.count);
+    assert(index < (size_t)checker->in_block->jumps.count);
     if (states->states[index] != NULL) {
         // There was already a state saved there.
         return false;
@@ -306,7 +343,7 @@ static int find_jump_src(struct type_checker *checker) {
         return -1;
     }
     size_t index = find_state(states, checker->ip);
-    assert(index < (size_t)checker->block->jumps.count);
+    assert(index < (size_t)checker->in_block->jumps.count);
     if (states->states[index] == NULL) {
         // State not found.
         return -1;
@@ -318,7 +355,7 @@ static bool save_jump(struct type_checker *checker, int dest_offset) {
     int dest = checker->ip + dest_offset + 1;
     struct type_checker_states *states = &checker->states;
     size_t index = find_state(states, dest);
-    assert(index < (size_t)checker->block->jumps.count);
+    assert(index < (size_t)checker->in_block->jumps.count);
     states->jump_srcs[index] = checker->ip;
     if (!save_state_at(checker, dest)) {
         // If jump was already saved.
@@ -328,19 +365,19 @@ static bool save_jump(struct type_checker *checker, int dest_offset) {
 }
 
 static void check_unreachable(struct type_checker *checker) {
-    while (checker->block->code[checker->ip + 1] == OP_NOP
-           && !is_jump_dest(checker->block, checker->ip + 1)) {
+    while (checker->in_block->code[checker->ip + 1] == W_OP_NOP
+           && !is_jump_dest(checker->in_block, checker->ip + 1)) {
         ++checker->ip;
-        if (checker->ip >= checker->block->count) return;
+        if (checker->ip >= checker->in_block->count) return;
     }
-    if (!is_jump_dest(checker->block, checker->ip + 1)) {
+    if (!is_jump_dest(checker->in_block, checker->ip + 1)) {
         checker->had_error = true;
         int start_ip = checker->ip + 1;
         int ip = start_ip;
-        while (ip + 1 < checker->block->count && !is_jump_dest(checker->block, ip + 1)) {
+        while (ip + 1 < checker->in_block->count && !is_jump_dest(checker->in_block, ip + 1)) {
             ++ip;
         }
-        if (ip + 1 < checker->block->count) {
+        if (ip + 1 < checker->in_block->count) {
             type_error(checker, "code from index %d to %d is unreachable",
                        start_ip, ip);
         }
@@ -360,7 +397,7 @@ static void check_unreachable(struct type_checker *checker) {
 }
 
 static void check_jump_instruction(struct type_checker *checker) {
-    int offset = read_s16(checker->block, checker->ip + 1);
+    int offset = read_s16(checker->in_block, checker->ip + 1);
     if (!save_jump(checker, offset)) {
         checker->had_error = true;
         type_error(checker, "inconsistent stack after jump instruction",
@@ -370,8 +407,8 @@ static void check_jump_instruction(struct type_checker *checker) {
 }
 
 enum type_check_result type_check(struct type_checker *checker) {
-    for (; checker->ip < checker->block->count; ++checker->ip) {
-        if (is_jump_dest(checker->block, checker->ip)) {
+    for (; checker->ip < checker->in_block->count; ++checker->ip) {
+        if (is_jump_dest(checker->in_block, checker->ip)) {
             if (!save_state(checker)) {
                 // Previous state was saved here.
                 if (!check_state(checker)) {
@@ -380,67 +417,68 @@ enum type_check_result type_check(struct type_checker *checker) {
                 }
             }
         }
-        enum opcode instruction = checker->block->code[checker->ip];
+        enum t_opcode instruction = checker->in_block->code[checker->ip];
         switch (instruction) {
-        case OP_NOP:
+        case T_OP_NOP:
             /* Do nothing. */
             break;
-        case OP_PUSH8:
-            ++checker->ip;
+        case T_OP_PUSH8:
             ts_push(checker, TYPE_WORD);
+            copy_immediate_u8(checker, W_OP_PUSH8);
             break;
-        case OP_PUSH16:
-            checker->ip += 2;
+        case T_OP_PUSH16:
             ts_push(checker, TYPE_WORD);
+            copy_immediate_u16(checker, W_OP_PUSH16);
             break;
-        case OP_PUSH32:
-            checker->ip += 4;
+        case T_OP_PUSH32:
             ts_push(checker, TYPE_WORD);
+            copy_immediate_u32(checker, W_OP_PUSH32);
             break;
-        case OP_PUSH64:
-            checker->ip += 8;
+        case T_OP_PUSH64:
             ts_push(checker, TYPE_WORD);
+            copy_immediate_u64(checker, W_OP_PUSH64);
             break;
-        case OP_PUSH_INT8:
-            ++checker->ip;
+        case T_OP_PUSH_INT8:
             ts_push(checker, TYPE_INT);
+            copy_immediate_u8(checker, W_OP_PUSH_INT8);
             break;
-        case OP_PUSH_INT16:
-            checker->ip += 2;
+        case T_OP_PUSH_INT16:
             ts_push(checker, TYPE_INT);
+            copy_immediate_u16(checker, W_OP_PUSH_INT16);
             break;
-        case OP_PUSH_INT32:
-            checker->ip += 4;
+        case T_OP_PUSH_INT32:
             ts_push(checker, TYPE_INT);
+            copy_immediate_u32(checker, W_OP_PUSH_INT32);
             break;
-        case OP_PUSH_INT64:
-            checker->ip += 8;
+        case T_OP_PUSH_INT64:
             ts_push(checker, TYPE_INT);
+            copy_immediate_u64(checker, W_OP_PUSH_INT64);
             break;
-        case OP_PUSH_CHAR8:
-            ++checker->ip;
+        case T_OP_PUSH_CHAR8:
             ts_push(checker, TYPE_BYTE);
+            copy_immediate_u8(checker, W_OP_PUSH_CHAR8);
             break;
-        case OP_LOAD_STRING8:
-            ++checker->ip;
+        case T_OP_LOAD_STRING8:
             ts_push(checker, TYPE_PTR);
             ts_push(checker, TYPE_WORD);
+            copy_immediate_u8(checker, W_OP_LOAD_STRING8);
             break;
-        case OP_LOAD_STRING16:
-            checker->ip += 2;
+        case T_OP_LOAD_STRING16:
             ts_push(checker, TYPE_PTR);
             ts_push(checker, TYPE_WORD);
+            copy_immediate_u16(checker, W_OP_LOAD_STRING16);
             break;
-        case OP_LOAD_STRING32:
-            checker->ip += 4;
+        case T_OP_LOAD_STRING32:
             ts_push(checker, TYPE_PTR);
             ts_push(checker, TYPE_WORD);
+            copy_immediate_u32(checker, W_OP_LOAD_STRING32);
             break;
-        case OP_POP:
+        case T_OP_POP:
             // Don't care about type.
             ts_pop(checker);
+            emit_simple(checker, W_OP_POP);
             break;
-        case OP_ADD: {
+        case T_OP_ADD: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             enum type result_type;
@@ -452,18 +490,18 @@ enum type_check_result type_check(struct type_checker *checker) {
                     fprintf(stderr, "Type error in `+`");
                     result_type = TYPE_WORD;  // Continue with a word.
                 }
-                overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
-                overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
-                overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                emit_simple_nnop(checker, conversion.result_conv);
             }
             else {
                 result_type = TYPE_PTR;
             }
             ts_push(checker, result_type);
-            ++checker->ip;  // Skip result conversion.
+            emit_simple(checker, W_OP_ADD);
             break;
         }
-        case OP_AND: {
+        case T_OP_AND: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
@@ -472,16 +510,18 @@ enum type_check_result type_check(struct type_checker *checker) {
                 lhs_type = TYPE_WORD;
             }
             ts_push(checker, lhs_type);
+            emit_simple(checker, W_OP_AND);
             break;
         }
-        case OP_DEREF:
+        case T_OP_DEREF:
             if (ts_pop(checker) != TYPE_PTR) {
                 checker->had_error = true;
                 type_error(checker, "expected pointer");
             }
             ts_push(checker, TYPE_BYTE);
+            emit_simple(checker, W_OP_DEREF);
             break;
-        case OP_DIVMOD: {
+        case T_OP_DIVMOD: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
@@ -490,23 +530,22 @@ enum type_check_result type_check(struct type_checker *checker) {
                 type_error(checker, "invalid types for `divmod`");
                 conversion.result_type = TYPE_WORD;
             }
+            enum w_opcode divmod_instruction = W_OP_DIVMOD;  // Unsigned division.
             if (is_signed(conversion.result_type)) {
                 // In bude, division is Euclidean (remainder always non-negative) by default.
-                // Use OP_IDIVMOD (truncated) if possible.
-                enum opcode signed_instruction = (is_signed(lhs_type)) ? OP_EDIVMOD : OP_IDIVMOD;
-                overwrite_instruction(checker->block, checker->ip, signed_instruction);
+                // Use W_OP_IDIVMOD (truncated) if possible.
+                divmod_instruction = (is_signed(lhs_type)) ? W_OP_EDIVMOD : W_OP_IDIVMOD;
             }
-            overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
-            overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
-            overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
-            overwrite_instruction(checker->block, checker->ip + 2, conversion.result_conv);
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, divmod_instruction);
+            emit_simple_nnop(checker, conversion.result_conv);
+            emit_simple_nnop(checker, conversion.result_conv);
             ts_push(checker, conversion.result_type);  // Quotient.
             ts_push(checker, conversion.result_type);  // Remainder.
-            ++checker->ip;  // Skip result conversion.
             break;
         }
-        case OP_IDIVMOD:
-        case OP_EDIVMOD: {
+        case T_OP_IDIVMOD: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
@@ -515,26 +554,45 @@ enum type_check_result type_check(struct type_checker *checker) {
                 type_error(checker, "invalid types for `idivmod`");
                 conversion.result_type = TYPE_WORD;
             }
-            overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
-            overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
-            overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
-            overwrite_instruction(checker->block, checker->ip + 2, conversion.result_conv);
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_IDIVMOD);
+            emit_simple_nnop(checker, conversion.result_conv);
+            emit_simple_nnop(checker, conversion.result_conv);
             ts_push(checker, conversion.result_type);
             ts_push(checker, conversion.result_type);
-            ++checker->ip;  // Skip result conversion.
             break;
         }
-        case OP_DUPE: {
+        case T_OP_EDIVMOD: {
+            enum type rhs_type = ts_pop(checker);
+            enum type lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                checker->had_error = true;
+                type_error(checker, "invalid types for `edivmod`");
+                conversion.result_type = TYPE_WORD;
+            }
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_EDIVMOD);
+            emit_simple_nnop(checker, conversion.result_conv);
+            emit_simple_nnop(checker, conversion.result_conv);
+            ts_push(checker, conversion.result_type);
+            ts_push(checker, conversion.result_type);
+            break;
+        }
+        case T_OP_DUPE: {
             enum type type = ts_pop(checker);
             ts_push(checker, type);
             ts_push(checker, type);
+            emit_simple(checker, W_OP_DUPE);
             break;
         }
-        case OP_GET_LOOP_VAR:
-            checker->ip += 2;  // Loop variable.
+        case T_OP_GET_LOOP_VAR:
             ts_push(checker, TYPE_INT);  // Loop variable is always an integer.
+            emit_simple(checker, W_OP_GET_LOOP_VAR);
             break;
-        case OP_MULT: {
+        case T_OP_MULT: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
@@ -543,18 +601,19 @@ enum type_check_result type_check(struct type_checker *checker) {
                 type_error(checker, "invalid types for `*`");
                 conversion.result_type = TYPE_WORD;
             }
-            overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
-            overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
-            overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
-            ++checker->ip;  // Skip result conversion.
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_MULT);
+            emit_simple_nnop(checker, conversion.result_conv);
             ts_push(checker, conversion.result_type);
             break;
         }
-        case OP_NOT: {
+        case T_OP_NOT: {
             ts_peek(checker);  // Emits error if the stack is empty.
+            emit_simple(checker, W_OP_NOT);
             break;
         }
-        case OP_OR: {
+        case T_OP_OR: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
@@ -563,52 +622,56 @@ enum type_check_result type_check(struct type_checker *checker) {
                 lhs_type = TYPE_WORD;  // In case of an error, recover by using a word.
             }
             ts_push(checker, lhs_type);
+            emit_simple(checker, W_OP_OR);
             break;
         }
-        case OP_PRINT: {
+        case T_OP_PRINT: {
             enum type type = ts_pop(checker);
+            enum w_opcode print_instruction = W_OP_PRINT;
             if (is_signed(type)) {
                 // Promote signed type to int.
-                enum opcode conv_instruction = promote(type);
-                overwrite_instruction(checker->block, checker->ip - 1, conv_instruction);
-                overwrite_instruction(checker->block, checker->ip, OP_PRINT_INT);
+                enum w_opcode conv_instruction = promote(type);
+                emit_simple_nnop(checker, conv_instruction);
+                print_instruction = W_OP_PRINT_INT;
             }
+            emit_simple(checker, print_instruction);
             break;
         }
-        case OP_PRINT_CHAR: {
+        case T_OP_PRINT_CHAR: {
             if (ts_pop(checker) != TYPE_BYTE) {
                 checker->had_error = true;
                 type_error(checker, "expected byte for `print-char`");
             }
+            emit_simple(checker, W_OP_PRINT_CHAR);
             break;
         }
-        case OP_PRINT_INT: {
+        case T_OP_PRINT_INT: {
             enum type type = ts_pop(checker);
             if (is_integral(type)) {
-                enum opcode conv_instruction = sign_extend(type);
-                overwrite_instruction(checker->block, checker->ip - 1, conv_instruction);
+                enum w_opcode conv_instruction = sign_extend(type);
+                emit_simple_nnop(checker, conv_instruction);
             }
             else {
                 checker->had_error = true;
-                type_error(checker, "invalid type for `OP_PRINT_CHAR`");
+                type_error(checker, "invalid type for `OP_PRINT_INT`");
             }
+            emit_simple(checker, W_OP_PRINT_INT);
             break;
         }
-        case OP_SUB: {
+        case T_OP_SUB: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type != TYPE_ERROR) {
-                overwrite_instruction(checker->block, checker->ip - 2, conversion.lhs_conv);
-                overwrite_instruction(checker->block, checker->ip - 1, conversion.rhs_conv);
-                overwrite_instruction(checker->block, checker->ip + 1, conversion.result_conv);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
             }
             else if (lhs_type == TYPE_PTR) {
                 if (rhs_type == TYPE_PTR) {
                     conversion.result_type = TYPE_INT;
                 }
                 else if (is_integral(rhs_type)) {
-                    overwrite_instruction(checker->block, checker->ip - 1, promote(rhs_type));
+                    emit_simple_nnop(checker, promote(rhs_type));
                 }
                 else {
                     checker->had_error = true;
@@ -622,100 +685,106 @@ enum type_check_result type_check(struct type_checker *checker) {
                 conversion.result_type = TYPE_WORD;
             }
             ts_push(checker, conversion.result_type);
-            ++checker->ip;  // Skip result conversion.
+            emit_simple(checker, W_OP_SUB);
+            emit_simple_nnop(checker, conversion.result_conv);
             break;
         }
-        case OP_SWAP: {
+        case T_OP_SWAP: {
             enum type rhs_type = ts_pop(checker);
             enum type lhs_type = ts_pop(checker);
             ts_push(checker, rhs_type);
             ts_push(checker, lhs_type);
+            emit_simple(checker, W_OP_SWAP);
             break;
         }
-        case OP_AS_BYTE: {
+        case T_OP_AS_BYTE: {
             ts_pop(checker);
-            overwrite_instruction(checker->block, checker->ip, OP_ZX8);
             ts_push(checker, TYPE_BYTE);
+            emit_simple(checker, W_OP_ZX8);
             break;
         }
-        case OP_AS_U8: {
+        case T_OP_AS_U8: {
             ts_pop(checker);
-            overwrite_instruction(checker->block, checker->ip, OP_ZX8);
             ts_push(checker, TYPE_U8);
+            emit_simple(checker, W_OP_ZX8);
             break;
         }
-        case OP_AS_U16: {
+        case T_OP_AS_U16: {
             ts_pop(checker);
-            overwrite_instruction(checker->block, checker->ip, OP_ZX16);
             ts_push(checker, TYPE_U16);
+            emit_simple(checker, W_OP_ZX16);
             break;
         }
-        case OP_AS_U32: {
+        case T_OP_AS_U32: {
             ts_pop(checker);
-            overwrite_instruction(checker->block, checker->ip, OP_ZX32);
             ts_push(checker, TYPE_U32);
+            emit_simple(checker, W_OP_ZX32);
             break;
         }
-        case OP_AS_S8: {
+        case T_OP_AS_S8: {
             ts_pop(checker);
-            overwrite_instruction(checker->block, checker->ip, OP_ZX8);
             ts_push(checker, TYPE_S8);
+            emit_simple(checker, W_OP_ZX8);
             break;
         }
-        case OP_AS_S16: {
+        case T_OP_AS_S16: {
             ts_pop(checker);
-            overwrite_instruction(checker->block, checker->ip, OP_ZX16);
             ts_push(checker, TYPE_S16);
+            emit_simple(checker, W_OP_ZX16);
             break;
         }
-        case OP_AS_S32: {
+        case T_OP_AS_S32: {
             ts_pop(checker);
-            overwrite_instruction(checker->block, checker->ip, OP_ZX32);
             ts_push(checker, TYPE_S32);
+            emit_simple(checker, W_OP_ZX32);
             break;
         }
-        case OP_SX8:
-        case OP_SX8L:
-        case OP_SX16:
-        case OP_SX16L:
-        case OP_SX32:
-        case OP_SX32L:
-        case OP_ZX8:
-        case OP_ZX8L:
-        case OP_ZX16:
-        case OP_ZX16L:
-        case OP_ZX32:
-        case OP_ZX32L:
-            // No type checking.
-            break;
-        case OP_EXIT: {
+        case T_OP_EXIT: {
             enum type type = ts_pop(checker);
             if (!is_integral(type)) {
                 checker->had_error = true;
                 type_error(checker, "expected integral type for `exit`");
             }
             check_unreachable(checker);
+            emit_simple(checker, W_OP_EXIT);
             break;
         }
-        case OP_JUMP_COND:
-        case OP_JUMP_NCOND:
+        case T_OP_JUMP_COND:
             ts_pop(checker);
             check_jump_instruction(checker);
+            emit_simple(checker, W_OP_JUMP_COND);
             break;
-        case OP_JUMP:
+        case T_OP_JUMP_NCOND:
+            ts_pop(checker);
+            check_jump_instruction(checker);
+            emit_simple(checker, W_OP_JUMP_NCOND);
+            break;
+        case T_OP_JUMP:
             check_jump_instruction(checker);
             check_unreachable(checker);
+            emit_simple(checker, W_OP_JUMP);
             break;
-        case OP_FOR_DEC_START:
-        case OP_FOR_INC_START:
+        case T_OP_FOR_DEC_START:
             ts_pop(checker);
-            /* Fallthrough */
-        case OP_FOR_DEC:
-        case OP_FOR_INC:
             check_jump_instruction(checker);
+            emit_simple(checker, W_OP_FOR_DEC_START);
+            break;
+        case T_OP_FOR_INC_START:
+            ts_pop(checker);
+            check_jump_instruction(checker);
+            emit_simple(checker, W_OP_FOR_INC_START);
+            break;
+        case T_OP_FOR_DEC:
+            check_jump_instruction(checker);
+            emit_simple(checker, W_OP_FOR_DEC);
+            break;
+        case T_OP_FOR_INC:
+            check_jump_instruction(checker);
+            emit_simple(checker, W_OP_FOR_INC);
             break;
         }
     }
+    emit_simple(checker, W_OP_NOP);  // Emit final NOP.
     return (!checker->had_error) ? TYPE_CHECK_OK : TYPE_CHECK_ERROR;
 }
 
