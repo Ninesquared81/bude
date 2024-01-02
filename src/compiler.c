@@ -638,17 +638,9 @@ static void compile_symbol(struct compiler *compiler) {
 }
 
 static bool compile_simple(struct compiler *compiler) {
-#define BIN_OP(compiler, op)                          \
-    do {                                           \
-        emit_simple(compiler, T_OP_NOP);               \
-        emit_simple(compiler, T_OP_NOP);               \
-        emit_simple(compiler, op);                   \
-        emit_simple(compiler, T_OP_NOP);               \
-    } while (0);
-
     switch (peek(compiler).type) {
     case TOKEN_AND:
-        BIN_OP(compiler, T_OP_AND);
+        emit_simple(compiler, T_OP_AND);
         break;
     case TOKEN_DEREF:
         emit_simple(compiler, T_OP_DEREF);
@@ -660,36 +652,31 @@ static bool compile_simple(struct compiler *compiler) {
         emit_simple(compiler, T_OP_EXIT);
         break;
     case TOKEN_MINUS:
-        BIN_OP(compiler, T_OP_SUB);
+        emit_simple(compiler, T_OP_SUB);
         break;
     case TOKEN_NOT:
         emit_simple(compiler, T_OP_NOT);
         break;
     case TOKEN_OR:
-        BIN_OP(compiler, T_OP_OR);
+        emit_simple(compiler, T_OP_OR);
         break;
     case TOKEN_PLUS:
-        BIN_OP(compiler, T_OP_ADD);
+        emit_simple(compiler, T_OP_ADD);
         break;
     case TOKEN_POP:
         emit_simple(compiler, T_OP_POP);
         break;
     case TOKEN_PRINT:
-        emit_simple(compiler, T_OP_NOP);  // Conversion.
         emit_simple(compiler, T_OP_PRINT);
         break;
     case TOKEN_PRINT_CHAR:
         emit_simple(compiler, T_OP_PRINT_CHAR);
         break;
     case TOKEN_SLASH_PERCENT:
-        emit_simple(compiler, T_OP_NOP);  // LHS conversion.
-        emit_simple(compiler, T_OP_NOP);  // RHS conversion.
         emit_simple(compiler, T_OP_DIVMOD);
-        emit_simple(compiler, T_OP_NOP);  // Quotient conversion.
-        emit_simple(compiler, T_OP_NOP);  // Remainder conversion.
         break;
     case TOKEN_STAR:
-        BIN_OP(compiler, T_OP_MULT);
+        emit_simple(compiler, T_OP_MULT);
         break;
     case TOKEN_SWAP:
         emit_simple(compiler, T_OP_SWAP);
@@ -700,7 +687,6 @@ static bool compile_simple(struct compiler *compiler) {
     }
     advance(compiler);
     return true;
-#undef BIN_OP
 }
 
 static void compile_expr(struct compiler *compiler) {
