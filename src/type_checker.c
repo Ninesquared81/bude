@@ -403,7 +403,6 @@ static void check_jump_instruction(struct type_checker *checker) {
         type_error(checker, "inconsistent stack after jump instruction",
                    checker->ip);
     }
-    checker->ip += 2;
 }
 
 enum type_check_result type_check(struct type_checker *checker) {
