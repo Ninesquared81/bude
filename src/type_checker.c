@@ -486,7 +486,7 @@ enum type_check_result type_check(struct type_checker *checker) {
                 result_type = conversion.result_type;
                 if (result_type == TYPE_ERROR) {
                     checker->had_error = true;
-                    fprintf(stderr, "Type error in `+`");
+                    type_error(checker, "invalid types for `+`");
                     result_type = TYPE_WORD;  // Continue with a word.
                 }
                 emit_simple_nnop(checker, conversion.lhs_conv);
