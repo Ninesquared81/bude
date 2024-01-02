@@ -240,7 +240,7 @@ void copy_jump_info_table(struct jump_info_table *restrict dest,
 void copy_string_table(struct string_table *restrict dest,
                        struct string_table *restrict src);
 
-void inherit_metadata(struct ir_block *restrict dest, struct ir_block *restrict src);
+void copy_metadata(struct ir_block *restrict dest, struct ir_block *restrict src);
 
 void write_simple(struct ir_block *block, opcode instruction, struct location *location);
 
