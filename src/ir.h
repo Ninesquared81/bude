@@ -7,6 +7,16 @@
 #include "string_builder.h"
 #include "string_view.h"
 
+/* Documenation:
+ * Below is a mini-grammar for the language used to informally document each IR instruction:
+ *
+ * instruction  = <mnemonic> [operand-type]
+ *   mnemonic   = NOP, PUSHn (n: size variable), POP, ...
+ * operand-type = <operand-kind>_<operand-sign><operand-size>
+ * operand-kind = Imm (immediate), Idx (array index), Off (relative offset)
+ * operand-sign = u, s
+ * operand-size = 8, 16, 32, 64, n (n: size variable)
+ */
 
 enum t_opcode {
     /* NOP -- no operation. */
