@@ -7,6 +7,7 @@
 #include "string_builder.h"
 #include "string_view.h"
 
+
 enum t_opcode {
     /* NOP -- no operation. */
     T_OP_NOP,
@@ -22,7 +23,7 @@ enum t_opcode {
     T_OP_PUSH_INT64,
     /* PUSH_CHAR8 Imm_u8 -- Push an ASCII character to the stack. */
     T_OP_PUSH_CHAR8,
-    /* LOAD_STRINGn Imm_un -- Load a string (ptr word) onto the stack from the strings table. */
+    /* LOAD_STRINGn Idx_un -- Load a string (ptr word) onto the stack from the strings table. */
     T_OP_LOAD_STRING8,
     T_OP_LOAD_STRING16,
     T_OP_LOAD_STRING32,
@@ -44,23 +45,23 @@ enum t_opcode {
     T_OP_DUPE,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     T_OP_EXIT,
-    /* FOR_DEC_START Imm_s16 -- Initialise a for loop counter to the top element. */
+    /* FOR_DEC_START Off_s16 -- Initialise a for loop counter to the top element. */
     T_OP_FOR_DEC_START,
-    /* FOR_DEC Imm_s16 -- Decrement a for loop counter by 1 and loop while it's not zero. */
+    /* FOR_DEC Off_s16 -- Decrement a for loop counter by 1 and loop while it's not zero. */
     T_OP_FOR_DEC,
-    /* FOR_INC_START Imm_s16 -- Initialise a for loop counter to zero and the target to the
+    /* FOR_INC_START Off_s16 -- Initialise a for loop counter to zero and the target to the
        top element. */
     T_OP_FOR_INC_START,
-    /* FOR_INC Imm_s16 -- Increment a for loop counter by 1 and jump a given distance if
+    /* FOR_INC Off_s16 -- Increment a for loop counter by 1 and jump a given distance if
        the counter is not equal to the target. */
     T_OP_FOR_INC,
-    /* GET_LOOP_VAR Imm_u16 -- Get the loop variable a given distance from the current loop. */
+    /* GET_LOOP_VAR Idx_u16 -- Get the loop variable a given distance from the current loop. */
     T_OP_GET_LOOP_VAR,
-    /* JUMP Imm_s16 -- Jump a given distance. */
+    /* JUMP Off_s16 -- Jump a given distance. */
     T_OP_JUMP,
-    /* JUMP_COND Imm_s16 -- Jump the given distance if the top element is non-zero (true). */
+    /* JUMP_COND Off_s16 -- Jump the given distance if the top element is non-zero (true). */
     T_OP_JUMP_COND,
-    /* JUMP_NCOND Imm_s16 -- Jump the given distance if the top element is zero (false). */
+    /* JUMP_NCOND Off_s16 -- Jump the given distance if the top element is zero (false). */
     T_OP_JUMP_NCOND,
     /* MULT -- Multiply the top two stack elements. */
     T_OP_MULT,
@@ -125,23 +126,23 @@ enum w_opcode {
     W_OP_DUPE,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     W_OP_EXIT,
-    /* FOR_DEC_START Imm_s16 -- Initialise a for loop counter to the top element. */
+    /* FOR_DEC_START Off_s16 -- Initialise a for loop counter to the top element. */
     W_OP_FOR_DEC_START,
-    /* FOR_DEC Imm_s16 -- Decrement a for loop counter by 1 and loop while it's not zero. */
+    /* FOR_DEC Off_s16 -- Decrement a for loop counter by 1 and loop while it's not zero. */
     W_OP_FOR_DEC,
-    /* FOR_INC_START Imm_s16 -- Initialise a for loop counter to zero and the target to the
+    /* FOR_INC_START Off_s16 -- Initialise a for loop counter to zero and the target to the
        top element. */
     W_OP_FOR_INC_START,
-    /* FOR_INC Imm_s16 -- Increment a for loop counter by 1 and jump a given distance if
+    /* FOR_INC Off_s16 -- Increment a for loop counter by 1 and jump a given distance if
        the counter is not equal to the target. */
     W_OP_FOR_INC,
-    /* GET_LOOP_VAR Imm_u16 -- Get the loop variable a given distance from the current loop. */
+    /* GET_LOOP_VAR Idx_u16 -- Get the loop variable a given distance from the current loop. */
     W_OP_GET_LOOP_VAR,
-    /* JUMP Imm_s16 -- Jump a given distance. */
+    /* JUMP Off_s16 -- Jump a given distance. */
     W_OP_JUMP,
-    /* JUMP_COND Imm_s16 -- Jump the given distance if the top element is non-zero (true). */
+    /* JUMP_COND Off_s16 -- Jump the given distance if the top element is non-zero (true). */
     W_OP_JUMP_COND,
-    /* JUMP_NCOND Imm_s16 -- Jump the given distance if the top element is zero (false). */
+    /* JUMP_NCOND Off_s16 -- Jump the given distance if the top element is zero (false). */
     W_OP_JUMP_NCOND,
     /* MULT -- Multiply the top two stack elements. */
     W_OP_MULT,
