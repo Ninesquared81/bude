@@ -20,7 +20,7 @@ static int immediate_u32_instruction(const char *name, struct ir_block *block, i
     printf("%-16s %"PRIu32"\n", name, read_u32(block, offset + 1));
     return offset + 5;
 }
-[[maybe_unused]]
+
 static int immediate_u64_instruction(const char *name, struct ir_block *block, int offset) {
     printf("%-16s %"PRIu64"\n", name, read_u64(block, offset + 1));
     return offset + 9;
