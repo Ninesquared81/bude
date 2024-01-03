@@ -44,11 +44,12 @@ enum t_opcode {
     T_OP_DUPE,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     T_OP_EXIT,
-    /* FOR_DEC_START -- Initialise a for loop counter to the top element. */
+    /* FOR_DEC_START Imm_s16 -- Initialise a for loop counter to the top element. */
     T_OP_FOR_DEC_START,
-    /* FOR_DEC -- Decrement a for loop counter by 1 and loop while it's not zero. */
+    /* FOR_DEC Imm_s16 -- Decrement a for loop counter by 1 and loop while it's not zero. */
     T_OP_FOR_DEC,
-    /* FOR_INC_START -- Initialise a for loop counter to zero and the target to the top element. */
+    /* FOR_INC_START Imm_s16 -- Initialise a for loop counter to zero and the target to the
+       top element. */
     T_OP_FOR_INC_START,
     /* FOR_INC Imm_s16 -- Increment a for loop counter by 1 and jump a given distance if
        the counter is not equal to the target. */
@@ -124,11 +125,12 @@ enum w_opcode {
     W_OP_DUPE,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     W_OP_EXIT,
-    /* FOR_DEC_START -- Initialise a for loop counter to the top element. */
+    /* FOR_DEC_START Imm_s16 -- Initialise a for loop counter to the top element. */
     W_OP_FOR_DEC_START,
-    /* FOR_DEC -- Decrement a for loop counter by 1 and loop while it's not zero. */
+    /* FOR_DEC Imm_s16 -- Decrement a for loop counter by 1 and loop while it's not zero. */
     W_OP_FOR_DEC,
-    /* FOR_INC_START -- Initialise a for loop counter to zero and the target to the top element. */
+    /* FOR_INC_START Imm_s16 -- Initialise a for loop counter to zero and the target to the
+       top element. */
     W_OP_FOR_INC_START,
     /* FOR_INC Imm_s16 -- Increment a for loop counter by 1 and jump a given distance if
        the counter is not equal to the target. */
