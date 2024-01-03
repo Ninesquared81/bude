@@ -590,7 +590,7 @@ enum type_check_result type_check(struct type_checker *checker) {
         }
         case T_OP_GET_LOOP_VAR:
             ts_push(checker, TYPE_INT);  // Loop variable is always an integer.
-            emit_simple(checker, W_OP_GET_LOOP_VAR);
+            copy_immediate_u16(checker, W_OP_GET_LOOP_VAR);
             break;
         case T_OP_MULT: {
             enum type rhs_type = ts_pop(checker);
