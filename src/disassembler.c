@@ -5,50 +5,51 @@
 #include "disassembler.h"
 #include "ir.h"
 
+#define OPCODE_FORMAT "-20s"
 
 static int immediate_u8_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRIu8"\n", name, read_u8(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRIu8"\n", name, read_u8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_u16_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRIu16"\n", name, read_u16(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRIu16"\n", name, read_u16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_u32_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRIu32"\n", name, read_u32(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRIu32"\n", name, read_u32(block, offset + 1));
     return offset + 5;
 }
 
 static int immediate_u64_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRIu64"\n", name, read_u64(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRIu64"\n", name, read_u64(block, offset + 1));
     return offset + 9;
 }
 
 static int immediate_s8_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRId8"\n", name, read_s8(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRId8"\n", name, read_s8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_s16_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRId16"\n", name, read_s16(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRId16"\n", name, read_s16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_s32_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRId32"\n", name, read_s32(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRId32"\n", name, read_s32(block, offset + 1));
     return offset + 5;
 }
 
 static int immediate_s64_instruction(const char *name, struct ir_block *block, int offset) {
-    printf("%-16s %"PRId64"\n", name, read_s64(block, offset + 1));
+    printf("%"OPCODE_FORMAT" %"PRId64"\n", name, read_s64(block, offset + 1));
     return offset + 9;
 }
 
 static int jump_instruction(const char *name, struct ir_block *block, int offset) {
     int jump = read_s16(block, offset + 1);
-    printf("%-16s %-6d (%d -> %d)\n", name, jump, offset, offset + jump + 1);
+    printf("%"OPCODE_FORMAT" %-6d (%d -> %d)\n", name, jump, offset, offset + jump + 1);
     return offset + 3;
 }
 
