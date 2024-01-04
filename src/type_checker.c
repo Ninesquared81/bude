@@ -102,7 +102,7 @@ static void copy_immediate_u64(struct type_checker *checker, enum w_opcode instr
 }
 
 static struct arithm_conv arithmetic_conversions[TYPE_COUNT][TYPE_COUNT] = {
-    /* lhs_type  rhs_type    result_type lhs_conv rhs_conv result_conv */
+    /* lhs_type  rhs_type    result_type lhs_conv    rhs_conv   result_conv */
     [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
     [TYPE_WORD][TYPE_BYTE] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
     [TYPE_WORD][TYPE_INT]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
