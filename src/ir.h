@@ -216,6 +216,7 @@ struct ir_block {
     size_t max_for_loop_level;
     struct jump_info_table jumps;
     struct string_table strings;
+    struct string_table symbols;
     struct region *static_memory;
 };
 

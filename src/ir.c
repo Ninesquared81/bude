@@ -205,6 +205,7 @@ void init_block(struct ir_block *block, enum ir_instruction_set instruction_set,
     block->max_for_loop_level = 0;
     init_jump_info_table(&block->jumps);
     init_string_table(&block->strings);
+    init_string_table(&block->symbols);
     block->static_memory = new_region(MEMORY_INIT_SIZE);
     //CHECK_ALLOCATION(block->static_memory);
     if (block->static_memory == NULL) {
@@ -221,6 +222,8 @@ void free_block(struct ir_block *block) {
     block->capacity = 0;
     block->count = 0;
     free_jump_info_table(&block->jumps);
+    free_string_table(&block->strings);
+    free_string_table(&block->symbols);
     kill_region(block->static_memory);
 }
 
