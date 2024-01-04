@@ -6,11 +6,14 @@
 #include <stdint.h>
 
 #include "string_view.h"
+#include "type_checker.h"
 
 #define SYMDICT_INIT_SIZE 128
 
 enum symbol_type {
     SYM_LOOP_VAR,
+    SYM_PACK,
+    SYM_COMP,
 };
 
 struct symbol {
@@ -20,6 +23,12 @@ struct symbol {
         struct {
             size_t level;
         } loop_var;
+        struct {
+            enum type slots[8];
+        } pack;
+        struct {
+            size_t word_count;
+        } comp;
     };
 };
 
