@@ -101,6 +101,15 @@ static void copy_immediate_u64(struct type_checker *checker, enum w_opcode instr
     checker->ip += 8;
 }
 
+static void copy_jump_instruction(struct type_checker *checker, enum w_opcode instruction) {
+    int16_t jump = read_s16(checker->in_block, checker->ip + 1);
+    write_immediate_s16(checker->out_block, instruction, jump,
+                        &checker->in_block->locations[checker->ip]);
+    int dest = checker->out_block->count - 2 + jump;  // -2 because of operand.
+    add_jump(checker->out_block, dest);
+    checker->ip += 2;
+}
+
 static struct arithm_conv arithmetic_conversions[TYPE_COUNT][TYPE_COUNT] = {
     /* lhs_type  rhs_type    result_type lhs_conv    rhs_conv   result_conv */
     [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
@@ -752,35 +761,35 @@ enum type_check_result type_check(struct type_checker *checker) {
         case T_OP_JUMP_COND:
             ts_pop(checker);
             check_jump_instruction(checker);
-            copy_immediate_u16(checker, W_OP_JUMP_COND);
+            copy_jump_instruction(checker, W_OP_JUMP_COND);
             break;
         case T_OP_JUMP_NCOND:
             ts_pop(checker);
             check_jump_instruction(checker);
-            copy_immediate_u16(checker, W_OP_JUMP_NCOND);
+            copy_jump_instruction(checker, W_OP_JUMP_NCOND);
             break;
         case T_OP_JUMP:
             check_jump_instruction(checker);
-            copy_immediate_u16(checker, W_OP_JUMP);
+            copy_jump_instruction(checker, W_OP_JUMP);
             check_unreachable(checker);
             break;
         case T_OP_FOR_DEC_START:
             ts_pop(checker);
             check_jump_instruction(checker);
-            copy_immediate_u16(checker, W_OP_FOR_DEC_START);
+            copy_jump_instruction(checker, W_OP_FOR_DEC_START);
             break;
         case T_OP_FOR_INC_START:
             ts_pop(checker);
             check_jump_instruction(checker);
-            copy_immediate_u16(checker, W_OP_FOR_INC_START);
+            copy_jump_instruction(checker, W_OP_FOR_INC_START);
             break;
         case T_OP_FOR_DEC:
             check_jump_instruction(checker);
-            copy_immediate_u16(checker, W_OP_FOR_DEC);
+            copy_jump_instruction(checker, W_OP_FOR_DEC);
             break;
         case T_OP_FOR_INC:
             check_jump_instruction(checker);
-            copy_immediate_u16(checker, W_OP_FOR_INC);
+            copy_jump_instruction(checker, W_OP_FOR_INC);
             break;
         }
     }

@@ -277,7 +277,8 @@ void copy_string_table(struct string_table *restrict dest,
 void copy_metadata(struct ir_block *restrict dest, struct ir_block *restrict src) {
     dest->filename = src->filename;
     dest->max_for_loop_level = src->max_for_loop_level;
-    copy_jump_info_table(&dest->jumps, &src->jumps);
+    /* NOTE: jump info table is not copied since it relies on code indices,
+       which may change due to code insertion. */
     copy_string_table(&dest->strings, &src->strings);
     dest->static_memory = copy_region(src->static_memory);
 }
