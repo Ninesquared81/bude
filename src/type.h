@@ -29,7 +29,7 @@ typedef int type_index;
 static_assert(SIMPLE_TYPE_COUNT == TYPE_S32 + 1);
 static_assert(TYPE_ERROR == 0);
 
-#define IS_BASIC_TYPE(type) \
+#define IS_SIMPLE_TYPE(type) \
     ((type) < SIMPLE_TYPE_COUNT && TYPE_ERROR <= (type))
 
 struct type_info {
