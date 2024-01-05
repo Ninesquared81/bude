@@ -8,7 +8,7 @@
 #include "type_checker.h"
 
 struct arithm_conv {
-    enum type result_type;
+    type_index result_type;
     enum w_opcode lhs_conv;
     enum w_opcode rhs_conv;
     enum w_opcode result_conv;
@@ -110,7 +110,7 @@ static void copy_jump_instruction(struct type_checker *checker, enum w_opcode in
     checker->ip += 2;
 }
 
-static struct arithm_conv arithmetic_conversions[TYPE_COUNT][TYPE_COUNT] = {
+static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT] = {
     /* lhs_type  rhs_type    result_type lhs_conv    rhs_conv   result_conv */
     [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
     [TYPE_WORD][TYPE_BYTE] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
@@ -207,7 +207,7 @@ static struct arithm_conv arithmetic_conversions[TYPE_COUNT][TYPE_COUNT] = {
     [TYPE_S32][TYPE_U32]   = {TYPE_U32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
 };
 
-static bool is_integral(enum type type) {
+static bool is_integral(type_index type) {
     switch (type) {
     case TYPE_WORD:
     case TYPE_BYTE:
@@ -224,7 +224,7 @@ static bool is_integral(enum type type) {
     }
 }
 
-static bool is_signed(enum type type) {
+static bool is_signed(type_index type) {
     switch (type) {
     case TYPE_INT:
     case TYPE_S8:
@@ -236,11 +236,11 @@ static bool is_signed(enum type type) {
     }
 }
 
-static enum w_opcode promote(enum type type) {
+static enum w_opcode promote(type_index type) {
     return arithmetic_conversions[TYPE_INT][type].rhs_conv;
 }
 
-static enum w_opcode sign_extend(enum type type) {
+static enum w_opcode sign_extend(type_index type) {
     switch (type) {
     case TYPE_BYTE:
     case TYPE_U8:
@@ -258,7 +258,7 @@ static enum w_opcode sign_extend(enum type type) {
 }
 
 static bool check_pointer_addition(struct type_checker *checker,
-                                   enum type lhs_type, enum type rhs_type) {
+                                   type_index lhs_type, type_index rhs_type) {
     enum w_opcode conversion = W_OP_NOP;
     if (lhs_type == TYPE_PTR) {
         if (rhs_type == TYPE_PTR) {
@@ -305,7 +305,7 @@ static bool save_state_at(struct type_checker *checker, int ip) {
         return false;
     }
     size_t count = TSTACK_COUNT(checker->tstack);
-    size_t tstack_size = count * sizeof(enum type);
+    size_t tstack_size = count * sizeof(type_index);
     struct tstack_state *state = malloc(sizeof *state + tstack_size);
     state->count = count;
     memcpy(state->types, checker->tstack->types, tstack_size);
@@ -488,9 +488,9 @@ enum type_check_result type_check(struct type_checker *checker) {
             emit_simple(checker, W_OP_POP);
             break;
         case T_OP_ADD: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
-            enum type result_type;
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            type_index result_type;
             if (!check_pointer_addition(checker, lhs_type, rhs_type)) {
                 struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
                 result_type = conversion.result_type;
@@ -511,8 +511,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_AND: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
                 checker->had_error = true;
                 type_error(checker, "mismatched types for `and`");
@@ -531,8 +531,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             emit_simple(checker, W_OP_DEREF);
             break;
         case T_OP_DIVMOD: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
@@ -555,8 +555,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_IDIVMOD: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
@@ -573,8 +573,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_EDIVMOD: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
@@ -591,7 +591,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_DUPE: {
-            enum type type = ts_pop(checker);
+            type_index type = ts_pop(checker);
             ts_push(checker, type);
             ts_push(checker, type);
             emit_simple(checker, W_OP_DUPE);
@@ -602,8 +602,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             copy_immediate_u16(checker, W_OP_GET_LOOP_VAR);
             break;
         case T_OP_MULT: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
                 checker->had_error = true;
@@ -623,8 +623,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_OR: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
                 checker->had_error = true;
                 type_error(checker, "mismatched tyes for `or`:");
@@ -635,7 +635,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_PRINT: {
-            enum type type = ts_pop(checker);
+            type_index type = ts_pop(checker);
             enum w_opcode print_instruction = W_OP_PRINT;
             if (is_signed(type)) {
                 // Promote signed type to int.
@@ -655,7 +655,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_PRINT_INT: {
-            enum type type = ts_pop(checker);
+            type_index type = ts_pop(checker);
             if (is_integral(type)) {
                 enum w_opcode conv_instruction = sign_extend(type);
                 emit_simple_nnop(checker, conv_instruction);
@@ -668,8 +668,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_SUB: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type != TYPE_ERROR) {
                 emit_simple_nnop(checker, conversion.lhs_conv);
@@ -699,8 +699,8 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_SWAP: {
-            enum type rhs_type = ts_pop(checker);
-            enum type lhs_type = ts_pop(checker);
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
             ts_push(checker, rhs_type);
             ts_push(checker, lhs_type);
             emit_simple(checker, W_OP_SWAP);
@@ -749,7 +749,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_EXIT: {
-            enum type type = ts_pop(checker);
+            type_index type = ts_pop(checker);
             if (!is_integral(type)) {
                 checker->had_error = true;
                 type_error(checker, "expected integral type for `exit`");
@@ -797,7 +797,7 @@ enum type_check_result type_check(struct type_checker *checker) {
     return (!checker->had_error) ? TYPE_CHECK_OK : TYPE_CHECK_ERROR;
 }
 
-void ts_push(struct type_checker *checker, enum type type) {
+void ts_push(struct type_checker *checker, type_index type) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top >= &tstack->types[TYPE_STACK_SIZE]) {
         checker->had_error = true;
@@ -807,7 +807,7 @@ void ts_push(struct type_checker *checker, enum type type) {
     *tstack->top++ = type;
 }
 
-enum type ts_pop(struct type_checker *checker) {
+type_index ts_pop(struct type_checker *checker) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top == tstack->types) {
         checker->had_error = true;
@@ -817,7 +817,7 @@ enum type ts_pop(struct type_checker *checker) {
     return *--tstack->top;
 }
 
-enum type ts_peek(struct type_checker *checker) {
+type_index ts_peek(struct type_checker *checker) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top == tstack->types) {
         checker->had_error = true;

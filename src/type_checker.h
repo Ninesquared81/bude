@@ -5,39 +5,20 @@
 
 #include "ir.h"
 #include "stack.h"
+#include "type.h"
 
 #define TYPE_STACK_SIZE STACK_SIZE
-
-enum type {
-    TYPE_ERROR,
-
-    TYPE_WORD,
-    TYPE_BYTE,
-    TYPE_PTR,
-    TYPE_INT,
-
-    TYPE_U8,
-    TYPE_U16,
-    TYPE_U32,
-    TYPE_S8,
-    TYPE_S16,
-    TYPE_S32,
-};
-
-#define TYPE_COUNT 11
-static_assert(TYPE_COUNT == TYPE_S32 + 1);
-static_assert(TYPE_ERROR == 0);
 
 #define TSTACK_COUNT(tstack) (tstack->top - tstack->types)
 
 struct type_stack {
-    enum type *top;
-    enum type types[TYPE_STACK_SIZE];
+    type_index *top;
+    type_index types[TYPE_STACK_SIZE];
 };
 
 struct tstack_state {
     size_t count;
-    enum type types[];
+    type_index types[];
 };
 
 struct type_checker_states {
@@ -67,9 +48,9 @@ void init_type_checker(struct type_checker *checker, struct ir_block *in_block,
                        struct ir_block *out_block);
 void free_type_checker(struct type_checker *checker);
 
-void ts_push(struct type_checker *checker, enum type type);
-enum type ts_pop(struct type_checker *checker);
-enum type ts_peek(struct type_checker *checker);
+void ts_push(struct type_checker *checker, type_index type);
+type_index ts_pop(struct type_checker *checker);
+type_index ts_peek(struct type_checker *checker);
 
 enum type_check_result type_check(struct type_checker *checker);
 
