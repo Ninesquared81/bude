@@ -33,7 +33,7 @@ static_assert(TYPE_ERROR == 0);
 
 struct type_info {
     enum type_kind {
-        KIND_BASIC,
+        KIND_SIMPLE,
         KIND_PACK,
         KIND_COMP,
     } kind;
