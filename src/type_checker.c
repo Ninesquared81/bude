@@ -237,7 +237,7 @@ static bool is_signed(type_index type) {
 }
 
 static struct arithm_conv convert(type_index rhs, type_index lhs) {
-    if (IS_BASIC_TYPE(rhs) && IS_BASIC_TYPE(lhs)) {
+    if (IS_SIMPLE_TYPE(rhs) && IS_SIMPLE_TYPE(lhs)) {
         return arithmetic_conversions[lhs][rhs];
     }
     // Custom types are always non-arithmetic.
