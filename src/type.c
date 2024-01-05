@@ -5,6 +5,19 @@
 
 #define TYPE_TABLE_INIT_SIZE 32
 
+void init_type_table(struct type_table *types) {
+    types->capacity = 0;
+    types->count = 0;
+    types->infos = allocate_array(TYPE_TABLE_INIT_SIZE, sizeof types->infos[0]);
+}
+
+void free_type_table(struct type_table *types) {
+    free_array(types->infos, types->capacity, sizeof types->infos[0]);
+    types->infos = NULL;
+    types->capacity = 0;
+    types->count = 0;
+}
+
 static void grow_type_table(struct type_table *types) {
     int old_capacity = types->capacity;
     int new_capacity = (old_capacity > 0)

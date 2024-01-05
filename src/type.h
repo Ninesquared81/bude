@@ -54,6 +54,8 @@ struct type_table {
     struct type_info *infos;
 };
 
+void init_type_table(struct type_table *types);
+void free_type_table(struct type_table *types);
 type_index new_type(struct type_table *types, const struct type_info *info);
 const struct type_info *lookup_type(const struct type_table *types, type_index type);
 
