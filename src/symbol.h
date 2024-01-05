@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #include "string_view.h"
-#include "type_checker.h"
+#include "type.h"
 
 #define SYMDICT_INIT_SIZE 128
 
@@ -24,7 +24,7 @@ struct symbol {
             size_t level;
         } loop_var;
         struct {
-            enum type slots[8];
+            type_index slots[8];
         } pack;
         struct {
             size_t word_count;
