@@ -634,6 +634,9 @@ static void compile_symbol(struct compiler *compiler) {
     case SYM_LOOP_VAR:
         compile_loop_var_symbol(compiler, symbol);
         break;
+    case SYM_PACK:
+    case SYM_COMP:
+        assert(0 && "Not implemented");
     }
 }
 
