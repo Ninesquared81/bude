@@ -188,6 +188,8 @@ enum w_opcode {
     W_OP_ZX32L,
 };
 
+static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);
+
 enum ir_instruction_set {
     IR_TYPED,
     IR_WORD_ORIENTED,
