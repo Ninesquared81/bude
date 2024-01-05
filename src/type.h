@@ -1,6 +1,8 @@
 #ifndef TYPE_H
 #define TYPE_H
 
+#include <stddef.h>
+
 enum simple_type {
     TYPE_ERROR,
 
@@ -28,5 +30,30 @@ static_assert(TYPE_ERROR == 0);
 
 #define IS_BASIC_TYPE(type) \
     ((type) < SIMPLE_TYPE_COUNT && TYPE_ERROR <= (type))
+
+struct type_info {
+    enum type_kind {
+        KIND_BASIC,
+        KIND_PACK,
+        KIND_COMP,
+    } kind;
+    union {
+        struct {
+            type_index fields[8];
+        } pack;
+        struct {
+            size_t word_count;
+        } comp;
+    };
+};
+
+struct type_table {
+    int capacity;
+    int count;
+    struct type_info *infos;
+};
+
+type_index new_type(struct type_table *types);
+struct type_info *lookup_type(struct type_table *types);
 
 #endif
