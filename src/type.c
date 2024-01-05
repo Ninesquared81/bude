@@ -35,10 +35,16 @@ type_index new_type(struct type_table *types, const struct type_info *info) {
     if (info != NULL) {
         types->infos[index] = *info;
     }
+    // Offset to get valid index again (see below).
     return index + SIMPLE_TYPE_COUNT;
 }
 
 const struct type_info *lookup_type(const struct type_table *types, type_index type) {
+    /* NOTE: if a simple type is requested, instead of filling up our table with simple types,
+     * we keep a "basic" type info struct which we can return the address of instead (it's
+     * static so returning the address is fine). This means we only have to keep user-defined
+     * types in the table.
+     */
     static const struct type_info basic = {0};
     if (IS_BASIC_TYPE(type)) return &basic;
     int index = type - SIMPLE_TYPE_COUNT;
