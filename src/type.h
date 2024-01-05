@@ -1,6 +1,7 @@
 #ifndef TYPE_H
 #define TYPE_H
 
+#include <assert.h>
 #include <stddef.h>
 
 enum simple_type {
