@@ -5,6 +5,7 @@
 
 #include "ir.h"
 #include "location.h"
+#include "memory.h"
 #include "region.h"
 #include "type_punning.h"
 
@@ -163,35 +164,6 @@ bool is_w_jump(enum w_opcode instruction) {
     default:
         return false;
     }
-}
-
-static void *allocate_array(size_t count, size_t size) {
-    void *array = calloc(count, size);
-    if (array == NULL) {
-        fprintf(stderr, "Could not allocate array.\n");
-        exit(1);
-    }
-    return array;
-}
-
-static void free_array(void *array, [[maybe_unused]] size_t count, [[maybe_unused]] size_t size) {
-    free(array);
-}
-
-static void *reallocate_array(void *array, size_t old_count, size_t new_count, size_t size) {
-    if (new_count < old_count) {
-        return array;
-    }
-    void *new = allocate_array(new_count, size);
-    if (new == NULL) {
-        fprintf(stderr, "Could not reallocate array.\n");
-        exit(1);
-    }
-    if (array != NULL) {
-        memcpy(new, array, size * old_count);
-        free_array(array, old_count, size);
-    }
-    return new;
 }
 
 void init_block(struct ir_block *block, enum ir_instruction_set instruction_set,
