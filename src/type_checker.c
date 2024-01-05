@@ -236,8 +236,16 @@ static bool is_signed(type_index type) {
     }
 }
 
+static struct arithm_conv convert(type_index rhs, type_index lhs) {
+    if (IS_BASIC_TYPE(rhs) && IS_BASIC_TYPE(lhs)) {
+        return arithmetic_conversions[lhs][rhs];
+    }
+    // Custom types are always non-arithmetic.
+    return (struct arithm_conv) {0};
+}
+
 static enum w_opcode promote(type_index type) {
-    return arithmetic_conversions[TYPE_INT][type].rhs_conv;
+    return convert(TYPE_INT, type).rhs_conv;
 }
 
 static enum w_opcode sign_extend(type_index type) {
