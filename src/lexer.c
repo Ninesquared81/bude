@@ -94,7 +94,7 @@ static enum token_type check_keyword(struct lexer *lexer, int start, int length,
         && memcmp(&lexer->start[start], rest, length) == 0) {
         return type;
     }
-    return TOKEN_SYMBOL;
+    return TOKEN_SYMBOL_LIT;
 }
 
 static bool check_middle(struct lexer *lexer, int start, int length, const char *middle) {
@@ -103,7 +103,7 @@ static bool check_middle(struct lexer *lexer, int start, int length, const char 
 }
 
 static enum token_type check_terminal(struct lexer *lexer, int length, enum token_type type) {
-    return (lexer->current - lexer->start == length) ? type : TOKEN_SYMBOL;
+    return (lexer->current - lexer->start == length) ? type : TOKEN_SYMBOL_LIT;
 }
 
 static enum token_type symbol_type(struct lexer *lexer) {
@@ -194,7 +194,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
         }
         break;
     }
-    return TOKEN_SYMBOL;
+    return TOKEN_SYMBOL_LIT;
 }
 
 static struct token symbol(struct lexer *lexer) {
@@ -257,7 +257,7 @@ static struct token integer(struct lexer *lexer) {
     if (!lex_int_suffix(lexer)) {
         return symbol(lexer);
     }
-    return make_token(lexer, TOKEN_INT);
+    return make_token(lexer, TOKEN_INT_LIT);
 }
 
 static struct token string(struct lexer *lexer) {
@@ -274,7 +274,7 @@ static struct token string(struct lexer *lexer) {
     }
     // Consume the closing '"'.
     advance(lexer);
-    return make_token(lexer, TOKEN_STRING);
+    return make_token(lexer, TOKEN_STRING_LIT);
 }
 
 static struct token character(struct lexer *lexer) {
@@ -300,7 +300,7 @@ static struct token character(struct lexer *lexer) {
         exit(1);
     }
 
-    return make_token(lexer, TOKEN_CHAR);
+    return make_token(lexer, TOKEN_CHAR_LIT);
 }
 
 static bool is_integer(struct lexer *lexer) {

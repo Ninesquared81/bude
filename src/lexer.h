@@ -8,10 +8,10 @@
 
 enum token_type {
     // Literals.
-    TOKEN_INT,
-    TOKEN_CHAR,
-    TOKEN_STRING,
-    TOKEN_SYMBOL,
+    TOKEN_INT_LIT,
+    TOKEN_CHAR_LIT,
+    TOKEN_STRING_LIT,
+    TOKEN_SYMBOL_LIT,
 
     // Keywords.
     TOKEN_AND,
