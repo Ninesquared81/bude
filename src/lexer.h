@@ -15,6 +15,7 @@ enum token_type {
 
     // Keywords.
     TOKEN_AND,
+    TOKEN_COMP,
     TOKEN_DEREF,
     TOKEN_DO,
     TOKEN_DUPE,
@@ -27,9 +28,10 @@ enum token_type {
     TOKEN_IF,
     TOKEN_MINUS,
     TOKEN_NOT,
+    TOKEN_OR,
+    TOKEN_PACK,
     TOKEN_PLUS,
     TOKEN_POP,
-    TOKEN_OR,
     TOKEN_PRINT,
     TOKEN_PRINT_CHAR,
     TOKEN_SLASH_PERCENT,
