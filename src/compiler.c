@@ -478,7 +478,7 @@ static int compile_conditional(struct compiler *compiler) {
 static void compile_for_loop(struct compiler *compiler) {
     enum t_opcode start_instruction = T_OP_FOR_DEC_START;
     enum t_opcode update_instruction = T_OP_FOR_DEC;
-    if (match(compiler, TOKEN_SYMBOL)) {
+    if (match(compiler, TOKEN_SYMBOL_LIT)) {
         struct symbol symbol = {
             .name = peek_previous(compiler).value,
             .type = SYM_LOOP_VAR,
@@ -705,7 +705,7 @@ static bool compile_simple(struct compiler *compiler) {
 
 static void compile_expr(struct compiler *compiler) {
     while (!is_at_end(compiler)) {
-        if (match(compiler, TOKEN_CHAR)) {
+        if (match(compiler, TOKEN_CHAR_LIT)) {
             compile_character(compiler);
         }
         else if (match(compiler, TOKEN_FOR)) {
@@ -714,13 +714,13 @@ static void compile_expr(struct compiler *compiler) {
         else if (match(compiler, TOKEN_IF)) {
             compile_conditional(compiler);
         }
-        else if (match(compiler, TOKEN_INT)) {
+        else if (match(compiler, TOKEN_INT_LIT)) {
             compile_integer(compiler);
         }
-        else if (match(compiler, TOKEN_STRING)) {
+        else if (match(compiler, TOKEN_STRING_LIT)) {
             compile_string(compiler);
         }
-        else if (match(compiler, TOKEN_SYMBOL)) {
+        else if (match(compiler, TOKEN_SYMBOL_LIT)) {
             compile_symbol(compiler);
         }
         else if (match(compiler, TOKEN_WHILE)) {
