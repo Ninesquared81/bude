@@ -32,6 +32,9 @@ static_assert(TYPE_ERROR == 0);
 #define IS_SIMPLE_TYPE(type) \
     ((type) < SIMPLE_TYPE_COUNT && TYPE_ERROR <= (type))
 
+const char *type_name(type_index type);
+size_t type_size(type_index type);
+
 struct type_info {
     enum type_kind {
         KIND_SIMPLE,

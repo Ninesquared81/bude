@@ -79,7 +79,7 @@ enum t_opcode {
     T_OP_NOT,
     /* OR -- Logical (value-preserving) or operation of top two stack elements. */
     T_OP_OR,
-    /* PRINT -- Print the top element of the stack as a word. */
+    /* (T)PRINT -- Print the top element of the stack in a format surmised from its type. */
     T_OP_PRINT,
     /* PRINT_CHAR -- Print the top element of the stack as a character. */
     T_OP_PRINT_CHAR,
@@ -97,6 +97,14 @@ enum t_opcode {
     T_OP_AS_S8,
     T_OP_AS_S16,
     T_OP_AS_S32,
+    /* (T)PACKn Idx_un -- Construct a pack with the given type index. */
+    T_OP_PACK8,
+    T_OP_PACK16,
+    T_OP_PACK32,
+    /* (T)COMPn Idx_un -- Construct a comp with the given type index. */
+    T_OP_COMP8,
+    T_OP_COMP16,
+    T_OP_COMP32,
 };
 
 enum w_opcode {
@@ -160,7 +168,7 @@ enum w_opcode {
     W_OP_NOT,
     /* OR -- Logical (value-preserving) or operation of top two stack elements. */
     W_OP_OR,
-    /* PRINT -- Print the top element of the stack as a word. */
+    /* (W)PRINT -- Print the top element of the stack as a word. */
     W_OP_PRINT,
     /* PRINT_CHAR -- Print the top element of the stack as a character. */
     W_OP_PRINT_CHAR,
@@ -186,6 +194,15 @@ enum w_opcode {
     W_OP_ZX16L,
     W_OP_ZX32,
     W_OP_ZX32L,
+    /* (W)PACKn Imm_u8... -- Construct a pack with n fields of the provided sizes. */
+    W_OP_PACK1,
+    W_OP_PACK2,
+    W_OP_PACK3,
+    W_OP_PACK4,
+    W_OP_PACK5,
+    W_OP_PACK6,
+    W_OP_PACK7,
+    W_OP_PACK8,
 };
 
 static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);
@@ -276,6 +293,15 @@ void write_immediate_u64(struct ir_block *block, opcode instruction, uint64_t op
                          struct location *location);
 void write_immediate_s64(struct ir_block *block, opcode instruction, int64_t operand,
                          struct location *location);
+
+void write_u8(struct ir_block *block, uint8_t value, struct location *location);
+void write_s8(struct ir_block *block, int8_t value, struct location *location);
+void write_u16(struct ir_block *block, uint16_t value, struct location *location);
+void write_s16(struct ir_block *block, int16_t value, struct location *location);
+void write_u32(struct ir_block *block, uint32_t value, struct location *location);
+void write_s32(struct ir_block *block, int32_t value, struct location *location);
+void write_u64(struct ir_block *block, uint64_t value, struct location *location);
+void write_s64(struct ir_block *block, int64_t value, struct location *location);
 
 void overwrite_u8(struct ir_block *block, int start, uint8_t value);
 void overwrite_s8(struct ir_block *block, int start, int8_t value);

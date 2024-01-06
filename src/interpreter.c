@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "disassembler.h"
 #include "interpreter.h"
@@ -46,6 +47,19 @@ static void jump(struct ir_block *block, int offset, int *ip) {
     // Address -1 means to jump to the start.
     assert(-1 <= new_address && new_address < block->count);
     *ip = new_address;
+}
+
+static stack_word pack_fields(int count, stack_word fields[count], uint8_t sizes[count]) {
+    assert(0 < count && count <= 8);
+    stack_word pack = 0;
+    unsigned char *write_ptr = (unsigned char *)&pack;
+    for (int i = 0; i < count; ++i) {
+        uint8_t size = sizes[i];
+        assert((unsigned char *)&(&pack)[1] - write_ptr >= (int)size);
+        memcpy(write_ptr, &fields[i], size);
+        write_ptr += size;
+    }
+    return pack;
 }
 
 enum interpret_result interpret(struct interpreter *interpreter) {
@@ -403,6 +417,158 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             a &= 0xFFFFFFFF;
             push(interpreter->main_stack, a);
             push(interpreter->main_stack, b);
+            break;
+        }
+        case W_OP_PACK1: {
+            ++ip;
+            // We don't need to actually do anything here.
+            break;
+        }
+        case W_OP_PACK2: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+            };
+            ip += 2;
+            stack_word fields[] = {
+                peek_nth(interpreter->main_stack, 1),
+                peek(interpreter->main_stack)
+            };
+            popn(interpreter->main_stack, 2);
+            stack_word pack = pack_fields(2, fields, sizes);
+            push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_PACK3: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+            };
+            ip += 3;
+            stack_word fields[] = {
+                peek_nth(interpreter->main_stack, 2),
+                peek_nth(interpreter->main_stack, 1),
+                peek(interpreter->main_stack)
+            };
+            popn(interpreter->main_stack, 3);
+            stack_word pack = pack_fields(3, fields, sizes);
+            push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_PACK4: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+            };
+            ip += 4;
+            stack_word fields[] = {
+                peek_nth(interpreter->main_stack, 3),
+                peek_nth(interpreter->main_stack, 2),
+                peek_nth(interpreter->main_stack, 1),
+                peek(interpreter->main_stack)
+            };
+            popn(interpreter->main_stack, 4);
+            stack_word pack = pack_fields(4, fields, sizes);
+            push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_PACK5: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+            };
+            ip += 5;
+            stack_word fields[] = {
+                peek_nth(interpreter->main_stack, 4),
+                peek_nth(interpreter->main_stack, 3),
+                peek_nth(interpreter->main_stack, 2),
+                peek_nth(interpreter->main_stack, 1),
+                peek(interpreter->main_stack)
+            };
+            popn(interpreter->main_stack, 5);
+            stack_word pack = pack_fields(5, fields, sizes);
+            push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_PACK6: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, ip + 6),
+            };
+            ip += 6;
+            stack_word fields[] = {
+                peek_nth(interpreter->main_stack, 5),
+                peek_nth(interpreter->main_stack, 4),
+                peek_nth(interpreter->main_stack, 3),
+                peek_nth(interpreter->main_stack, 2),
+                peek_nth(interpreter->main_stack, 1),
+                peek(interpreter->main_stack)
+            };
+            popn(interpreter->main_stack, 6);
+            stack_word pack = pack_fields(6, fields, sizes);
+            push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_PACK7: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, ip + 6),
+                read_u8(interpreter->block, ip + 7),
+            };
+            ip += 7;
+            stack_word fields[] = {
+                peek_nth(interpreter->main_stack, 6),
+                peek_nth(interpreter->main_stack, 5),
+                peek_nth(interpreter->main_stack, 4),
+                peek_nth(interpreter->main_stack, 3),
+                peek_nth(interpreter->main_stack, 2),
+                peek_nth(interpreter->main_stack, 1),
+                peek(interpreter->main_stack)
+            };
+            popn(interpreter->main_stack, 7);
+            stack_word pack = pack_fields(7, fields, sizes);
+            push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_PACK8: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, ip + 6),
+                read_u8(interpreter->block, ip + 7),
+                read_u8(interpreter->block, ip + 8),
+            };
+            ip += 8;
+            stack_word fields[] = {
+                peek_nth(interpreter->main_stack, 7),
+                peek_nth(interpreter->main_stack, 6),
+                peek_nth(interpreter->main_stack, 5),
+                peek_nth(interpreter->main_stack, 4),
+                peek_nth(interpreter->main_stack, 3),
+                peek_nth(interpreter->main_stack, 2),
+                peek_nth(interpreter->main_stack, 1),
+                peek(interpreter->main_stack)
+            };
+            popn(interpreter->main_stack, 8);
+            stack_word pack = pack_fields(8, fields, sizes);
+            push(interpreter->main_stack, pack);
             break;
         }
         }

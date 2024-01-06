@@ -620,6 +620,14 @@ static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *sy
     emit_immediate_u16(compiler, T_OP_GET_LOOP_VAR, offset);
 }
 
+static void compile_pack_symbol(struct compiler *compiler, struct symbol *symbol) {
+    emit_immediate_sv(compiler, T_OP_PACK8, symbol->pack.index);
+}
+
+static void compile_comp_symbol(struct compiler *compiler, struct symbol *symbol) {
+    emit_immediate_sv(compiler, T_OP_COMP8, symbol->pack.index);
+}
+
 static void compile_symbol(struct compiler *compiler) {
     struct string_view symbol_text = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
@@ -635,8 +643,11 @@ static void compile_symbol(struct compiler *compiler) {
         compile_loop_var_symbol(compiler, symbol);
         break;
     case SYM_PACK:
+        compile_pack_symbol(compiler, symbol);
+        break;
     case SYM_COMP:
-        assert(0 && "Not implemented");
+        compile_comp_symbol(compiler, symbol);
+        break;
     }
 }
 

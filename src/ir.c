@@ -294,12 +294,78 @@ void write_simple(struct ir_block *block, opcode instruction, struct location *l
     block->code[block->count++] = instruction;
 }
 
+void write_u8(struct ir_block *block, uint8_t operand, struct location *location) {
+    if (block->count + 1 > block->capacity) {
+        grow_block(block);
+    }
+    block->locations[block->count] = *location;
+    block->code[block->count++] = operand;
+}
+
+void write_s8(struct ir_block *block, int8_t operand, struct location *location) {
+    write_u8(block, s8_to_u8(operand), location);
+}
+
+void write_u16(struct ir_block *block, uint16_t operand, struct location *location) {
+    if (block->count + 2 > block->capacity) {
+        grow_block(block);
+    }
+    for (int i = 0; i < 2; ++i) {
+        block->locations[block->count + i] = *location;
+    }
+    block->code[block->count++] = operand;
+    block->code[block->count++] = operand >> 8;
+}
+
+void write_s16(struct ir_block *block, int16_t operand, struct location *location) {
+    write_u16(block, u16_to_s16(operand), location);
+}
+
+void write_u32(struct ir_block *block, uint32_t operand, struct location *location) {
+    if (block->count + 4 > block->capacity) {
+        grow_block(block);
+    }
+    for (int i = 0; i < 4; ++i) {
+        block->locations[block->count + i] = *location;
+    }
+    block->code[block->count++] = operand;
+    block->code[block->count++] = operand >> 8;
+    block->code[block->count++] = operand >> 16;
+    block->code[block->count++] = operand >> 24;    
+}
+
+void write_s32(struct ir_block *block, int32_t operand, struct location *location) {
+    write_u32(block, s32_to_u32(operand), location);
+}
+
+void write_u64(struct ir_block *block, uint64_t operand, struct location *location) {
+    if (block->count + 8 > block->capacity) {
+        grow_block(block);
+    }
+    for (int i = 0; i < 8; ++i) {
+        block->locations[block->count + i] = *location;
+    }
+    block->code[block->count++] = operand;
+    block->code[block->count++] = operand >> 8;
+    block->code[block->count++] = operand >> 16;
+    block->code[block->count++] = operand >> 24;
+    block->code[block->count++] = operand >> 32;
+    block->code[block->count++] = operand >> 40;
+    block->code[block->count++] = operand >> 48;
+    block->code[block->count++] = operand >> 56;    
+}
+
+void write_s64(struct ir_block *block, int64_t operand, struct location *location) {
+    write_u64(block, s64_to_u64(operand), location);
+}
+
 void write_immediate_u8(struct ir_block *block, opcode instruction, uint8_t operand,
                         struct location *location) {
     if (block->count + 2 > block->capacity) {
         grow_block(block);
     }
     block->locations[block->count] = *location;
+    block->locations[block->count + 1] = *location;
     block->code[block->count++] = instruction;
     block->code[block->count++] = operand;
 }
@@ -316,8 +382,7 @@ void write_immediate_u16(struct ir_block *block, opcode instruction, uint16_t op
     }
     block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
-    block->code[block->count++] = operand;
-    block->code[block->count++] = operand >> 8;
+    write_u16(block, operand, location);
 }
 
 void write_immediate_s16(struct ir_block *block, opcode instruction, int16_t operand,
@@ -332,10 +397,7 @@ void write_immediate_u32(struct ir_block *block, opcode instruction, uint32_t op
     }
     block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
-    block->code[block->count++] = operand;
-    block->code[block->count++] = operand >> 8;
-    block->code[block->count++] = operand >> 16;
-    block->code[block->count++] = operand >> 24;
+    write_u32(block, operand, location);
 }
 
 void write_immediate_s32(struct ir_block *block, opcode instruction, int32_t operand,
@@ -350,14 +412,7 @@ void write_immediate_u64(struct ir_block *block, opcode instruction, uint64_t op
     }
     block->locations[block->count] = *location;
     block->code[block->count++] = instruction;
-    block->code[block->count++] = operand;
-    block->code[block->count++] = operand >> 8;
-    block->code[block->count++] = operand >> 16;
-    block->code[block->count++] = operand >> 24;
-    block->code[block->count++] = operand >> 32;
-    block->code[block->count++] = operand >> 40;
-    block->code[block->count++] = operand >> 48;
-    block->code[block->count++] = operand >> 56;
+    write_u64(block, operand, location);
 }
 
 void write_immediate_s64(struct ir_block *block, opcode instruction, int64_t operand,

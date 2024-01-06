@@ -110,6 +110,27 @@ static void copy_jump_instruction(struct type_checker *checker, enum w_opcode in
     checker->ip += 2;
 }
 
+static void emit_pack_instruction(struct type_checker *checker, type_index index) {
+    int addr = checker->out_block->count;
+    // Placeholder instruction.
+    write_simple(checker->out_block, W_OP_NOP,
+                 &checker->in_block->locations[checker->ip]);
+    const struct type_info *info = lookup_type(checker->types, index);
+    int field_count = 0;
+    for (int i = 0; i < 8 && info->pack.fields[i] != TYPE_ERROR; ) {
+        type_index field_type = info->pack.fields[i];
+        size_t size = type_size(field_type);
+        write_u8(checker->out_block, size, &checker->in_block->locations[checker->ip]);
+        i += size;
+        ++field_count;
+    }
+    assert(0 < field_count && field_count <= 8);
+    // Implementation note: since W_OP_PACK1...8 have consecutive opcodes, we can
+    // calculate the opcode by simply adding (field_count - 1) to W_OP_PACK1.
+    enum w_opcode instruction = W_OP_PACK1 + field_count - 1;
+    overwrite_instruction(checker->out_block, addr, instruction);
+}
+
 static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT] = {
     /* lhs_type  rhs_type    result_type lhs_conv    rhs_conv   result_conv */
     [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
@@ -421,6 +442,29 @@ static void check_jump_instruction(struct type_checker *checker) {
         type_error(checker, "inconsistent stack after jump instruction",
                    checker->ip);
     }
+}
+
+static void check_pack_instruction(struct type_checker *checker, type_index index) {
+    const struct type_info *info = lookup_type(checker->types, index);
+    if (info == NULL) {
+        type_error(checker, "unknown type index %d", index);
+        assert(0 && "Invalid IR code generated");
+    }
+    if (info->kind != KIND_PACK) {
+        type_error(checker, "type index %d is not of kind 'KIND_PACK'", index);
+        assert(0 && "Invalid IR code generated");
+    }
+    for (int i = 0; i < 8 && info->pack.fields[i] != TYPE_ERROR; ) {
+        type_index field_type = info->pack.fields[i];
+        type_index arg_type = ts_pop(checker);
+        if (arg_type != field_type) {
+            type_error(checker, "invalid type for '%s'[%d]: expected '%s' but got '%s'.",
+                       type_name(index), i, type_name(field_type), type_name(arg_type));
+        }
+        int size = type_size(field_type);
+        i += (size > 0) ? size : 0;
+    }
+    ts_push(checker, index);
 }
 
 enum type_check_result type_check(struct type_checker *checker) {
@@ -799,6 +843,31 @@ enum type_check_result type_check(struct type_checker *checker) {
             check_jump_instruction(checker);
             copy_jump_instruction(checker, W_OP_FOR_INC);
             break;
+        case T_OP_PACK8: {
+            int8_t index = read_s8(checker->in_block, checker->ip + 1);
+            check_pack_instruction(checker, index);
+            emit_pack_instruction(checker, index);
+            checker->ip += 1;
+            break;
+        }
+        case T_OP_PACK16: {
+            int16_t index = read_s16(checker->in_block, checker->ip + 1);
+            check_pack_instruction(checker, index);
+            emit_pack_instruction(checker, index);
+            checker->ip += 1;
+            break;
+        }
+        case T_OP_PACK32: {
+            int32_t index = read_s32(checker->in_block, checker->ip + 1);
+            check_pack_instruction(checker, index);
+            emit_pack_instruction(checker, index);
+            checker->ip += 1;
+            break;
+        }
+        case T_OP_COMP8:
+        case T_OP_COMP16:
+        case T_OP_COMP32:
+            assert(0 && "Not implemented");
         }
     }
     emit_simple(checker, W_OP_NOP);  // Emit final NOP.

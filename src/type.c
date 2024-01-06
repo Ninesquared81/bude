@@ -5,6 +5,42 @@
 
 #define TYPE_TABLE_INIT_SIZE 32
 
+
+const char *type_name(type_index type) {
+    switch (type) {
+    case TYPE_ERROR: return "<TYPE_ERROR>";
+    case TYPE_WORD:  return "word";
+    case TYPE_BYTE:  return "byte";
+    case TYPE_PTR:   return "ptr";
+    case TYPE_INT:   return "int";
+    case TYPE_U8:    return "u8";
+    case TYPE_U16:   return "u16";
+    case TYPE_U32:   return "u32";
+    case TYPE_S8:    return "s8";
+    case TYPE_S16:   return "s16";
+    case TYPE_S32:   return "s32";
+    }
+    // TODO: get custom type names.
+    return "<User-defined type>";
+}
+
+size_t type_size(type_index type) {
+    switch (type) {
+    case TYPE_ERROR: return 0;
+    case TYPE_WORD:  return 8;
+    case TYPE_BYTE:  return 1;
+    case TYPE_PTR:   return 8;
+    case TYPE_U8:    return 1;
+    case TYPE_U16:   return 2;
+    case TYPE_U32:   return 4;
+    case TYPE_S8:    return 1;
+    case TYPE_S16:   return 2;
+    case TYPE_S32:   return 4;
+    }
+    // TODO: get size of custom types.
+    return 0;
+}
+
 void init_type_table(struct type_table *types) {
     types->capacity = 0;
     types->count = 0;
@@ -46,7 +82,7 @@ const struct type_info *lookup_type(const struct type_table *types, type_index t
      * types in the table.
      */
     static const struct type_info basic = {0};
-    if (IS_BASIC_TYPE(type)) return &basic;
+    if (IS_SIMPLE_TYPE(type)) return &basic;
     int index = type - SIMPLE_TYPE_COUNT;
     if (index < 0 || index >= types->count) return NULL;
     return &types->infos[index];

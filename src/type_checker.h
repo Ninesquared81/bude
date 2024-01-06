@@ -33,6 +33,7 @@ struct type_checker {
     struct ir_block *in_block;
     struct ir_block *out_block;
     struct type_stack *tstack;
+    struct type_table *types;
     int ip;
     bool had_error;
 };

@@ -24,10 +24,10 @@ struct symbol {
             size_t level;
         } loop_var;
         struct {
-            type_index slots[8];
+            type_index index;
         } pack;
         struct {
-            size_t word_count;
+            type_index index;
         } comp;
     };
 };
