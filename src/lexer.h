@@ -15,6 +15,7 @@ enum token_type {
 
     // Keywords.
     TOKEN_AND,
+    TOKEN_BYTE,
     TOKEN_COMP,
     TOKEN_DEREF,
     TOKEN_DO,
@@ -26,6 +27,7 @@ enum token_type {
     TOKEN_FOR,
     TOKEN_FROM,
     TOKEN_IF,
+    TOKEN_INT,
     TOKEN_MINUS,
     TOKEN_NOT,
     TOKEN_OR,
@@ -34,12 +36,20 @@ enum token_type {
     TOKEN_POP,
     TOKEN_PRINT,
     TOKEN_PRINT_CHAR,
+    TOKEN_PTR,
+    TOKEN_S8,
+    TOKEN_S16,
+    TOKEN_S32,
     TOKEN_SLASH_PERCENT,
     TOKEN_STAR,
     TOKEN_SWAP,
     TOKEN_THEN,
     TOKEN_TO,
+    TOKEN_U8,
+    TOKEN_U16,
+    TOKEN_U32,
     TOKEN_WHILE,
+    TOKEN_WORD,
 
     // Special.
     TOKEN_EOT,
