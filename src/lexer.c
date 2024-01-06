@@ -113,6 +113,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
     case '*': return check_terminal(lexer, 1, TOKEN_STAR);
     case '/': return check_keyword(lexer, 1, 1, "%", TOKEN_SLASH_PERCENT);
     case 'a': return check_keyword(lexer, 1, 2, "nd", TOKEN_AND);
+    case 'b': return check_keyword(lexer, 1, 3, "yte", TOKEN_BYTE);
     case 'c': return check_keyword(lexer, 1, 3, "omp", TOKEN_COMP);
     case 'd':
         switch (lexer->start[1]) {
@@ -141,12 +142,18 @@ static enum token_type symbol_type(struct lexer *lexer) {
         case 'r': return check_keyword(lexer, 2, 2, "om", TOKEN_FROM);
         }
         break;
-    case 'i': return check_keyword(lexer, 1, 1, "f", TOKEN_IF);
+    case 'i':
+        switch (lexer->start[1]) {
+        case 'f': return check_terminal(lexer, 2, TOKEN_IF);
+        case 'n': return check_keyword(lexer, 2, 1, "t", TOKEN_INT);
+        }
+        break;
     case 'n': return check_keyword(lexer, 1, 2, "ot", TOKEN_NOT);
     case 'p':
         switch (lexer->start[1]) {
         case 'a':
             return check_keyword(lexer, 2, 2, "ck", TOKEN_PACK);
+        case 'o': return check_keyword(lexer, 2, 1, "p", TOKEN_POP);
         case 'r':
             if (check_middle(lexer, 2, 3, "int")) {
                 switch (lexer->start[5]) {
@@ -155,18 +162,37 @@ static enum token_type symbol_type(struct lexer *lexer) {
                 }
             }
             break;
-        case 'o': return check_keyword(lexer, 2, 1, "p", TOKEN_POP);
+        case 't': return check_keyword(lexer, 2, 1, "r", TOKEN_PTR);
         }
         break;
     case 'o': return check_keyword(lexer, 1, 1, "r", TOKEN_OR);
-    case 's': return check_keyword(lexer, 1, 3, "wap", TOKEN_SWAP);
+    case 's':
+        switch (lexer->start[1]) {
+        case 'w': return check_keyword(lexer, 2, 2, "ap", TOKEN_SWAP);
+        case '8': return check_terminal(lexer, 2, TOKEN_S8);
+        case '1': return check_keyword(lexer, 2, 1, "6", TOKEN_S16);
+        case '3': return check_keyword(lexer, 2, 1, "2", TOKEN_S32);
+        }
+        break;
     case 't':
         switch (lexer->start[1]) {
         case 'h': return check_keyword(lexer, 2, 2, "en", TOKEN_THEN);
         case 'o': return check_terminal(lexer, 2, TOKEN_TO);
         }
         break;
-    case 'w': return check_keyword(lexer, 1, 4, "hile", TOKEN_WHILE);
+    case 'u':
+        switch (lexer->start[1]) {
+        case '8': return check_terminal(lexer, 2, TOKEN_U8);
+        case '1': return check_keyword(lexer, 2, 1, "6", TOKEN_U16);
+        case '3': return check_keyword(lexer, 2, 1, "2", TOKEN_U32);
+        }
+        break;
+    case 'w':
+        switch (lexer->start[1]) {
+        case 'h': return check_keyword(lexer, 2, 3, "ile", TOKEN_WHILE);
+        case 'o': return check_keyword(lexer, 2, 2, "rd", TOKEN_WORD);
+        }
+        break;
     }
     return TOKEN_SYMBOL;
 }
