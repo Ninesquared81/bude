@@ -58,6 +58,17 @@ static int simple_instruction(const char *name, int offset) {
     return offset + 1;
 }
 
+static int w_pack_instruction(const char *name, struct ir_block *block, int offset,
+                              int field_count) {
+    printf("%"OPCODE_FORMAT, name);
+    printf(" %u", read_u8(block, offset + 1));
+    for (int i = 1; i < field_count; ++i) {
+        printf(", %u", read_u8(block, offset + 1 + i));
+    }
+    printf("\n");
+    return offset + field_count + 1;
+}
+
 static int disassemble_t_instruction(struct ir_block *block, int offset) {
     enum t_opcode instruction = block->code[offset];
     printf("%c %04d [%03d] ",
@@ -153,11 +164,23 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     case T_OP_AS_S16:
         return simple_instruction("T_OP_AS_S16", offset);
     case T_OP_AS_S32:
-        return simple_instruction("OP_AS_S32", offset);
+        return simple_instruction("T_OP_AS_S32", offset);
+    case T_OP_PACK8:
+        return immediate_u8_instruction("T_OP_PACK8", block, offset);
+    case T_OP_PACK16:
+        return immediate_u16_instruction("T_OP_PACK16", block, offset);
+    case T_OP_PACK32:
+        return immediate_u32_instruction("T_OP_PACK32", block, offset);
+    case T_OP_COMP8:
+        return immediate_u8_instruction("T_OP_COMP8", block, offset);
+    case T_OP_COMP16:
+        return immediate_u16_instruction("T_OP_COMP16", block, offset);
+    case T_OP_COMP32:
+        return immediate_u32_instruction("T_OP_COMP32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
-    return offset + 1;
+    return block->count;
 }
 
 static int disassemble_w_instruction(struct ir_block *block, int offset) {
@@ -266,10 +289,26 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return simple_instruction("W_OP_ZX32", offset);
     case W_OP_ZX32L:
         return simple_instruction("W_OP_ZX32L", offset);
+    case W_OP_PACK1:
+        return w_pack_instruction("W_OP_PACK1", block, offset, 1);
+    case W_OP_PACK2:
+        return w_pack_instruction("W_OP_PACK2", block, offset, 2);
+    case W_OP_PACK3:
+        return w_pack_instruction("W_OP_PACK3", block, offset, 3);
+    case W_OP_PACK4:
+        return w_pack_instruction("W_OP_PACK4", block, offset, 4);
+    case W_OP_PACK5:
+        return w_pack_instruction("W_OP_PACK5", block, offset, 5);
+    case W_OP_PACK6:
+        return w_pack_instruction("W_OP_PACK6", block, offset, 6);
+    case W_OP_PACK7:
+        return w_pack_instruction("W_OP_PACK7", block, offset, 7);
+    case W_OP_PACK8:
+        return w_pack_instruction("W_OP_PACK8", block, offset, 8);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
-    return offset + 1;
+    return block->count;
 }
 
 typedef int (*instr_disasm)(struct ir_block *block, int offset);
