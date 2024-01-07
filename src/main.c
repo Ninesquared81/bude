@@ -245,7 +245,9 @@ int main(int argc, char *argv[]) {
     struct ir_block tblock, wblock;
     init_block(&tblock, IR_TYPED, opts.filename);
     init_block(&wblock, IR_WORD_ORIENTED, opts.filename);
-    compile(inbuf, &tblock, opts.filename);
+    struct type_table types;
+    init_type_table(&types);
+    compile(inbuf, &tblock, opts.filename, &types);
     free(inbuf);
     if (opts.optimise) {
         optimise(&tblock);
@@ -256,7 +258,7 @@ int main(int argc, char *argv[]) {
         printf("------------------------------------------------\n");
     }
     struct type_checker checker;
-    init_type_checker(&checker, &tblock, &wblock);
+    init_type_checker(&checker, &tblock, &wblock, &types);
     if (type_check(&checker) == TYPE_CHECK_ERROR) {
         // Error message(s) already emitted.
         exit(1);
@@ -300,6 +302,7 @@ int main(int argc, char *argv[]) {
     }
     free_block(&tblock);
     free_block(&wblock);
+    free_type_table(&types);
 
     return 0;
 }

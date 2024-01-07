@@ -21,16 +21,19 @@ struct compiler {
     struct token previous_token;
     struct symbol_dictionary symbols;
     size_t for_loop_level;
+    struct type_table *types;
 };
 
 static void init_compiler(struct compiler *compiler, const char *src,
-                          struct ir_block *block, const char *filename) {
+                          struct ir_block *block, const char *filename,
+                          struct type_table *types) {
     init_lexer(&compiler->lexer, src, filename);
     compiler->block = block;
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
     init_symbol_dictionary(&compiler->symbols);
     compiler->for_loop_level = 0;
+    compiler->types = types;
 }
 
 static void free_compiler(struct compiler *compiler) {
