@@ -610,6 +610,63 @@ static void compile_character(struct compiler *compiler) {
     emit_immediate_u8(compiler, T_OP_PUSH_CHAR8, character);
 }
 
+static void compile_pack(struct compiler *compiler) {
+    expect_consume(compiler, TOKEN_SYMBOL_LIT, "Expect pack name after `pack`.");
+    struct symbol symbol = {
+        .name = peek_previous(compiler).value,
+        .type = SYM_PACK,
+        .pack.index = -1  // -1 to indicate unitiliazed.
+    };
+    expect_consume(compiler, TOKEN_DEF, "Expect `def` after pack name.");
+    struct type_info info = {.kind = KIND_PACK};
+    int field_count = 0;
+    for (; field_count < 8 && !check(compiler, TOKEN_END); ++field_count) {
+        if (is_at_end(compiler)) {
+            parse_error(compiler, "unexpected EOF parsing pack definition.\n");
+            exit(1);
+        }
+        switch (advance(compiler).type) {
+        case TOKEN_BYTE:
+            info.pack.fields[field_count] = TYPE_BYTE;
+            break;
+        case TOKEN_INT:
+            info.pack.fields[field_count] = TYPE_INT;
+            break;
+        case TOKEN_PTR:
+            info.pack.fields[field_count] = TYPE_PTR;
+            break;
+        case TOKEN_S8:
+            info.pack.fields[field_count] = TYPE_S8;
+            break;
+        case TOKEN_S16:
+            info.pack.fields[field_count] = TYPE_S16;
+            break;
+        case TOKEN_S32:
+            info.pack.fields[field_count] = TYPE_S32;
+            break;
+        case TOKEN_U8:
+            info.pack.fields[field_count] = TYPE_U8;
+            break;
+        case TOKEN_U16:
+            info.pack.fields[field_count] = TYPE_U16;
+            break;
+        case TOKEN_U32:
+            info.pack.fields[field_count] = TYPE_U32;
+            break;
+        case TOKEN_WORD:
+            info.pack.fields[field_count] = TYPE_WORD;
+            break;
+        default:
+            parse_error(compiler, "unexpected token while parsing pack definition.\n");
+            exit(1);
+        }
+    }
+    expect_consume(compiler, TOKEN_END, "Expect `end` after pack definition.");
+    info.pack.field_count = field_count;
+    symbol.pack.index = new_type(compiler->types, &info);
+    insert_symbol(&compiler->symbols, &symbol);
+}
+
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
     size_t level = symbol->loop_var.level;
     if (level > compiler->for_loop_level) {
@@ -720,6 +777,9 @@ static void compile_expr(struct compiler *compiler) {
         else if (match(compiler, TOKEN_INT_LIT)) {
             compile_integer(compiler);
         }
+        else if (match(compiler, TOKEN_PACK)) {
+            compile_pack(compiler);
+        }
         else if (match(compiler, TOKEN_STRING_LIT)) {
             compile_string(compiler);
         }
@@ -737,9 +797,10 @@ static void compile_expr(struct compiler *compiler) {
     }
 }
 
-void compile(const char *src, struct ir_block *block, const char *filename) {
+void compile(const char *src, struct ir_block *block, const char *filename,
+             struct type_table *types) {
     struct compiler compiler;
-    init_compiler(&compiler, src, block, filename);
+    init_compiler(&compiler, src, block, filename, types);
     compile_expr(&compiler);
     emit_simple(&compiler, T_OP_NOP);
     free_compiler(&compiler);
