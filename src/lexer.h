@@ -17,6 +17,7 @@ enum token_type {
     TOKEN_AND,
     TOKEN_BYTE,
     TOKEN_COMP,
+    TOKEN_DEF,
     TOKEN_DEREF,
     TOKEN_DO,
     TOKEN_DUPE,
