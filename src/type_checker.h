@@ -46,7 +46,7 @@ enum type_check_result {
 void reset_type_stack(struct type_stack *tstack);
 
 void init_type_checker(struct type_checker *checker, struct ir_block *in_block,
-                       struct ir_block *out_block);
+                       struct ir_block *out_block, struct type_table *types);
 void free_type_checker(struct type_checker *checker);
 
 void ts_push(struct type_checker *checker, type_index type);
