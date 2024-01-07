@@ -112,24 +112,15 @@ static void copy_jump_instruction(struct type_checker *checker, enum w_opcode in
 }
 
 static void emit_pack_instruction(struct type_checker *checker, type_index index) {
-    int addr = checker->out_block->count;
-    // Placeholder instruction.
-    write_simple(checker->out_block, W_OP_NOP,
-                 &checker->in_block->locations[checker->ip]);
     const struct type_info *info = lookup_type(checker->types, index);
-    int field_count = 0;
-    for (int i = 0; i < 8 && info->pack.fields[i] != TYPE_ERROR; ) {
+    enum w_opcode instruction = W_OP_PACK1 + info->pack.field_count - 1;
+    write_simple(checker->out_block, instruction,
+                 &checker->in_block->locations[checker->ip]);
+    for (int i = 0; i < info->pack.field_count; ++i) {
         type_index field_type = info->pack.fields[i];
         size_t size = type_size(field_type);
         write_u8(checker->out_block, size, &checker->in_block->locations[checker->ip]);
-        i += size;
-        ++field_count;
     }
-    assert(0 < field_count && field_count <= 8);
-    // Implementation note: since W_OP_PACK1...8 have consecutive opcodes, we can
-    // calculate the opcode by simply adding (field_count - 1) to W_OP_PACK1.
-    enum w_opcode instruction = W_OP_PACK1 + field_count - 1;
-    overwrite_instruction(checker->out_block, addr, instruction);
 }
 
 static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT] = {
@@ -455,7 +446,7 @@ static void check_pack_instruction(struct type_checker *checker, type_index inde
         type_error(checker, "type index %d is not of kind 'KIND_PACK'", index);
         assert(0 && "Invalid IR code generated");
     }
-    for (int i = 0; i < 8 && info->pack.fields[i] != TYPE_ERROR; ) {
+    for (int i = info->pack.field_count - 1; i >= 0 && info->pack.fields[i] != TYPE_ERROR; ) {
         type_index field_type = info->pack.fields[i];
         type_index arg_type = ts_pop(checker);
         if (arg_type != field_type) {

@@ -43,6 +43,7 @@ struct type_info {
     } kind;
     union {
         struct {
+            int field_count;
             type_index fields[8];
         } pack;
         struct {
