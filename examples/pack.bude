@@ -2,9 +2,13 @@ pack foo def
     u16 s32 u8 s8
 end
 
-65500u16
--2147483648s32
-129u8
-5s8
+0xAAAAu16
+0x77777777s32
+0xFFu8
+0x44s8
 
 foo
+dupe
+print
+0x44ff77777777aaaa
+print
