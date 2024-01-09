@@ -481,7 +481,7 @@ static int compile_conditional(struct compiler *compiler) {
 static void compile_for_loop(struct compiler *compiler) {
     enum t_opcode start_instruction = T_OP_FOR_DEC_START;
     enum t_opcode update_instruction = T_OP_FOR_DEC;
-    if (match(compiler, TOKEN_SYMBOL_LIT)) {
+    if (match(compiler, TOKEN_SYMBOL)) {
         struct symbol symbol = {
             .name = peek_previous(compiler).value,
             .type = SYM_LOOP_VAR,
@@ -611,7 +611,7 @@ static void compile_character(struct compiler *compiler) {
 }
 
 static void compile_pack(struct compiler *compiler) {
-    expect_consume(compiler, TOKEN_SYMBOL_LIT, "Expect pack name after `pack`.");
+    expect_consume(compiler, TOKEN_SYMBOL, "Expect pack name after `pack`.");
     struct symbol symbol = {
         .name = peek_previous(compiler).value,
         .type = SYM_PACK,
@@ -783,7 +783,7 @@ static void compile_expr(struct compiler *compiler) {
         else if (match(compiler, TOKEN_STRING_LIT)) {
             compile_string(compiler);
         }
-        else if (match(compiler, TOKEN_SYMBOL_LIT)) {
+        else if (match(compiler, TOKEN_SYMBOL)) {
             compile_symbol(compiler);
         }
         else if (match(compiler, TOKEN_WHILE)) {

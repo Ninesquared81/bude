@@ -11,7 +11,7 @@ enum token_type {
     TOKEN_INT_LIT,
     TOKEN_CHAR_LIT,
     TOKEN_STRING_LIT,
-    TOKEN_SYMBOL_LIT,
+    TOKEN_SYMBOL,
 
     // Keywords.
     TOKEN_AND,
