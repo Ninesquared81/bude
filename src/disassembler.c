@@ -177,6 +177,8 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
         return immediate_u16_instruction("T_OP_COMP16", block, offset);
     case T_OP_COMP32:
         return immediate_u32_instruction("T_OP_COMP32", block, offset);
+    case T_OP_UNPACK:
+        return simple_instruction("T_OP_UNPACK", offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
@@ -305,6 +307,22 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return w_pack_instruction("W_OP_PACK7", block, offset, 7);
     case W_OP_PACK8:
         return w_pack_instruction("W_OP_PACK8", block, offset, 8);
+    case W_OP_UNPACK1:
+        return w_pack_instruction("W_OP_UNPACK1", block, offset, 1);
+    case W_OP_UNPACK2:
+        return w_pack_instruction("W_OP_UNPACK2", block, offset, 2);
+    case W_OP_UNPACK3:
+        return w_pack_instruction("W_OP_UNPACK3", block, offset, 3);
+    case W_OP_UNPACK4:
+        return w_pack_instruction("W_OP_UNPACK4", block, offset, 4);
+    case W_OP_UNPACK5:
+        return w_pack_instruction("W_OP_UNPACK5", block, offset, 5);
+    case W_OP_UNPACK6:
+        return w_pack_instruction("W_OP_UNPACK6", block, offset, 6);
+    case W_OP_UNPACK7:
+        return w_pack_instruction("W_OP_UNPACK7", block, offset, 7);
+    case W_OP_UNPACK8:
+        return w_pack_instruction("W_OP_UNPACK8", block, offset, 8);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");

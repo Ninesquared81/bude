@@ -190,6 +190,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
         case '8': return check_terminal(lexer, 2, TOKEN_U8);
         case '1': return check_keyword(lexer, 2, 1, "6", TOKEN_U16);
         case '3': return check_keyword(lexer, 2, 1, "2", TOKEN_U32);
+        case 'n': return check_keyword(lexer, 2, 4, "pack", TOKEN_UNPACK);
         }
         break;
     case 'w':

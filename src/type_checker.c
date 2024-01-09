@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -21,6 +22,21 @@ static void type_error(struct type_checker *checker, const char *restrict messag
     vfprintf(stderr, message, args);
     va_end(args);
     fprintf(stderr, ".\n");
+}
+
+static const struct type_info *expect_kind(struct type_checker *checker, enum type_kind kind) {
+    type_index type = ts_pop(checker);
+    const struct type_info *info = lookup_type(checker->types, type);
+    if (info == NULL) {
+        type_error(checker, "unknown type");
+        assert(0 && "Invalid state");
+    }
+    if (info->kind != kind) {
+        type_error(checker, "expected a '%s' type but got type '%s' instead",
+                   kind_name(kind), type_name(type));
+        exit(1);
+    }
+    return info;
 }
 
 void reset_type_stack(struct type_stack *tstack) {
@@ -111,15 +127,28 @@ static void copy_jump_instruction(struct type_checker *checker, enum w_opcode in
     checker->ip += 2;
 }
 
+static void emit_u8(struct type_checker *checker, uint8_t value) {
+    write_u8(checker->out_block, value, &checker->in_block->locations[checker->ip]);
+}
+
 static void emit_pack_instruction(struct type_checker *checker, type_index index) {
     const struct type_info *info = lookup_type(checker->types, index);
     enum w_opcode instruction = W_OP_PACK1 + info->pack.field_count - 1;
-    write_simple(checker->out_block, instruction,
-                 &checker->in_block->locations[checker->ip]);
+    emit_simple(checker, instruction);
     for (int i = 0; i < info->pack.field_count; ++i) {
         type_index field_type = info->pack.fields[i];
         size_t size = type_size(field_type);
-        write_u8(checker->out_block, size, &checker->in_block->locations[checker->ip]);
+        emit_u8(checker, size);
+    }
+}
+
+static void emit_unpack_instruction(struct type_checker *checker, const struct type_info *info) {
+    enum w_opcode instruction = W_OP_UNPACK1 + info->pack.field_count - 1;
+    emit_simple(checker, instruction);
+    for (int i = 0; i < info->pack.field_count; ++i) {
+        type_index field_type = info->pack.fields[i];
+        size_t size = type_size(field_type);
+        emit_u8(checker, size);
     }
 }
 
@@ -249,7 +278,7 @@ static bool is_signed(type_index type) {
     }
 }
 
-static struct arithm_conv convert(type_index rhs, type_index lhs) {
+static struct arithm_conv convert(type_index lhs, type_index rhs) {
     if (IS_SIMPLE_TYPE(rhs) && IS_SIMPLE_TYPE(lhs)) {
         return arithmetic_conversions[lhs][rhs];
     }
@@ -457,6 +486,14 @@ static void check_pack_instruction(struct type_checker *checker, type_index inde
         i += (size > 0) ? size : 0;
     }
     ts_push(checker, index);
+}
+
+static const struct type_info *check_unpack_instruction(struct type_checker *checker) {
+    const struct type_info *info = expect_kind(checker, KIND_PACK);
+    for (int i = 0; i < info->pack.field_count; ++i) {
+        ts_push(checker, info->pack.fields[i]);
+    }
+    return info;
 }
 
 enum type_check_result type_check(struct type_checker *checker) {
@@ -854,6 +891,11 @@ enum type_check_result type_check(struct type_checker *checker) {
             check_pack_instruction(checker, index);
             emit_pack_instruction(checker, index);
             checker->ip += 1;
+            break;
+        }
+        case T_OP_UNPACK: {
+            const struct type_info *info = check_unpack_instruction(checker);
+            emit_unpack_instruction(checker, info);
             break;
         }
         case T_OP_COMP8:

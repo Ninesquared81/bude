@@ -52,6 +52,8 @@ struct type_info {
     };
 };
 
+const char *kind_name(enum type_kind kind);
+
 struct type_table {
     int capacity;
     int count;

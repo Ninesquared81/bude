@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "stack.h"
 
@@ -37,6 +38,15 @@ void popn(struct stack *stack, int n) {
         exit(1);
     }
     stack->top -= n;
+}
+
+void push_all(struct stack *stack, size_t n, const stack_word values[n]) {
+    if (&stack->elements[STACK_SIZE] - stack->top <= (int64_t)n) {
+        fprintf(stderr, "Stack overflow\n");
+        exit(1);
+    }
+    memcpy(stack->top, values, sizeof *stack->top);
+    stack->top += n;
 }
 
 stack_word peek(struct stack *stack) {

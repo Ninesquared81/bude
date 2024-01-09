@@ -6,6 +6,16 @@
 #define TYPE_TABLE_INIT_SIZE 32
 
 
+const char *kind_name(enum type_kind kind) {
+    switch(kind) {
+    case KIND_SIMPLE: return "simple";
+    case KIND_PACK:   return "pack";
+    case KIND_COMP:   return "comp";
+    }
+    assert(0 && "Invalid kind");
+    return "<Invalid kind>";
+}
+
 const char *type_name(type_index type) {
     switch (type) {
     case TYPE_ERROR: return "<TYPE_ERROR>";

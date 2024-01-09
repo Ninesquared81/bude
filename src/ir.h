@@ -106,6 +106,8 @@ enum t_opcode {
     T_OP_COMP8,
     T_OP_COMP16,
     T_OP_COMP32,
+    /* (T) UNPACK -- Unpack the current pack on the top of the stack. */
+    T_OP_UNPACK,
 };
 
 enum w_opcode {
@@ -204,6 +206,15 @@ enum w_opcode {
     W_OP_PACK6,
     W_OP_PACK7,
     W_OP_PACK8,
+    /* (W)UNPACKn Imm_u8... -- Deconstruct a pack with n fields of the provided sizes. */
+    W_OP_UNPACK1,
+    W_OP_UNPACK2,
+    W_OP_UNPACK3,
+    W_OP_UNPACK4,
+    W_OP_UNPACK5,
+    W_OP_UNPACK6,
+    W_OP_UNPACK7,
+    W_OP_UNPACK8,
 };
 
 static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);

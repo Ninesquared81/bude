@@ -49,6 +49,7 @@ enum token_type {
     TOKEN_U8,
     TOKEN_U16,
     TOKEN_U32,
+    TOKEN_UNPACK,
     TOKEN_WHILE,
     TOKEN_WORD,
 

@@ -22,6 +22,7 @@ void reset_stack(struct stack *stack);
 void push(struct stack *stack, stack_word value);
 stack_word pop(struct stack *stack);
 void popn(struct stack *stack, int n);
+void push_all(struct stack *stack, size_t n, const stack_word values[n]);
 stack_word peek(struct stack *stack);
 stack_word peek_nth(struct stack *stack, uint32_t n);
 

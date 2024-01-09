@@ -62,6 +62,18 @@ static stack_word pack_fields(int count, stack_word fields[count], uint8_t sizes
     return pack;
 }
 
+static void unpack_fields(int count, stack_word fields[count], uint8_t sizes[count],
+                          stack_word pack) {
+    assert(0 < count && count <= 8);
+    const unsigned char *read_ptr = (unsigned char *)&pack;
+    for (int i = 0; i < count; ++i) {
+        uint8_t size = sizes[i];
+        assert((unsigned char *)&(&pack)[1] - read_ptr >= (int)size);
+        memcpy(&fields[i], read_ptr, size);
+        read_ptr += size;
+    }
+}
+
 enum interpret_result interpret(struct interpreter *interpreter) {
     for (int ip = 0; ip < interpreter->block->count; ++ip) {
         enum w_opcode instruction = interpreter->block->code[ip];
@@ -569,6 +581,116 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             popn(interpreter->main_stack, 8);
             stack_word pack = pack_fields(8, fields, sizes);
             push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_UNPACK1: {
+            ++ip;
+            // We don't need to actually do anything here.
+            break;
+        }
+        case W_OP_UNPACK2: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+            };
+            ip += 2;
+            stack_word fields[2] = {0};
+            stack_word pack = pop(interpreter->main_stack);
+            unpack_fields(2, fields, sizes, pack);
+            push_all(interpreter->main_stack, 2, fields);
+            break;
+        }
+        case W_OP_UNPACK3: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+            };
+            ip += 3;
+            stack_word fields[3] = {0};
+            stack_word pack = pop(interpreter->main_stack);
+            unpack_fields(3, fields, sizes, pack);
+            push_all(interpreter->main_stack, 3, fields);
+            break;
+        }
+        case W_OP_UNPACK4: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+            };
+            ip += 4;
+            stack_word fields[4] = {0};
+            stack_word pack = pop(interpreter->main_stack);
+            unpack_fields(4, fields, sizes, pack);
+            push_all(interpreter->main_stack, 4, fields);
+            break;
+        }
+        case W_OP_UNPACK5: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+            };
+            ip += 5;
+            stack_word fields[5] = {0};
+            stack_word pack = pop(interpreter->main_stack);
+            unpack_fields(5, fields, sizes, pack);
+            push_all(interpreter->main_stack, 5, fields);
+            break;
+        }
+        case W_OP_UNPACK6: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, ip + 6),
+            };
+            ip += 6;
+            stack_word fields[6] = {0};
+            stack_word pack = pop(interpreter->main_stack);
+            unpack_fields(6, fields, sizes, pack);
+            push_all(interpreter->main_stack, 6, fields);
+            break;
+        }
+        case W_OP_UNPACK7: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, ip + 6),
+                read_u8(interpreter->block, ip + 7),
+            };
+            ip += 7;
+            stack_word fields[7] = {0};
+            stack_word pack = pop(interpreter->main_stack);
+            unpack_fields(7, fields, sizes, pack);
+            push_all(interpreter->main_stack, 7, fields);
+            break;
+        }
+        case W_OP_UNPACK8: {
+            uint8_t sizes[] = {
+                read_u8(interpreter->block, ip + 1),
+                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, ip + 6),
+                read_u8(interpreter->block, ip + 7),
+                read_u8(interpreter->block, ip + 8),
+            };
+            ip += 8;
+            stack_word fields[8] = {0};
+            stack_word pack = pop(interpreter->main_stack);
+            unpack_fields(8, fields, sizes, pack);
+            push_all(interpreter->main_stack, 8, fields);
             break;
         }
         }

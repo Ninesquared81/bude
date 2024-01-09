@@ -755,6 +755,9 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_SWAP:
         emit_simple(compiler, T_OP_SWAP);
         break;
+    case TOKEN_UNPACK:
+        emit_simple(compiler, T_OP_UNPACK);
+        break;
     default:
         /* All other tokens fall through. */
         return false;
