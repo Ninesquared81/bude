@@ -768,7 +768,7 @@ static void compile_pack_symbol(struct compiler *compiler, struct symbol *symbol
 }
 
 static void compile_comp_symbol(struct compiler *compiler, struct symbol *symbol) {
-    emit_immediate_sv(compiler, T_OP_COMP8, symbol->pack.index);
+    emit_immediate_sv(compiler, T_OP_COMP8, symbol->comp.index);
 }
 
 static void compile_symbol(struct compiler *compiler) {
@@ -798,6 +798,9 @@ static bool compile_simple(struct compiler *compiler) {
     switch (peek(compiler).type) {
     case TOKEN_AND:
         emit_simple(compiler, T_OP_AND);
+        break;
+    case TOKEN_DECOMP:
+        emit_simple(compiler, T_OP_DECOMP);
         break;
     case TOKEN_DEREF:
         emit_simple(compiler, T_OP_DEREF);

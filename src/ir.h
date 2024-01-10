@@ -108,6 +108,8 @@ enum t_opcode {
     T_OP_COMP32,
     /* (T) UNPACK -- Unpack the current pack on the top of the stack. */
     T_OP_UNPACK,
+    /* DECOMP -- Decompose the current pack on the top of the stack. */
+    T_OP_DECOMP,
 };
 
 enum w_opcode {

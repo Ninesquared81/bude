@@ -39,6 +39,15 @@ static const struct type_info *expect_kind(struct type_checker *checker, enum ty
     return info;
 }
 
+static void expect_type(struct type_checker *checker, type_index expected_type) {
+    type_index actual_type = ts_pop(checker);
+    if (actual_type != expected_type) {
+        type_error(checker, "expected type '%s' but got type '%s'",
+                   type_name(expected_type), type_name(actual_type));
+        exit(1);
+    }
+}
+
 void reset_type_stack(struct type_stack *tstack) {
     tstack->top = tstack->types;
 }
@@ -496,6 +505,29 @@ static const struct type_info *check_unpack_instruction(struct type_checker *che
     return info;
 }
 
+static void check_comp_instruction(struct type_checker *checker, type_index index) {
+    const struct type_info *info = lookup_type(checker->types, index);
+    assert(info != NULL && "Invalid state");
+    assert(info->kind == KIND_COMP && "Invalid IR code generated");
+    const type_index *fields = (info->comp.field_count <= 8)
+        ? info->comp.compact.fields
+        : info->comp.expanded.fields;
+    for (int i = info->comp.field_count - 1; i >= 0; --i) {
+        expect_type(checker, fields[i]);
+    }
+    ts_push(checker, index);
+}
+
+static void check_decomp_instruction(struct type_checker *checker) {
+    const struct type_info *info = expect_kind(checker, KIND_COMP);
+    const type_index *fields = (info->comp.field_count <= 8)
+        ? info->comp.compact.fields
+        : info->comp.expanded.fields;
+    for (int i = 0; i < info->comp.field_count; ++i) {
+        ts_push(checker, fields[i]);
+    }
+}
+
 enum type_check_result type_check(struct type_checker *checker) {
     for (; checker->ip < checker->in_block->count; ++checker->ip) {
         if (is_jump_dest(checker->in_block, checker->ip)) {
@@ -898,10 +930,30 @@ enum type_check_result type_check(struct type_checker *checker) {
             emit_unpack_instruction(checker, info);
             break;
         }
-        case T_OP_COMP8:
-        case T_OP_COMP16:
-        case T_OP_COMP32:
-            assert(0 && "Not implemented");
+        case T_OP_COMP8: {
+            int8_t index = read_s8(checker->in_block, checker->ip + 1);
+            checker->ip += 1;
+            check_comp_instruction(checker, index);
+            // No instructions are emitted in the word-oriented dialect, just
+            // treat all the words in the comp as a singe unit.
+            break;
+        }
+        case T_OP_COMP16: {
+            int16_t index = read_s16(checker->in_block, checker->ip + 1);
+            checker->ip += 2;
+            check_comp_instruction(checker, index);
+            break;
+        }
+        case T_OP_COMP32: {
+            int32_t index = read_s32(checker->in_block, checker->ip + 1);
+            checker->ip += 4;
+            check_comp_instruction(checker, index);
+            break;
+        }
+        case T_OP_DECOMP: {
+            check_decomp_instruction(checker);
+            break;
+        }
         }
     }
     emit_simple(checker, W_OP_NOP);  // Emit final NOP.

@@ -119,6 +119,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
         switch (lexer->start[1]) {
         case 'e':
             switch (lexer->start[2]) {
+            case 'c': return check_keyword(lexer, 3, 3, "omp", TOKEN_DECOMP);
             case 'f': return check_terminal(lexer, 3, TOKEN_DEF);
             case 'r': return check_keyword(lexer, 3, 2, "ef", TOKEN_DEREF);
             }
