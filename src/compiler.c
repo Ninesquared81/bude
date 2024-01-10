@@ -14,6 +14,8 @@
 #include "type_punning.h"
 
 
+#define TEMP_REGION_SIZE 4096
+
 struct compiler {
     struct lexer lexer;
     struct ir_block *block;
@@ -572,7 +574,7 @@ static void compile_string(struct compiler *compiler) {
     struct string_builder builder = {0};
     struct string_builder *current = &builder;
     const char *start = token.value.start + 1;
-    struct region *temp_region = new_region(1024);
+    struct region *temp_region = new_region(TEMP_REGION_SIZE);
     start_view(current, start, temp_region);
     for (const char *c = start; *c != '"'; ++c) {
         if (*c == '\\') {
@@ -664,6 +666,87 @@ static void compile_pack(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_END, "Expect `end` after pack definition.");
     info.pack.field_count = field_count;
     symbol.pack.index = new_type(compiler->types, &info);
+    insert_symbol(&compiler->symbols, &symbol);
+}
+
+static void compile_comp(struct compiler *compiler) {
+    expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `comp`.");
+    struct symbol symbol = {
+        .name = peek_previous(compiler).value,
+        .type = SYM_COMP,
+        .comp.index = -1,
+    };
+    expect_consume(compiler, TOKEN_DEF, "Expect `def` after comp name.");
+    struct type_info info = {.kind = KIND_COMP};
+    int field_count = 0;
+    struct region *temp_region = new_region(TEMP_REGION_SIZE);
+    struct type_node {struct type_node *next; type_index type;} *head = NULL;
+    while (!check(compiler, TOKEN_END)) {
+        if (is_at_end(compiler)) {
+            parse_error(compiler, "unexpected EOF parsing comp definition.\n");
+            exit(1);
+        }
+        type_index type = TYPE_ERROR;
+        switch (advance(compiler).type) {
+        case TOKEN_BYTE:
+            type = TYPE_BYTE;
+            break;
+        case TOKEN_INT:
+            type = TYPE_INT;
+            break;
+        case TOKEN_PTR:
+            type = TYPE_PTR;
+            break;
+        case TOKEN_S8:
+            type = TYPE_S8;
+            break;
+        case TOKEN_S16:
+            type = TYPE_S16;
+            break;
+        case TOKEN_S32:
+            type = TYPE_S32;
+            break;
+        case TOKEN_U8:
+            type = TYPE_U8;
+            break;
+        case TOKEN_U16:
+            type = TYPE_U16;
+            break;
+        case TOKEN_U32:
+            type = TYPE_U32;
+            break;
+        case TOKEN_WORD:
+            type = TYPE_WORD;
+            break;
+        default:
+            parse_error(compiler, "unexpected token while parsing comp definition.\n");
+            exit(1);
+        }
+        struct type_node *next = head;
+        head = region_alloc(temp_region, sizeof *head);
+        head->next = next;
+        head->type = type;
+        ++field_count;
+    }
+    expect_consume(compiler, TOKEN_END, "Expect `end` after comp definition");
+    info.comp.field_count = field_count;
+    type_index *fields;
+    if (field_count <= 8) {
+        // Compact form; stored in struct itself.
+        fields = &info.comp.compact.fields[0];
+    }
+    else {
+        // Expanded form; dynamically allocated.
+        fields = alloc_extra(compiler->types, field_count * sizeof *fields);
+        info.comp.expanded.fields = fields;
+    }
+    struct type_node *current = head;
+    for (int i = field_count - 1; i >= 0; --i) {
+        assert(current != NULL);  // this should be true, but it doesn't hurt to assert.
+        fields[i] = current->type;
+        current = current->next;
+    }
+    symbol.comp.index = new_type(compiler->types, &info);
     insert_symbol(&compiler->symbols, &symbol);
 }
 
@@ -770,6 +853,9 @@ static void compile_expr(struct compiler *compiler) {
     while (!is_at_end(compiler)) {
         if (match(compiler, TOKEN_CHAR_LIT)) {
             compile_character(compiler);
+        }
+        else if (match(compiler, TOKEN_COMP)) {
+            compile_comp(compiler);
         }
         else if (match(compiler, TOKEN_FOR)) {
             compile_for_loop(compiler);
