@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <stddef.h>
 
+#include "region.h"
+
 enum simple_type {
     TYPE_ERROR,
 
@@ -58,11 +60,13 @@ struct type_table {
     int capacity;
     int count;
     struct type_info *infos;
+    struct region *extra_info;
 };
 
 void init_type_table(struct type_table *types);
 void free_type_table(struct type_table *types);
 type_index new_type(struct type_table *types, const struct type_info *info);
 const struct type_info *lookup_type(const struct type_table *types, type_index type);
+void *alloc_extra(struct type_table *types, size_t size);
 
 #endif

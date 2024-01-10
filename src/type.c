@@ -4,6 +4,7 @@
 #include "type.h"
 
 #define TYPE_TABLE_INIT_SIZE 32
+#define TYPE_TABLE_REGION_SIZE 4096
 
 
 const char *kind_name(enum type_kind kind) {
@@ -55,6 +56,7 @@ void init_type_table(struct type_table *types) {
     types->capacity = 0;
     types->count = 0;
     types->infos = allocate_array(TYPE_TABLE_INIT_SIZE, sizeof types->infos[0]);
+    types->extra_info = new_region(TYPE_TABLE_REGION_SIZE);
 }
 
 void free_type_table(struct type_table *types) {
@@ -98,3 +100,6 @@ const struct type_info *lookup_type(const struct type_table *types, type_index t
     return &types->infos[index];
 }
 
+void *alloc_extra(struct type_table *types, size_t size) {
+    return region_alloc(types->extra_info, size);
+}
