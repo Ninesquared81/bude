@@ -1,0 +1,10 @@
+comp bar def
+    u16 s32 u8 s8
+end
+
+5u16 -7s32 255u8 0s8 bar
+decomp
+print
+print
+print
+print
