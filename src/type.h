@@ -49,7 +49,15 @@ struct type_info {
             type_index fields[8];
         } pack;
         struct {
-            size_t word_count;
+            int field_count;
+            union {
+                struct {
+                    type_index fields[8];
+                } compact;
+                struct {
+                    type_index *fields;
+                } expanded;
+            };
         } comp;
     };
 };
