@@ -45,7 +45,7 @@ void push_all(struct stack *stack, size_t n, const stack_word values[n]) {
         fprintf(stderr, "Stack overflow\n");
         exit(1);
     }
-    memcpy(stack->top, values, sizeof *stack->top);
+    memcpy(stack->top, values, sizeof(stack_word[n]));
     stack->top += n;
 }
 
@@ -63,4 +63,13 @@ stack_word peek_nth(struct stack *stack, uint32_t n) {
         exit(1);
     }
     return stack->top[-1 - (int64_t)n];
+}
+
+const stack_word *peekn(struct stack *stack, int n) {
+    if (stack->top - stack->elements < n) {
+        fprintf(stderr, "Stack underflow\n");
+        exit(1);
+    }
+    assert(n > 0);
+    return stack->top - n;
 }

@@ -145,7 +145,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_LOAD_STRING16: {
             ip += 2;
-            uint16_t index = read_u16(interpreter->block, ip);
+            uint16_t index = read_u16(interpreter->block, ip - 1);
             struct string_view *view = read_string(interpreter->block, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
@@ -153,13 +153,31 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_LOAD_STRING32: {
             ip += 4;
-            uint32_t index = read_u32(interpreter->block, ip);
+            uint32_t index = read_u32(interpreter->block, ip - 3);
             struct string_view *view = read_string(interpreter->block, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
             break;
         }
         case W_OP_POP: pop(interpreter->main_stack); break;
+        case W_OP_POPN8: {
+            int8_t n = read_s8(interpreter->block, ip + 1);
+            ip += 1;
+            popn(interpreter->main_stack, n);
+            break;
+        }
+        case W_OP_POPN16: {
+            int16_t n = read_s16(interpreter->block, ip + 1);
+            ip += 2;
+            popn(interpreter->main_stack, n);
+            break;
+        }
+        case W_OP_POPN32: {
+            int32_t n = read_s32(interpreter->block, ip + 1);
+            ip += 4;
+            popn(interpreter->main_stack, n);
+            break;
+        }
         case W_OP_ADD: BIN_OP(+, interpreter->main_stack); break;
         case W_OP_DEREF: {
             stack_word addr = pop(interpreter->main_stack);
@@ -170,6 +188,27 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             stack_word a = pop(interpreter->main_stack);
             push(interpreter->main_stack, a);
             push(interpreter->main_stack, a);
+            break;
+        }
+        case W_OP_DUPEN8: {
+            int8_t n = read_s8(interpreter->block, ip + 1);
+            ip += 1;
+            const stack_word *words = peekn(interpreter->main_stack, n);
+            push_all(interpreter->main_stack, n, words);
+            break;
+        }
+        case W_OP_DUPEN16: {
+            int16_t n = read_s16(interpreter->block, ip + 1);
+            ip += 2;
+            const stack_word *words = peekn(interpreter->main_stack, n);
+            push_all(interpreter->main_stack, n, words);
+            break;
+        }
+        case W_OP_DUPEN32: {
+            int32_t n = read_s32(interpreter->block, ip + 1);
+            ip += 4;
+            const stack_word *words = peekn(interpreter->main_stack, n);
+            push_all(interpreter->main_stack, n, words);
             break;
         }
         case W_OP_EXIT: {

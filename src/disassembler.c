@@ -107,6 +107,8 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
         return simple_instruction("T_OP_ADD", offset);
     case T_OP_AND:
         return simple_instruction("T_OP_AND", offset);
+    case T_OP_DECOMP:
+        return simple_instruction("T_OP_DECOMP", offset);
     case T_OP_DEREF:
         return simple_instruction("T_OP_DEREF", offset);
     case T_OP_DIVMOD:
@@ -219,6 +221,12 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return immediate_u32_instruction("W_OP_LOAD_STRING32", block, offset);
     case W_OP_POP:
         return simple_instruction("W_OP_POP", offset);
+    case W_OP_POPN8:
+        return immediate_s8_instruction("W_OP_POPN8", block, offset);
+    case W_OP_POPN16:
+        return immediate_s16_instruction("W_OP_POPN16", block, offset);
+    case W_OP_POPN32:
+        return immediate_s32_instruction("W_OP_POPN32", block, offset);
     case W_OP_ADD:
         return simple_instruction("W_OP_ADD", offset);
     case W_OP_AND:
@@ -233,6 +241,12 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return simple_instruction("W_OP_EDIVMOD", offset);
     case W_OP_DUPE:
         return simple_instruction("W_OP_DUPE", offset);
+    case W_OP_DUPEN8:
+        return immediate_s8_instruction("W_OP_DUPEN8", block, offset);
+    case W_OP_DUPEN16:
+        return immediate_s16_instruction("W_OP_DUPEN16", block, offset);
+    case W_OP_DUPEN32:
+        return immediate_s32_instruction("W_OP_DUPEN32", block, offset);
     case W_OP_EXIT:
         return simple_instruction("W_OP_EXIT", offset);
     case W_OP_FOR_DEC_START:

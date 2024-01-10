@@ -133,6 +133,10 @@ enum w_opcode {
     W_OP_LOAD_STRING32,
     /* POP -- Pop and discard the top stack element. */
     W_OP_POP,
+    /* POPNn Imm_sn -- Pop the top N elements from the stack. */
+    W_OP_POPN8,
+    W_OP_POPN16,
+    W_OP_POPN32,
     /* ADD -- Add top two stack elements. */
     W_OP_ADD,
     /* AND -- Logical (value-preserving) and operation of top two elements. */
@@ -147,6 +151,10 @@ enum w_opcode {
     W_OP_EDIVMOD,
     /* DUPE -- Duplicate top stack element. */
     W_OP_DUPE,
+    /* DUPENn -- Duplicate the top N elements on the stack. */
+    W_OP_DUPEN8,
+    W_OP_DUPEN16,
+    W_OP_DUPEN32,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     W_OP_EXIT,
     /* FOR_DEC_START Off_s16 -- Initialise a for loop counter to the top element. */

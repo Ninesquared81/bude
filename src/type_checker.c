@@ -7,6 +7,7 @@
 
 #include "location.h"
 #include "type_checker.h"
+#include "type_punning.h"
 
 struct arithm_conv {
     type_index result_type;
@@ -97,6 +98,34 @@ static void emit_simple(struct type_checker *checker, enum w_opcode instruction)
 
 static void emit_simple_nnop(struct type_checker *checker, enum w_opcode instruction) {
     if (instruction != W_OP_NOP) emit_simple(checker, instruction);
+}
+
+static void emit_immediate_uv(struct type_checker *checker, enum w_opcode instruction8,
+                              uint64_t arg) {
+    enum w_opcode instruction16 = instruction8 + 1;
+    enum w_opcode instruction32 = instruction8 + 2;
+    enum w_opcode instruction64 = instruction8 + 3;
+    if (arg <= UINT8_MAX) {
+        write_immediate_u8(checker->out_block, instruction8, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+    else if (arg <= UINT16_MAX) {
+        write_immediate_u16(checker->out_block, instruction16, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+    else if (arg <= UINT32_MAX) {
+        write_immediate_u32(checker->out_block, instruction32, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+    else if (arg <= UINT64_MAX) {
+        write_immediate_u64(checker->out_block, instruction64, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+}
+
+static void emit_immediate_sv(struct type_checker *checker, enum w_opcode instruction8,
+                              int64_t arg) {
+    emit_immediate_uv(checker, instruction8, s64_to_u64(arg));
 }
 
 static void copy_immediate_u8(struct type_checker *checker, enum w_opcode instruction) {
@@ -595,11 +624,18 @@ enum type_check_result type_check(struct type_checker *checker) {
             ts_push(checker, TYPE_WORD);
             copy_immediate_u32(checker, W_OP_LOAD_STRING32);
             break;
-        case T_OP_POP:
-            // Don't care about type.
-            ts_pop(checker);
-            emit_simple(checker, W_OP_POP);
+        case T_OP_POP: {
+            type_index type = ts_pop(checker);
+            const struct type_info *info = lookup_type(checker->types, type);
+            assert(info != NULL && "Unknown type");
+            if (info->kind != KIND_COMP) {
+                emit_simple(checker, W_OP_POP);
+            }
+            else {
+                emit_immediate_sv(checker, W_OP_POPN8, info->comp.field_count);
+            }
             break;
+        }
         case T_OP_ADD: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
@@ -707,7 +743,14 @@ enum type_check_result type_check(struct type_checker *checker) {
             type_index type = ts_pop(checker);
             ts_push(checker, type);
             ts_push(checker, type);
-            emit_simple(checker, W_OP_DUPE);
+            const struct type_info *info = lookup_type(checker->types, type);
+            assert(info != NULL && "Unknown type");
+            if (info->kind != KIND_COMP) {
+                emit_simple(checker, W_OP_DUPE);
+            }
+            else {
+                emit_immediate_sv(checker, W_OP_DUPEN8, info->comp.field_count);
+            }
             break;
         }
         case T_OP_GET_LOOP_VAR:
