@@ -14,6 +14,8 @@ enum symbol_type {
     SYM_LOOP_VAR,
     SYM_PACK,
     SYM_COMP,
+    SYM_PACK_FIELD_GET,
+    SYM_COMP_FIELD_GET,
 };
 
 struct symbol {
@@ -29,6 +31,14 @@ struct symbol {
         struct {
             type_index index;
         } comp;
+        struct {
+            type_index pack;
+            int field_offset;
+        } pack_field_get;
+        struct {
+            type_index comp;
+            int field_offset;
+        } comp_field_get;
     };
 };
 
