@@ -52,6 +52,35 @@ size_t type_size(type_index type) {
     return 0;
 }
 
+bool is_integral(type_index type) {
+    switch (type) {
+    case TYPE_WORD:
+    case TYPE_BYTE:
+    case TYPE_INT:
+    case TYPE_U8:
+    case TYPE_U16:
+    case TYPE_U32:
+    case TYPE_S8:
+    case TYPE_S16:
+    case TYPE_S32:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool is_signed(type_index type) {
+    switch (type) {
+    case TYPE_INT:
+    case TYPE_S8:
+    case TYPE_S16:
+    case TYPE_S32:
+        return true;
+    default:
+        return false;
+    }
+}
+
 void init_type_table(struct type_table *types) {
     types->capacity = 0;
     types->count = 0;

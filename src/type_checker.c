@@ -92,103 +92,6 @@ void free_type_checker(struct type_checker *checker) {
     checker->tstack = NULL;
 }
 
-static void emit_simple(struct type_checker *checker, enum w_opcode instruction) {
-    write_simple(checker->out_block, instruction, &checker->in_block->locations[checker->ip]);
-}
-
-static void emit_simple_nnop(struct type_checker *checker, enum w_opcode instruction) {
-    if (instruction != W_OP_NOP) emit_simple(checker, instruction);
-}
-
-static void emit_immediate_uv(struct type_checker *checker, enum w_opcode instruction8,
-                              uint64_t arg) {
-    enum w_opcode instruction16 = instruction8 + 1;
-    enum w_opcode instruction32 = instruction8 + 2;
-    enum w_opcode instruction64 = instruction8 + 3;
-    if (arg <= UINT8_MAX) {
-        write_immediate_u8(checker->out_block, instruction8, arg,
-                           &checker->in_block->locations[checker->ip]);
-    }
-    else if (arg <= UINT16_MAX) {
-        write_immediate_u16(checker->out_block, instruction16, arg,
-                           &checker->in_block->locations[checker->ip]);
-    }
-    else if (arg <= UINT32_MAX) {
-        write_immediate_u32(checker->out_block, instruction32, arg,
-                           &checker->in_block->locations[checker->ip]);
-    }
-    else if (arg <= UINT64_MAX) {
-        write_immediate_u64(checker->out_block, instruction64, arg,
-                           &checker->in_block->locations[checker->ip]);
-    }
-}
-
-static void emit_immediate_sv(struct type_checker *checker, enum w_opcode instruction8,
-                              int64_t arg) {
-    emit_immediate_uv(checker, instruction8, s64_to_u64(arg));
-}
-
-static void copy_immediate_u8(struct type_checker *checker, enum w_opcode instruction) {
-    uint8_t value = read_u8(checker->in_block, checker->ip + 1);
-    write_immediate_u8(checker->out_block, instruction, value,
-                       &checker->in_block->locations[checker->ip]);
-    checker->ip += 1;
-}
-
-static void copy_immediate_u16(struct type_checker *checker, enum w_opcode instruction) {
-    uint16_t value = read_u16(checker->in_block, checker->ip + 1);
-    write_immediate_u16(checker->out_block, instruction, value,
-                        &checker->in_block->locations[checker->ip]);
-    checker->ip += 2;
-}
-
-static void copy_immediate_u32(struct type_checker *checker, enum w_opcode instruction) {
-    uint32_t value = read_u32(checker->in_block, checker->ip + 1);
-    write_immediate_u32(checker->out_block, instruction, value,
-                        &checker->in_block->locations[checker->ip]);
-    checker->ip += 4;
-}
-
-static void copy_immediate_u64(struct type_checker *checker, enum w_opcode instruction) {
-    uint64_t value = read_u64(checker->in_block, checker->ip + 1);
-    write_immediate_u64(checker->out_block, instruction, value,
-                        &checker->in_block->locations[checker->ip]);
-    checker->ip += 8;
-}
-
-static void copy_jump_instruction(struct type_checker *checker, enum w_opcode instruction) {
-    int16_t jump = read_s16(checker->in_block, checker->ip + 1);
-    write_immediate_s16(checker->out_block, instruction, jump,
-                        &checker->in_block->locations[checker->ip]);
-    int dest = checker->out_block->count - 2 + jump;  // -2 because of operand.
-    add_jump(checker->out_block, dest);
-    checker->ip += 2;
-}
-
-static void emit_u8(struct type_checker *checker, uint8_t value) {
-    write_u8(checker->out_block, value, &checker->in_block->locations[checker->ip]);
-}
-
-static void emit_pack_instruction(struct type_checker *checker, type_index index) {
-    const struct type_info *info = lookup_type(checker->types, index);
-    enum w_opcode instruction = W_OP_PACK1 + info->pack.field_count - 1;
-    emit_simple(checker, instruction);
-    for (int i = 0; i < info->pack.field_count; ++i) {
-        type_index field_type = info->pack.fields[i];
-        size_t size = type_size(field_type);
-        emit_u8(checker, size);
-    }
-}
-
-static void emit_unpack_instruction(struct type_checker *checker, const struct type_info *info) {
-    enum w_opcode instruction = W_OP_UNPACK1 + info->pack.field_count - 1;
-    emit_simple(checker, instruction);
-    for (int i = 0; i < info->pack.field_count; ++i) {
-        type_index field_type = info->pack.fields[i];
-        size_t size = type_size(field_type);
-        emit_u8(checker, size);
-    }
-}
 
 static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT] = {
     /* lhs_type  rhs_type    result_type lhs_conv    rhs_conv   result_conv */
@@ -287,35 +190,6 @@ static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_
     [TYPE_S32][TYPE_U32]   = {TYPE_U32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
 };
 
-static bool is_integral(type_index type) {
-    switch (type) {
-    case TYPE_WORD:
-    case TYPE_BYTE:
-    case TYPE_INT:
-    case TYPE_U8:
-    case TYPE_U16:
-    case TYPE_U32:
-    case TYPE_S8:
-    case TYPE_S16:
-    case TYPE_S32:
-        return true;
-    default:
-        return false;
-    }
-}
-
-static bool is_signed(type_index type) {
-    switch (type) {
-    case TYPE_INT:
-    case TYPE_S8:
-    case TYPE_S16:
-    case TYPE_S32:
-        return true;
-    default:
-        return false;
-    }
-}
-
 static struct arithm_conv convert(type_index lhs, type_index rhs) {
     if (IS_SIMPLE_TYPE(rhs) && IS_SIMPLE_TYPE(lhs)) {
         return arithmetic_conversions[lhs][rhs];
@@ -342,6 +216,126 @@ static enum w_opcode sign_extend(type_index type) {
         return W_OP_SX32;
     default:
         return W_OP_NOP;
+    }
+}
+
+static void emit_simple(struct type_checker *checker, enum w_opcode instruction) {
+    write_simple(checker->out_block, instruction, &checker->in_block->locations[checker->ip]);
+}
+
+static void emit_simple_nnop(struct type_checker *checker, enum w_opcode instruction) {
+    if (instruction != W_OP_NOP) emit_simple(checker, instruction);
+}
+
+static void emit_immediate_uv(struct type_checker *checker, enum w_opcode instruction8,
+                              uint64_t arg) {
+    enum w_opcode instruction16 = instruction8 + 1;
+    enum w_opcode instruction32 = instruction8 + 2;
+    enum w_opcode instruction64 = instruction8 + 3;
+    if (arg <= UINT8_MAX) {
+        write_immediate_u8(checker->out_block, instruction8, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+    else if (arg <= UINT16_MAX) {
+        write_immediate_u16(checker->out_block, instruction16, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+    else if (arg <= UINT32_MAX) {
+        write_immediate_u32(checker->out_block, instruction32, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+    else if (arg <= UINT64_MAX) {
+        write_immediate_u64(checker->out_block, instruction64, arg,
+                           &checker->in_block->locations[checker->ip]);
+    }
+}
+
+static void emit_immediate_sv(struct type_checker *checker, enum w_opcode instruction8,
+                              int64_t arg) {
+    emit_immediate_uv(checker, instruction8, s64_to_u64(arg));
+}
+
+static void copy_immediate_u8(struct type_checker *checker, enum w_opcode instruction) {
+    uint8_t value = read_u8(checker->in_block, checker->ip + 1);
+    write_immediate_u8(checker->out_block, instruction, value,
+                       &checker->in_block->locations[checker->ip]);
+    checker->ip += 1;
+}
+
+static void copy_immediate_u16(struct type_checker *checker, enum w_opcode instruction) {
+    uint16_t value = read_u16(checker->in_block, checker->ip + 1);
+    write_immediate_u16(checker->out_block, instruction, value,
+                        &checker->in_block->locations[checker->ip]);
+    checker->ip += 2;
+}
+
+static void copy_immediate_u32(struct type_checker *checker, enum w_opcode instruction) {
+    uint32_t value = read_u32(checker->in_block, checker->ip + 1);
+    write_immediate_u32(checker->out_block, instruction, value,
+                        &checker->in_block->locations[checker->ip]);
+    checker->ip += 4;
+}
+
+static void copy_immediate_u64(struct type_checker *checker, enum w_opcode instruction) {
+    uint64_t value = read_u64(checker->in_block, checker->ip + 1);
+    write_immediate_u64(checker->out_block, instruction, value,
+                        &checker->in_block->locations[checker->ip]);
+    checker->ip += 8;
+}
+
+static void copy_jump_instruction(struct type_checker *checker, enum w_opcode instruction) {
+    int16_t jump = read_s16(checker->in_block, checker->ip + 1);
+    write_immediate_s16(checker->out_block, instruction, jump,
+                        &checker->in_block->locations[checker->ip]);
+    int dest = checker->out_block->count - 2 + jump;  // -2 because of operand.
+    add_jump(checker->out_block, dest);
+    checker->ip += 2;
+}
+
+static void emit_u8(struct type_checker *checker, uint8_t value) {
+    write_u8(checker->out_block, value, &checker->in_block->locations[checker->ip]);
+}
+
+static void emit_pack_instruction(struct type_checker *checker, type_index index) {
+    const struct type_info *info = lookup_type(checker->types, index);
+    enum w_opcode instruction = W_OP_PACK1 + info->pack.field_count - 1;
+    emit_simple(checker, instruction);
+    for (int i = 0; i < info->pack.field_count; ++i) {
+        type_index field_type = info->pack.fields[i];
+        size_t size = type_size(field_type);
+        emit_u8(checker, size);
+    }
+}
+
+static void emit_unpack_instruction(struct type_checker *checker, const struct type_info *info) {
+    enum w_opcode instruction = W_OP_UNPACK1 + info->pack.field_count - 1;
+    emit_simple(checker, instruction);
+    for (int i = 0; i < info->pack.field_count; ++i) {
+        type_index field_type = info->pack.fields[i];
+        size_t size = type_size(field_type);
+        emit_u8(checker, size);
+    }
+}
+
+static void emit_print_instruction(struct type_checker *checker, type_index type) {
+    const struct type_info *info = lookup_type(checker->types, type);
+    assert(info);
+    if (info->kind == KIND_COMP) {
+        const type_index *fields = (info->comp.field_count <= 8)
+            ? info->comp.compact.fields
+            : info->comp.expanded.fields;
+        for (int i = info->comp.field_count - 1; i >= 0; --i) {
+            emit_print_instruction(checker, fields[i]);
+        }
+    }
+    else if (!is_signed(type)) {
+        emit_simple(checker, W_OP_PRINT);
+    }
+    else {
+        // Promote signed type to int.
+        enum w_opcode conv_instruction = promote(type);
+        emit_simple_nnop(checker, conv_instruction);
+        emit_simple(checker, W_OP_PRINT_INT);
     }
 }
 
@@ -792,14 +786,7 @@ enum type_check_result type_check(struct type_checker *checker) {
         }
         case T_OP_PRINT: {
             type_index type = ts_pop(checker);
-            enum w_opcode print_instruction = W_OP_PRINT;
-            if (is_signed(type)) {
-                // Promote signed type to int.
-                enum w_opcode conv_instruction = promote(type);
-                emit_simple_nnop(checker, conv_instruction);
-                print_instruction = W_OP_PRINT_INT;
-            }
-            emit_simple(checker, print_instruction);
+            emit_print_instruction(checker, type);
             break;
         }
         case T_OP_PRINT_CHAR: {

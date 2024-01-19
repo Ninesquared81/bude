@@ -2,6 +2,7 @@
 #define TYPE_H
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 #include "region.h"
@@ -36,6 +37,8 @@ static_assert(TYPE_ERROR == 0);
 
 const char *type_name(type_index type);
 size_t type_size(type_index type);
+bool is_signed(type_index type);
+bool is_integral(type_index type);
 
 struct type_info {
     enum type_kind {
