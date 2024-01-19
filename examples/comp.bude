@@ -9,4 +9,5 @@ print
 print
 print
 print
-pop
+
+print  # print whole comp
