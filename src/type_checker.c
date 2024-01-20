@@ -369,16 +369,17 @@ static void emit_comp_field_get(struct type_checker *checker, type_index index, 
         ? info->comp.compact.fields
         : info->comp.expanded.fields;
     size_t size = type_size(fields[offset]);
-    if (offset <= UINT8_MAX && size <= UINT8_MAX) {
-        emit_immediate_u8(checker, W_OP_COMP_FIELD_GET8, offset);
+    uint32_t offset_from_end = info->comp.field_count - offset;
+    if (offset_from_end <= UINT8_MAX && size <= UINT8_MAX) {
+        emit_immediate_u8(checker, W_OP_COMP_FIELD_GET8, offset_from_end);
         emit_u8(checker, size);
     }
-    else if (offset <= UINT16_MAX && size <= UINT16_MAX) {
-        emit_immediate_u16(checker, W_OP_COMP_FIELD_GET16, offset);
+    else if (offset_from_end <= UINT16_MAX && size <= UINT16_MAX) {
+        emit_immediate_u16(checker, W_OP_COMP_FIELD_GET16, offset_from_end);
         emit_u16(checker, size);
     }
     else if (size <= UINT32_MAX) {
-        emit_immediate_u32(checker, W_OP_COMP_FIELD_GET32, offset);
+        emit_immediate_u32(checker, W_OP_COMP_FIELD_GET32, offset_from_end);
         emit_u32(checker, size);
     }
     else {
