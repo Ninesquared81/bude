@@ -771,6 +771,14 @@ static void compile_comp_symbol(struct compiler *compiler, struct symbol *symbol
     emit_immediate_sv(compiler, T_OP_COMP8, symbol->comp.index);
 }
 
+static void compile_pack_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
+    emit_immediate_sv(compiler, T_OP_PACK_FIELD_GET8, symbol->pack_field_get.pack);
+}
+
+static void compile_comp_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
+    emit_immediate_sv(compiler, T_OP_COMP_FIELD_GET8, symbol->comp_field_get.comp);
+}
+
 static void compile_symbol(struct compiler *compiler) {
     struct string_view symbol_text = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
@@ -790,6 +798,12 @@ static void compile_symbol(struct compiler *compiler) {
         break;
     case SYM_COMP:
         compile_comp_symbol(compiler, symbol);
+        break;
+    case SYM_PACK_FIELD_GET:
+        compile_pack_field_get_symbol(compiler, symbol);
+        break;
+    case SYM_COMP_FIELD_GET:
+        compile_comp_field_get_symbol(compiler, symbol);
         break;
     }
 }
