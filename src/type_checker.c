@@ -49,6 +49,15 @@ static void expect_type(struct type_checker *checker, type_index expected_type) 
     }
 }
 
+static void expect_keep_type(struct type_checker *checker, type_index expected_type) {
+    type_index actual_type = ts_peek(checker);
+    if (actual_type != expected_type) {
+        type_error(checker, "expected type '%s' but got type '%s'",
+                   type_name(expected_type), type_name(actual_type));
+        exit(1);
+    }
+}
+
 void reset_type_stack(struct type_stack *tstack) {
     tstack->top = tstack->types;
 }
@@ -292,8 +301,34 @@ static void copy_jump_instruction(struct type_checker *checker, enum w_opcode in
     checker->ip += 2;
 }
 
+static void emit_immediate_u8(struct type_checker *checker, enum w_opcode instruction,
+                              uint8_t operand) {
+    write_immediate_u8(checker->out_block, instruction, operand,
+                       &checker->in_block->locations[checker->ip]);
+}
+
+static void emit_immediate_u16(struct type_checker *checker, enum w_opcode instruction,
+                              uint16_t operand) {
+    write_immediate_u16(checker->out_block, instruction, operand,
+                        &checker->in_block->locations[checker->ip]);
+}
+
+static void emit_immediate_u32(struct type_checker *checker, enum w_opcode instruction,
+                              uint32_t operand) {
+    write_immediate_u32(checker->out_block, instruction, operand,
+                        &checker->in_block->locations[checker->ip]);
+}
+
 static void emit_u8(struct type_checker *checker, uint8_t value) {
     write_u8(checker->out_block, value, &checker->in_block->locations[checker->ip]);
+}
+
+static void emit_u16(struct type_checker *checker, uint16_t value) {
+    write_u16(checker->out_block, value, &checker->in_block->locations[checker->ip]);
+}
+
+static void emit_u32(struct type_checker *checker, uint32_t value) {
+    write_u32(checker->out_block, value, &checker->in_block->locations[checker->ip]);
 }
 
 static void emit_pack_instruction(struct type_checker *checker, type_index index) {
@@ -314,6 +349,40 @@ static void emit_unpack_instruction(struct type_checker *checker, const struct t
         type_index field_type = info->pack.fields[i];
         size_t size = type_size(field_type);
         emit_u8(checker, size);
+    }
+}
+
+static void emit_pack_field_get(struct type_checker *checker, type_index index, uint8_t offset) {
+    const struct type_info *info = lookup_type(checker->types, index);
+    assert(info != NULL && info->kind == KIND_PACK);
+    assert(offset < info->pack.field_count);
+    type_index field_type = info->pack.fields[offset];
+    emit_immediate_u8(checker, W_OP_PACK_FIELD_GET, offset);
+    emit_u8(checker, type_size(field_type));
+}
+
+static void emit_comp_field_get(struct type_checker *checker, type_index index, uint32_t offset) {
+    const struct type_info *info = lookup_type(checker->types, index);
+    assert(info != NULL && info->kind == KIND_COMP);
+    assert((int)offset < info->comp.field_count);
+    const type_index *fields = (info->comp.field_count)
+        ? info->comp.compact.fields
+        : info->comp.expanded.fields;
+    size_t size = type_size(fields[offset]);
+    if (offset <= UINT8_MAX && size <= UINT8_MAX) {
+        emit_immediate_u8(checker, W_OP_COMP_FIELD_GET8, offset);
+        emit_u8(checker, size);
+    }
+    else if (offset <= UINT16_MAX && size <= UINT16_MAX) {
+        emit_immediate_u16(checker, W_OP_COMP_FIELD_GET16, offset);
+        emit_u16(checker, size);
+    }
+    else if (size <= UINT32_MAX) {
+        emit_immediate_u32(checker, W_OP_COMP_FIELD_GET32, offset);
+        emit_u32(checker, size);
+    }
+    else {
+        assert(0 && "Size too big to encode");
     }
 }
 
@@ -549,6 +618,26 @@ static void check_decomp_instruction(struct type_checker *checker) {
     for (int i = 0; i < info->comp.field_count; ++i) {
         ts_push(checker, fields[i]);
     }
+}
+
+static void check_pack_field_get(struct type_checker *checker, type_index index, uint8_t offset) {
+    expect_keep_type(checker, index);
+    const struct type_info *info = lookup_type(checker->types, index);
+    assert(info != NULL && info->kind == KIND_PACK);
+    assert(offset < info->pack.field_count);
+    ts_push(checker, info->pack.fields[offset]);
+}
+
+static void check_comp_field_get(struct type_checker *checker, type_index index,
+                                 uint32_t offset) {
+    expect_keep_type(checker, index);
+    const struct type_info *info = lookup_type(checker->types, index);
+    assert(info != NULL && info->kind == KIND_COMP);
+    assert((int)offset < info->comp.field_count);
+    const type_index *fields = (info->comp.field_count <= 8)
+        ? info->comp.compact.fields
+        : info->comp.expanded.fields;
+    ts_push(checker, fields[offset]);
 }
 
 enum type_check_result type_check(struct type_checker *checker) {
@@ -982,6 +1071,54 @@ enum type_check_result type_check(struct type_checker *checker) {
         }
         case T_OP_DECOMP: {
             check_decomp_instruction(checker);
+            break;
+        }
+        case T_OP_PACK_FIELD_GET8: {
+            int8_t index = read_s8(checker->in_block, checker->ip + 1);
+            uint8_t offset = read_s8(checker->in_block, checker->ip + 2);
+            checker->ip += 2;
+            check_pack_field_get(checker, index, offset);
+            emit_pack_field_get(checker, index, offset);
+            break;
+        }
+        case T_OP_PACK_FIELD_GET16: {
+            int16_t index = read_s16(checker->in_block, checker->ip + 1);
+            uint8_t offset = read_s8(checker->in_block, checker->ip + 3);
+            checker->ip += 3;
+            check_pack_field_get(checker, index, offset);
+            emit_pack_field_get(checker, index, offset);
+            break;
+        }
+        case T_OP_PACK_FIELD_GET32: {
+            int32_t index = read_s32(checker->in_block, checker->ip + 1);
+            uint8_t offset = read_s8(checker->in_block, checker->ip + 5);
+            checker->ip += 5;
+            check_pack_field_get(checker, index, offset);
+            emit_pack_field_get(checker, index, offset);
+            break;
+        }
+        case T_OP_COMP_FIELD_GET8: {
+            int8_t index = read_s8(checker->in_block, checker->ip + 1);
+            uint8_t offset = read_s8(checker->in_block, checker->ip + 2);
+            checker->ip += 2;
+            check_comp_field_get(checker, index, offset);
+            emit_comp_field_get(checker, index, offset);
+            break;
+        }
+        case T_OP_COMP_FIELD_GET16: {
+            int16_t index = read_s16(checker->in_block, checker->ip + 1);
+            uint16_t offset = read_s16(checker->in_block, checker->ip + 3);
+            checker->ip += 4;
+            check_comp_field_get(checker, index, offset);
+            emit_comp_field_get(checker, index, offset);
+            break;
+        }
+        case T_OP_COMP_FIELD_GET32: {
+            int32_t index = read_s32(checker->in_block, checker->ip + 1);
+            uint32_t offset = read_s32(checker->in_block, checker->ip + 5);
+            checker->ip += 8;
+            check_comp_field_get(checker, index, offset);
+            emit_comp_field_get(checker, index, offset);
             break;
         }
         }

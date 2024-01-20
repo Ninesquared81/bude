@@ -106,10 +106,18 @@ enum t_opcode {
     T_OP_COMP8,
     T_OP_COMP16,
     T_OP_COMP32,
-    /* (T) UNPACK -- Unpack the current pack on the top of the stack. */
+    /* (T)UNPACK -- Unpack the current pack on the top of the stack. */
     T_OP_UNPACK,
     /* DECOMP -- Decompose the current pack on the top of the stack. */
     T_OP_DECOMP,
+    /* (T)PACK_FIELD_GETn Idx_un Imm_u8 -- Retrieve the field of the pack at the given offset. */
+    T_OP_PACK_FIELD_GET8,
+    T_OP_PACK_FIELD_GET16,
+    T_OP_PACK_FIELD_GET32,
+    /* (T)COMP_FIELD_GET Idx_un Imm_un -- Retrieve the field of the comp at the given offset. */
+    T_OP_COMP_FIELD_GET8,
+    T_OP_COMP_FIELD_GET16,
+    T_OP_COMP_FIELD_GET32,
 };
 
 enum w_opcode {
@@ -225,6 +233,13 @@ enum w_opcode {
     W_OP_UNPACK6,
     W_OP_UNPACK7,
     W_OP_UNPACK8,
+    /* (W)PACK_FIELD_GET Imm_u8 Imm_u8 -- Retrieve the field of a pack at the given offset
+       and of the given size. */
+    W_OP_PACK_FIELD_GET,
+    /* (W)COMP_FIELD_GETn Imm_un -- Retrieve the field of a comp at the given offset. */
+    W_OP_COMP_FIELD_GET8,
+    W_OP_COMP_FIELD_GET16,
+    W_OP_COMP_FIELD_GET32,
 };
 
 static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);
