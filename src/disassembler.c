@@ -439,6 +439,14 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return w_comp_field16_instruction("W_OP_COMP_FIELD_GET16", block, offset);
     case W_OP_COMP_FIELD_GET32:
         return w_comp_field32_instruction("W_OP_COMP_FIELD_GET32", block, offset);
+    case W_OP_PACK_FIELD_SET:
+        return w_pack_field_instruction("W_OP_PACK_FIELD_SET", block, offset);
+    case W_OP_COMP_FIELD_SET8:
+        return w_comp_field8_instruction("W_OP_COMP_FIELD_SET8", block, offset);
+    case W_OP_COMP_FIELD_SET16:
+        return w_comp_field16_instruction("W_OP_COMP_FIELD_SET16", block, offset);
+    case W_OP_COMP_FIELD_SET32:
+        return w_comp_field32_instruction("W_OP_COMP_FIELD_SET32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
