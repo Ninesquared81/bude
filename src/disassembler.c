@@ -263,6 +263,18 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
         return t_comp_field16_instruction("T_OP_COMP_FIELD_GET16", block, offset);
     case T_OP_COMP_FIELD_GET32:
         return t_comp_field32_instruction("T_OP_COMP_FIELD_GET32", block, offset);
+    case T_OP_PACK_FIELD_SET8:
+        return t_pack_field8_instruction("T_OP_PACK_FIELD_SET8", block, offset);
+    case T_OP_PACK_FIELD_SET16:
+        return t_pack_field16_instruction("T_OP_PACK_FIELD_SET16", block, offset);
+    case T_OP_PACK_FIELD_SET32:
+        return t_pack_field32_instruction("T_OP_PACK_FIELD_SET32", block, offset);
+    case T_OP_COMP_FIELD_SET8:
+        return t_comp_field8_instruction("T_OP_COMP_FIELD_SET8", block, offset);
+    case T_OP_COMP_FIELD_SET16:
+        return t_comp_field16_instruction("T_OP_COMP_FIELD_SET16", block, offset);
+    case T_OP_COMP_FIELD_SET32:
+        return t_comp_field32_instruction("T_OP_COMP_FIELD_SET32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
