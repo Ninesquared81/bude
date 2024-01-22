@@ -4,6 +4,7 @@
 
 #include "disassembler.h"
 #include "ir.h"
+#include "type.h"
 
 #define OPCODE_FORMAT "-20s"
 
@@ -68,6 +69,75 @@ static int w_pack_instruction(const char *name, struct ir_block *block, int offs
     printf("\n");
     return offset + field_count + 1;
 }
+
+static int t_pack_field8_instruction(const char *name, struct ir_block *block, int offset) {
+    type_index pack = read_s8(block, offset + 1);
+    int field = read_u8(block, offset + 2);
+    // TODO: print name of pack here.
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
+    return offset + 3;
+}
+
+static int t_pack_field16_instruction(const char *name, struct ir_block *block, int offset) {
+    type_index pack = read_s16(block, offset + 1);
+    int field = read_u8(block, offset + 3);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
+    return offset + 4;
+}
+
+static int t_pack_field32_instruction(const char *name, struct ir_block *block, int offset) {
+    type_index pack = read_s32(block, offset + 1);
+    int field = read_u8(block, offset + 4);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
+    return offset + 6;
+}
+
+static int t_comp_field8_instruction(const char *name, struct ir_block *block, int offset) {
+    type_index comp = read_s8(block, offset + 1);
+    int field = read_u8(block, offset + 2);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
+    return offset + 3;
+}
+
+static int t_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
+    type_index comp = read_s16(block, offset + 1);
+    int field = read_u16(block, offset + 2);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
+    return offset + 5;
+}
+
+static int t_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
+    type_index comp = read_s32(block, offset + 1);
+    int field = read_u32(block, offset + 2);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
+    return offset + 9;
+}
+
+static int w_pack_field_instruction(const char *name, struct ir_block *block, int offset) {
+    int field = read_u8(block, offset + 1);
+    int size = read_u8(block, offset + 2);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, field, size);
+    return offset + 3;
+}
+
+static int w_comp_field8_instruction(const char *name, struct ir_block *block, int offset) {
+    int field = read_s8(block, offset + 1);
+    printf("%"OPCODE_FORMAT" %d\n", name, field);
+    return offset + 2;
+}
+
+static int w_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
+    int field = read_s16(block, offset + 1);
+    printf("%"OPCODE_FORMAT" %d\n", name, field);
+    return offset + 3;
+}
+
+static int w_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
+    int field = read_s32(block, offset + 1);
+    printf("%"OPCODE_FORMAT" %d\n", name, field);
+    return offset + 5;
+}
+
 
 static int disassemble_t_instruction(struct ir_block *block, int offset) {
     enum t_opcode instruction = block->code[offset];
@@ -181,6 +251,18 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
         return immediate_u32_instruction("T_OP_COMP32", block, offset);
     case T_OP_UNPACK:
         return simple_instruction("T_OP_UNPACK", offset);
+    case T_OP_PACK_FIELD_GET8:
+        return t_pack_field8_instruction("T_OP_PACK_FIELD_GET8", block, offset);
+    case T_OP_PACK_FIELD_GET16:
+        return t_pack_field16_instruction("T_OP_PACK_FIELD_GET16", block, offset);
+    case T_OP_PACK_FIELD_GET32:
+        return t_pack_field32_instruction("T_OP_PACK_FIELD_GET32", block, offset);
+    case T_OP_COMP_FIELD_GET8:
+        return t_comp_field8_instruction("T_OP_COMP_FIELD_GET8", block, offset);
+    case T_OP_COMP_FIELD_GET16:
+        return t_comp_field16_instruction("T_OP_COMP_FIELD_GET16", block, offset);
+    case T_OP_COMP_FIELD_GET32:
+        return t_comp_field32_instruction("T_OP_COMP_FIELD_GET32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
@@ -337,6 +419,14 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return w_pack_instruction("W_OP_UNPACK7", block, offset, 7);
     case W_OP_UNPACK8:
         return w_pack_instruction("W_OP_UNPACK8", block, offset, 8);
+    case W_OP_PACK_FIELD_GET:
+        return w_pack_field_instruction("W_OP_PACK_FIELD_GET", block, offset);
+    case W_OP_COMP_FIELD_GET8:
+        return w_comp_field8_instruction("W_OP_COMP_FIELD_GET8", block, offset);
+    case W_OP_COMP_FIELD_GET16:
+        return w_comp_field16_instruction("W_OP_COMP_FIELD_GET16", block, offset);
+    case W_OP_COMP_FIELD_GET32:
+        return w_comp_field32_instruction("W_OP_COMP_FIELD_GET32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
