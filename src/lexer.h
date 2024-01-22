@@ -39,6 +39,7 @@ enum token_type {
     TOKEN_PRINT,
     TOKEN_PRINT_CHAR,
     TOKEN_PTR,
+    TOKEN_RIGHT_ARROW,
     TOKEN_S8,
     TOKEN_S16,
     TOKEN_S32,

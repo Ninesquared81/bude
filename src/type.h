@@ -42,7 +42,10 @@ bool is_integral(type_index type);
 
 struct type_info {
     enum type_kind {
-        KIND_SIMPLE,
+        // This marks a type as uninitialised.
+        KIND_UNINIT = -1,
+
+        KIND_SIMPLE = 0,
         KIND_PACK,
         KIND_COMP,
     } kind;
@@ -76,7 +79,8 @@ struct type_table {
 
 void init_type_table(struct type_table *types);
 void free_type_table(struct type_table *types);
-type_index new_type(struct type_table *types, const struct type_info *info);
+type_index new_type(struct type_table *types);
+void init_type(struct type_table *types, type_index type, const struct type_info *info);
 const struct type_info *lookup_type(const struct type_table *types, type_index type);
 void *alloc_extra(struct type_table *types, size_t size);
 

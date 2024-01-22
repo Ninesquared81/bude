@@ -9,6 +9,7 @@
 
 const char *kind_name(enum type_kind kind) {
     switch(kind) {
+    case KIND_UNINIT: return "<Uninitialised type>";
     case KIND_SIMPLE: return "simple";
     case KIND_PACK:   return "pack";
     case KIND_COMP:   return "comp";
@@ -104,16 +105,20 @@ static void grow_type_table(struct type_table *types) {
                                     sizeof *types->infos);
 }
 
-type_index new_type(struct type_table *types, const struct type_info *info) {
+type_index new_type(struct type_table *types) {
     if (types->count + 1 > types->capacity) {
         grow_type_table(types);
     }
     int index = types->count++;
-    if (info != NULL) {
-        types->infos[index] = *info;
-    }
     // Offset to get valid index again (see below).
     return index + SIMPLE_TYPE_COUNT;
+}
+
+void init_type(struct type_table *types, type_index type, const struct type_info *info) {
+    assert(info != NULL);
+    assert(!IS_SIMPLE_TYPE(type));
+    int index = type - SIMPLE_TYPE_COUNT;
+    types->infos[index] = *info;
 }
 
 const struct type_info *lookup_type(const struct type_table *types, type_index type) {

@@ -109,7 +109,12 @@ static enum token_type check_terminal(struct lexer *lexer, int length, enum toke
 static enum token_type symbol_type(struct lexer *lexer) {
     switch (lexer->start[0]) {
     case '+': return check_terminal(lexer, 1, TOKEN_PLUS);
-    case '-': return check_terminal(lexer, 1, TOKEN_MINUS);
+    case '-':
+        switch (lexer->start[1]) {
+        case '>': return check_terminal(lexer, 2, TOKEN_RIGHT_ARROW);
+        default: return check_terminal(lexer, 1, TOKEN_MINUS);
+        }
+        break;
     case '*': return check_terminal(lexer, 1, TOKEN_STAR);
     case '/': return check_keyword(lexer, 1, 1, "%", TOKEN_SLASH_PERCENT);
     case 'a': return check_keyword(lexer, 1, 2, "nd", TOKEN_AND);

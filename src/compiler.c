@@ -110,6 +110,12 @@ static void emit_immediate_u8(struct compiler *compiler, enum t_opcode instructi
                        &compiler->previous_token.location);
 }
 
+static void emit_immediate_s8(struct compiler *compiler, enum t_opcode instruction,
+                              int8_t operand) {
+    write_immediate_s8(compiler->block, instruction, operand,
+                       &compiler->previous_token.location);
+}
+
 static void emit_immediate_u16(struct compiler *compiler, enum t_opcode instruction,
                                uint16_t operand) {
     write_immediate_u16(compiler->block, instruction, operand,
@@ -120,6 +126,24 @@ static void emit_immediate_s16(struct compiler *compiler, enum t_opcode instruct
                                int16_t operand) {
     write_immediate_s16(compiler->block, instruction, operand,
                         &compiler->previous_token.location);
+}
+
+static void emit_immediate_s32(struct compiler *compiler, enum t_opcode instruction,
+                               int32_t operand) {
+    write_immediate_s32(compiler->block, instruction, operand,
+                        &compiler->previous_token.location);
+}
+
+static void emit_s8(struct compiler *compiler, int8_t value) {
+    write_u8(compiler->block, value, &compiler->previous_token.location);
+}
+
+static void emit_s16(struct compiler *compiler, int16_t value) {
+    write_u16(compiler->block, value, &compiler->previous_token.location);
+}
+
+static void emit_s32(struct compiler *compiler, int32_t value) {
+    write_u32(compiler->block, value, &compiler->previous_token.location);
 }
 
 static void emit_immediate_uv(struct compiler *compiler, enum t_opcode instruction8,
@@ -614,11 +638,13 @@ static void compile_character(struct compiler *compiler) {
 
 static void compile_pack(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_SYMBOL, "Expect pack name after `pack`.");
+    type_index index = new_type(compiler->types);
     struct symbol symbol = {
         .name = peek_previous(compiler).value,
         .type = SYM_PACK,
-        .pack.index = -1  // -1 to indicate unitiliazed.
+        .pack.index = index,
     };
+    insert_symbol(&compiler->symbols, &symbol);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after pack name.");
     struct type_info info = {.kind = KIND_PACK};
     int field_count = 0;
@@ -627,6 +653,17 @@ static void compile_pack(struct compiler *compiler) {
             parse_error(compiler, "unexpected EOF parsing pack definition.\n");
             exit(1);
         }
+        expect_consume(compiler, TOKEN_SYMBOL, "Expect field name.");
+        struct symbol field = {
+            .name = peek_previous(compiler).value,
+            .type = SYM_PACK_FIELD_GET,
+            .pack_field_get = {
+                .pack = index,
+                .field_offset = field_count,
+            },
+        };
+        insert_symbol(&compiler->symbols, &field);
+        expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
         switch (advance(compiler).type) {
         case TOKEN_BYTE:
             info.pack.fields[field_count] = TYPE_BYTE;
@@ -665,17 +702,18 @@ static void compile_pack(struct compiler *compiler) {
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after pack definition.");
     info.pack.field_count = field_count;
-    symbol.pack.index = new_type(compiler->types, &info);
-    insert_symbol(&compiler->symbols, &symbol);
+    init_type(compiler->types, index, &info);
 }
 
 static void compile_comp(struct compiler *compiler) {
+    type_index index = new_type(compiler->types);
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `comp`.");
     struct symbol symbol = {
         .name = peek_previous(compiler).value,
         .type = SYM_COMP,
-        .comp.index = -1,
+        .comp.index = index,
     };
+    insert_symbol(&compiler->symbols, &symbol);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after comp name.");
     struct type_info info = {.kind = KIND_COMP};
     int field_count = 0;
@@ -686,6 +724,17 @@ static void compile_comp(struct compiler *compiler) {
             parse_error(compiler, "unexpected EOF parsing comp definition.\n");
             exit(1);
         }
+        expect_consume(compiler, TOKEN_SYMBOL, "Expect field name.");
+        struct symbol field = {
+            .name = peek_previous(compiler).value,
+            .type = SYM_COMP_FIELD_GET,
+            .comp_field_get = {
+                .comp = index,
+                .field_offset = field_count,
+            },
+        };
+        insert_symbol(&compiler->symbols, &field);
+        expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
         type_index type = TYPE_ERROR;
         switch (advance(compiler).type) {
         case TOKEN_BYTE:
@@ -746,8 +795,7 @@ static void compile_comp(struct compiler *compiler) {
         fields[i] = current->type;
         current = current->next;
     }
-    symbol.comp.index = new_type(compiler->types, &info);
-    insert_symbol(&compiler->symbols, &symbol);
+    init_type(compiler->types, index, &info);
 }
 
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
@@ -773,10 +821,24 @@ static void compile_comp_symbol(struct compiler *compiler, struct symbol *symbol
 
 static void compile_pack_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
     emit_immediate_sv(compiler, T_OP_PACK_FIELD_GET8, symbol->pack_field_get.pack);
+    emit_s8(compiler, symbol->pack_field_get.field_offset);
 }
 
 static void compile_comp_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
-    emit_immediate_sv(compiler, T_OP_COMP_FIELD_GET8, symbol->comp_field_get.comp);
+    int offset = symbol->comp_field_get.field_offset;
+    type_index comp = symbol->comp_field_get.comp;
+    if (IN_RANGE(comp, INT8_MIN, INT8_MAX) && IN_RANGE(offset, INT8_MIN, INT8_MAX)) {
+        emit_immediate_s8(compiler, T_OP_COMP_FIELD_GET8, comp);
+        emit_s8(compiler, offset);
+    }
+    else if (IN_RANGE(comp, INT16_MIN, INT16_MAX) && IN_RANGE(offset, INT16_MIN, INT16_MAX)) {
+        emit_immediate_s16(compiler, T_OP_COMP_FIELD_GET16, comp);
+        emit_s16(compiler, offset);
+    }
+    else {
+        emit_immediate_s32(compiler, T_OP_COMP_FIELD_GET32, comp);
+        emit_s32(compiler, offset);
+    }
 }
 
 static void compile_symbol(struct compiler *compiler) {
