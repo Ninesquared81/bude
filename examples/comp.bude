@@ -1,8 +1,12 @@
 comp bar def
-    u16 s32 u8 s8
+    a -> u16
+    b -> s32
+    c -> u8
+    d -> s8
 end
 
 5u16 -7s32 255u8 0s8 bar
+b print
 dupe
 decomp
 print

@@ -1,5 +1,8 @@
 pack foo def
-    u16 s32 u8 s8
+    a -> u16
+    b -> s32
+    c -> u8
+    d -> s8
 end
 
 0xAAAAu16
@@ -12,6 +15,8 @@ dupe
 print
 0x44ff77777777aaaa
 print
+
+a print
 
 unpack
 print
