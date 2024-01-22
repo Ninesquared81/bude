@@ -678,7 +678,7 @@ static void compile_pack(struct compiler *compiler) {
         expect_consume(compiler, TOKEN_SYMBOL, "Expect field name.");
         struct symbol field = {
             .name = peek_previous(compiler).value,
-            .type = SYM_PACK_FIELD_GET,
+            .type = SYM_PACK_FIELD,
             .pack_field_get = {
                 .pack = index,
                 .field_offset = field_count,
@@ -749,7 +749,7 @@ static void compile_comp(struct compiler *compiler) {
         expect_consume(compiler, TOKEN_SYMBOL, "Expect field name.");
         struct symbol field = {
             .name = peek_previous(compiler).value,
-            .type = SYM_COMP_FIELD_GET,
+            .type = SYM_COMP_FIELD,
             .comp_field_get = {
                 .comp = index,
                 .field_offset = field_count,
@@ -830,11 +830,11 @@ static void compile_assignment(struct compiler *compiler) {
         exit(1);
     }
     switch (symbol->type) {
-    case SYM_PACK_FIELD_GET:
+    case SYM_PACK_FIELD:
         emit_pack_field(compiler, T_OP_PACK_FIELD_SET8, symbol->pack_field_get.pack,
                         symbol->pack_field_get.field_offset);
         break;
-    case SYM_COMP_FIELD_GET:
+    case SYM_COMP_FIELD:
         emit_comp_field(compiler, T_OP_COMP_FIELD_SET8, symbol->comp_field_get.comp,
                         symbol->comp_field_get.field_offset);
         break;
@@ -896,10 +896,10 @@ static void compile_symbol(struct compiler *compiler) {
     case SYM_COMP:
         compile_comp_symbol(compiler, symbol);
         break;
-    case SYM_PACK_FIELD_GET:
+    case SYM_PACK_FIELD:
         compile_pack_field_get_symbol(compiler, symbol);
         break;
-    case SYM_COMP_FIELD_GET:
+    case SYM_COMP_FIELD:
         compile_comp_field_get_symbol(compiler, symbol);
         break;
     }
