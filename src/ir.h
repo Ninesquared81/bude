@@ -248,6 +248,13 @@ enum w_opcode {
     W_OP_COMP_FIELD_GET8,
     W_OP_COMP_FIELD_GET16,
     W_OP_COMP_FIELD_GET32,
+    /* (W)PACK_FIELD_SET Imm_u8 Imm_u8 -- Set the field of a pack at the given offset
+       and of the given size. */
+    W_OP_PACK_FIELD_SET,
+    /* (W)COMP_FIELD_SETn Imm_un -- Set the field of a comp at the given offset. */
+    W_OP_COMP_FIELD_SET8,
+    W_OP_COMP_FIELD_SET16,
+    W_OP_COMP_FIELD_SET32,
 };
 
 static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);
