@@ -762,6 +762,37 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, field);
             break;
         }
+        case W_OP_PACK_FIELD_SET: {
+            int8_t offset = read_s8(interpreter->block, ip + 1);
+            int8_t size = read_s8(interpreter->block, ip + 2);
+            ip += 2;
+            stack_word field = pop(interpreter->main_stack);
+            stack_word pack = pop(interpreter->main_stack);
+            memcpy((unsigned char *)&pack + offset, &field, size);
+            push(interpreter->main_stack, pack);
+            break;
+        }
+        case W_OP_COMP_FIELD_SET8: {
+            int8_t offset = read_s8(interpreter->block, ip + 1);
+            ip += 1;
+            stack_word field = pop(interpreter->main_stack);
+            set_nth(interpreter->main_stack, offset - 1, field);
+            break;
+        }
+        case W_OP_COMP_FIELD_SET16: {
+            int16_t offset = read_s16(interpreter->block, ip + 1);
+            ip += 2;
+            stack_word field = pop(interpreter->main_stack);
+            set_nth(interpreter->main_stack, offset - 1, field);
+            break;
+        }
+        case W_OP_COMP_FIELD_SET32: {
+            int32_t offset = read_s32(interpreter->block, ip + 1);
+            ip += 4;
+            stack_word field = pop(interpreter->main_stack);
+            set_nth(interpreter->main_stack, offset - 1, field);
+            break;
+        }
         }
     }
     return INTERPRET_OK;

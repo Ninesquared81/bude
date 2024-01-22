@@ -73,3 +73,12 @@ const stack_word *peekn(struct stack *stack, int n) {
     assert(n > 0);
     return stack->top - n;
 }
+
+void set_nth(struct stack *stack, int n, stack_word value) {
+    if (stack->top - stack->elements < n) {
+        fprintf(stderr, "Stack underflow\n");
+        exit(1);
+    }
+    assert(n > 0);
+    stack->top[-1 - n] = value; 
+}
