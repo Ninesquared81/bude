@@ -30,6 +30,7 @@ enum token_type {
     TOKEN_FROM,
     TOKEN_IF,
     TOKEN_INT,
+    TOKEN_LEFT_ARROW,
     TOKEN_MINUS,
     TOKEN_NOT,
     TOKEN_OR,

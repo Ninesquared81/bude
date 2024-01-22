@@ -114,10 +114,18 @@ enum t_opcode {
     T_OP_PACK_FIELD_GET8,
     T_OP_PACK_FIELD_GET16,
     T_OP_PACK_FIELD_GET32,
-    /* (T)COMP_FIELD_GET Idx_un Imm_un -- Retrieve the field of the comp at the given offset. */
+    /* (T)COMP_FIELD_GETn Idx_un Imm_un -- Retrieve the field of the comp at the given offset. */
     T_OP_COMP_FIELD_GET8,
     T_OP_COMP_FIELD_GET16,
     T_OP_COMP_FIELD_GET32,
+    /* (T)PACK_FIELD_SETn Idx_sn Imm_sn -- Set the field of the pack at the given offset. */
+    T_OP_PACK_FIELD_SET8,
+    T_OP_PACK_FIELD_SET16,
+    T_OP_PACK_FIELD_SET32,
+    /* (T)COMP_FIELD_SETn Idx_un Imm_un -- Set the field of the comp at the given offset. */
+    T_OP_COMP_FIELD_SET8,
+    T_OP_COMP_FIELD_SET16,
+    T_OP_COMP_FIELD_SET32,
 };
 
 enum w_opcode {

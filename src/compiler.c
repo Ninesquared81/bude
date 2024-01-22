@@ -194,6 +194,28 @@ static void emit_immediate_sv(struct compiler *compiler, enum t_opcode instructi
     }
 }
 
+static void emit_pack_field(struct compiler *compiler, enum t_opcode instruction8,
+                            type_index pack, int offset) {
+    emit_immediate_sv(compiler, instruction8, pack);
+    emit_s8(compiler, offset);
+}
+
+static void emit_comp_field(struct compiler *compiler, enum t_opcode instruction8,
+                            type_index comp, int offset) {
+    if (IN_RANGE(comp, INT8_MIN, INT8_MIN) && IN_RANGE(offset, INT8_MIN, INT8_MAX)) {
+        emit_immediate_s8(compiler, instruction8, comp);
+        emit_s8(compiler, offset);
+    }
+    else if (IN_RANGE(comp, INT16_MIN, INT16_MIN) && IN_RANGE(offset, INT16_MIN, INT16_MAX)) {
+        emit_immediate_s16(compiler, instruction8 + 1, comp);
+        emit_s16(compiler, offset);
+    }
+    else {        
+        emit_immediate_s32(compiler, instruction8 + 2, comp);
+        emit_s32(compiler, offset);
+    }
+}
+
 static void compile_expr(struct compiler *compiler);
 static void compile_symbol(struct compiler *compiler);
 
@@ -798,6 +820,30 @@ static void compile_comp(struct compiler *compiler) {
     init_type(compiler->types, index, &info);
 }
 
+static void compile_assignment(struct compiler *compiler) {
+    expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `<-`");
+    struct string_view name = peek_previous(compiler).value;
+    struct symbol *symbol = lookup_symbol(&compiler->symbols, &name);
+    if (symbol == NULL) {
+        assert(name.length < (size_t)INT_MAX);
+        compile_error(compiler, "Unknown symbol '%*s'", (int)name.length, name.start);
+        exit(1);
+    }
+    switch (symbol->type) {
+    case SYM_PACK_FIELD_GET:
+        emit_pack_field(compiler, T_OP_PACK_FIELD_SET8, symbol->pack_field_get.pack,
+                        symbol->pack_field_get.field_offset);
+        break;
+    case SYM_COMP_FIELD_GET:
+        emit_comp_field(compiler, T_OP_COMP_FIELD_SET8, symbol->comp_field_get.comp,
+                        symbol->comp_field_get.field_offset);
+        break;
+    default:
+        parse_error(compiler, "Incorrect symbol type for `<-`.");
+        exit(1);
+    }
+}
+
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
     size_t level = symbol->loop_var.level;
     if (level > compiler->for_loop_level) {
@@ -820,25 +866,14 @@ static void compile_comp_symbol(struct compiler *compiler, struct symbol *symbol
 }
 
 static void compile_pack_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
-    emit_immediate_sv(compiler, T_OP_PACK_FIELD_GET8, symbol->pack_field_get.pack);
-    emit_s8(compiler, symbol->pack_field_get.field_offset);
+    emit_pack_field(compiler, T_OP_PACK_FIELD_GET8,
+                    symbol->pack_field_get.pack, symbol->pack_field_get.field_offset);
 }
 
 static void compile_comp_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
     int offset = symbol->comp_field_get.field_offset;
     type_index comp = symbol->comp_field_get.comp;
-    if (IN_RANGE(comp, INT8_MIN, INT8_MAX) && IN_RANGE(offset, INT8_MIN, INT8_MAX)) {
-        emit_immediate_s8(compiler, T_OP_COMP_FIELD_GET8, comp);
-        emit_s8(compiler, offset);
-    }
-    else if (IN_RANGE(comp, INT16_MIN, INT16_MAX) && IN_RANGE(offset, INT16_MIN, INT16_MAX)) {
-        emit_immediate_s16(compiler, T_OP_COMP_FIELD_GET16, comp);
-        emit_s16(compiler, offset);
-    }
-    else {
-        emit_immediate_s32(compiler, T_OP_COMP_FIELD_GET32, comp);
-        emit_s32(compiler, offset);
-    }
+    emit_comp_field(compiler, T_OP_COMP_FIELD_GET8, comp, offset);
 }
 
 static void compile_symbol(struct compiler *compiler) {
@@ -944,6 +979,9 @@ static void compile_expr(struct compiler *compiler) {
         }
         else if (match(compiler, TOKEN_INT_LIT)) {
             compile_integer(compiler);
+        }
+        else if (match(compiler, TOKEN_LEFT_ARROW)) {
+            compile_assignment(compiler);
         }
         else if (match(compiler, TOKEN_PACK)) {
             compile_pack(compiler);
