@@ -17,6 +17,7 @@ print
 print
 
 a print
+42u16 <- a
 
 unpack
 print

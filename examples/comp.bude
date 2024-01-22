@@ -6,7 +6,11 @@ comp bar def
 end
 
 5u16 -7s32 255u8 0s8 bar
+dupe print
+
 b print
+-11s32 <- b
+
 dupe
 decomp
 print
