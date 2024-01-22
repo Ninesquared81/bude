@@ -319,14 +319,17 @@ static void emit_immediate_u32(struct type_checker *checker, enum w_opcode instr
                         &checker->in_block->locations[checker->ip]);
 }
 
+[[maybe_unused]]
 static void emit_u8(struct type_checker *checker, uint8_t value) {
     write_u8(checker->out_block, value, &checker->in_block->locations[checker->ip]);
 }
 
+[[maybe_unused]]
 static void emit_u16(struct type_checker *checker, uint16_t value) {
     write_u16(checker->out_block, value, &checker->in_block->locations[checker->ip]);
 }
 
+[[maybe_unused]]
 static void emit_u32(struct type_checker *checker, uint32_t value) {
     write_u32(checker->out_block, value, &checker->in_block->locations[checker->ip]);
 }
@@ -365,25 +368,15 @@ static void emit_comp_field_get(struct type_checker *checker, type_index index, 
     const struct type_info *info = lookup_type(checker->types, index);
     assert(info != NULL && info->kind == KIND_COMP);
     assert((int)offset < info->comp.field_count);
-    const type_index *fields = (info->comp.field_count)
-        ? info->comp.compact.fields
-        : info->comp.expanded.fields;
-    size_t size = type_size(fields[offset]);
     uint32_t offset_from_end = info->comp.field_count - offset;
-    if (offset_from_end <= UINT8_MAX && size <= UINT8_MAX) {
+    if (offset_from_end <= UINT8_MAX) {
         emit_immediate_u8(checker, W_OP_COMP_FIELD_GET8, offset_from_end);
-        emit_u8(checker, size);
     }
-    else if (offset_from_end <= UINT16_MAX && size <= UINT16_MAX) {
+    else if (offset_from_end <= UINT16_MAX) {
         emit_immediate_u16(checker, W_OP_COMP_FIELD_GET16, offset_from_end);
-        emit_u16(checker, size);
-    }
-    else if (size <= UINT32_MAX) {
-        emit_immediate_u32(checker, W_OP_COMP_FIELD_GET32, offset_from_end);
-        emit_u32(checker, size);
     }
     else {
-        assert(0 && "Size too big to encode");
+        emit_immediate_u32(checker, W_OP_COMP_FIELD_GET32, offset_from_end);
     }
 }
 
