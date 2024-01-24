@@ -66,6 +66,8 @@ struct type_info {
             };
         } comp;
     };
+    struct string_view name;
+    size_t size;
 };
 
 const char *kind_name(enum type_kind kind);
