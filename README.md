@@ -58,6 +58,9 @@ for the result expressions of some operations.
 * _p_ &ndash; pointer value
 * _c_ &ndash; ~~UTF-8~~ ASCII codepoint (will be UTF-8 in the future)
 * `<literal>` &ndash; the literal value denoted
+* _pk_ &ndash; structural "pack" type
+* _cmp_ &ndash; structural "comp" type
+* _T_ &ndash; type variable "T"
 
 ### Push instructions
 
@@ -76,6 +79,18 @@ _i_ `print` &rarr; &varnothing; : Pop the top element from the stack and print i
 
 _c_ `print-char` &rarr; &varnothing; : Pop the top element from the stack and print it as a
 unicode character.
+
+### Field access operations
+
+_pk_ <_field-name_: _T_> &rarr; _pk_ _T_ : Push the specified field from the pack.
+
+_pk_ _T_ `<-` <_field-name_: _T_> &rarr; _pk_ : Pop the top stack value and use it to set the
+specified field of the pack underneath.
+
+_cmp_ <_field-name_: _T_> &rarr; _cmp_ _T_ : Push the specified field from the comp.
+
+_cmp_ _T_ `<-` <_field-name_: _T_> &rarr; _cmp_ : Pop the top stack value and use it to set the
+specified field of the comp underneath.
 
 ### Arithmetic operations
 
@@ -107,6 +122,22 @@ _w1_ _w2_ `swap` &rarr; _w2_ _w1_ : Swap the top two elements on the stack.
 
 _w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
 
+### Constructors
+
+_F1_ _F2_ _F3_ &hellip; <_pack-name_> &rarr; _pk_ : Construct a pack with the field types
+_F1_, _F2_, _F3_, &hellip;.
+
+_F1_ _F2_ _F3_ &hellip; <_comp-name_> &rarr; _pk_ : Construct a comp with the field types
+_F1_, _F2_, _F3_, &hellip;.
+
+### Destructors
+
+_pk_ `unpack` &rarr; _F1_ _F2_ _F3_ &hellip; : Unpack the pack on the top of the stack into its
+fields with types _F1_, _F2_, _F3_, &hellip;.
+
+_cmp_ `decomp` &rarr; _F1_ _F2_ _F3_ &hellip; : Decompose the comp on the top of the stack into
+its fields with types _F1_, _F2_, _F3_, &hellip;.
+
 ### Control flow constructs
 
 `if` _condition_ `then` _then-body_ [`elif` _elif-condition_ `then` _elif-then-body_ &hellip;]
@@ -121,3 +152,10 @@ times specified by _count_. The counting form (`for` <_loop-var_> `to` _count_ &
 `for` <_loop-var_> `from` _count_ &hellip;) creates a loop variable and binds it to the name
 specified, which can be accessed inside the loop. The value stored in the loop variable either
 starts at zero and counts up `to` _count_ or counts down to zero `from` _count_.
+
+### Definitions
+
+`pack` <_pack-name_> `def` [<_field-name_> `->` <_field-type_> &hellip;] `end`
+
+`comp` <_comp-name_> `def` [<_field-name_> `->` <_field-type_> &hellip;] `end`
+
