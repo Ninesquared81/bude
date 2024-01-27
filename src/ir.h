@@ -255,6 +255,14 @@ enum w_opcode {
     W_OP_COMP_FIELD_SET8,
     W_OP_COMP_FIELD_SET16,
     W_OP_COMP_FIELD_SET32,
+    /* (W)COMP_SUBCOMP_GETn Imm_sn Imm_sn -- Get the value of a subcomp. */
+    W_OP_COMP_SUBCOMP_GET8,
+    W_OP_COMP_SUBCOMP_GET16,
+    W_OP_COMP_SUBCOMP_GET32,
+    /* (W)COMP_SUBCOMP_SETn Imm_sn Imm_sn -- Set the value of a subcomp. */
+    W_OP_COMP_SUBCOMP_SET8,
+    W_OP_COMP_SUBCOMP_SET16,
+    W_OP_COMP_SUBCOMP_SET32,
 };
 
 static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);

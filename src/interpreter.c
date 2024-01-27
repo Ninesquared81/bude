@@ -793,6 +793,72 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             set_nth(interpreter->main_stack, offset - 1, field);
             break;
         }
+        case W_OP_COMP_SUBCOMP_GET8: {
+            int8_t offset = read_s8(interpreter->block, ip + 1);
+            int8_t word_count = read_s8(interpreter->block, ip + 2);
+            ip += 2;
+            const stack_word *words = peekn(interpreter->main_stack, offset);
+            push_all(interpreter->main_stack, word_count, words);
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_GET16: {
+            int16_t offset = read_s16(interpreter->block, ip + 1);
+            int16_t word_count = read_s16(interpreter->block, ip + 3);
+            ip += 4;
+            const stack_word *words = peekn(interpreter->main_stack, offset);
+            push_all(interpreter->main_stack, word_count, words);
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_GET32: {
+            int32_t offset = read_s32(interpreter->block, ip + 1);
+            int32_t word_count = read_s32(interpreter->block, ip + 5);
+            ip += 8;
+            const stack_word *words = peekn(interpreter->main_stack, offset);
+            push_all(interpreter->main_stack, word_count, words);
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_SET8: {
+            int8_t offset = read_s8(interpreter->block, ip + 1);
+            int8_t word_count = read_s8(interpreter->block, ip + 2);
+            ip += 2;
+            stack_word *subcomp = malloc(word_count * sizeof *subcomp);
+            stack_word *words = malloc(offset * sizeof *words);
+            pop_all(interpreter->main_stack, word_count, subcomp);
+            pop_all(interpreter->main_stack, offset, words);
+            memcpy(words, subcomp, word_count);
+            push_all(interpreter->main_stack, offset, words);
+            free(subcomp);
+            free(words);
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_SET16: {
+            int16_t offset = read_s16(interpreter->block, ip + 1);
+            int16_t word_count = read_s16(interpreter->block, ip + 3);
+            ip += 4;
+            stack_word *subcomp = malloc(word_count * sizeof *subcomp);
+            stack_word *words = malloc(offset * sizeof *words);
+            pop_all(interpreter->main_stack, word_count, subcomp);
+            pop_all(interpreter->main_stack, offset, words);
+            memcpy(words, subcomp, word_count);
+            push_all(interpreter->main_stack, offset, words);
+            free(subcomp);
+            free(words);
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_SET32: {
+            int32_t offset = read_s32(interpreter->block, ip + 1);
+            int32_t word_count = read_s32(interpreter->block, ip + 5);
+            ip += 8;
+            stack_word *subcomp = malloc(word_count * sizeof *subcomp);
+            stack_word *words = malloc(offset * sizeof *words);
+            pop_all(interpreter->main_stack, word_count, subcomp);
+            pop_all(interpreter->main_stack, offset, words);
+            memcpy(words, subcomp, word_count);
+            push_all(interpreter->main_stack, offset, words);
+            free(subcomp);
+            free(words);
+            break;
+        }
         }
     }
     return INTERPRET_OK;

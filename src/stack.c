@@ -49,6 +49,15 @@ void push_all(struct stack *stack, size_t n, const stack_word values[n]) {
     stack->top += n;
 }
 
+void pop_all(struct stack *stack, size_t n, stack_word buffer[n]) {
+    if (stack->top - stack->elements < (int64_t)n) {
+        fprintf(stderr, "Stack underflow\n");
+        exit(1);
+    }
+    memcpy(buffer, stack->top - n, n);
+    stack->top -= n;
+}
+
 stack_word peek(struct stack *stack) {
     if (stack->top == &stack->elements[0]) {
         fprintf(stderr, "Stack underflow\n");
