@@ -24,3 +24,12 @@ print
 print
 print
 print
+
+pack nested def
+    inner -> foo
+    # too-much -> byte
+end
+
+1u16 2s32 3u8 4s8 foo
+# '0'
+nested print

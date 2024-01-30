@@ -687,7 +687,8 @@ static void compile_pack(struct compiler *compiler) {
         };
         insert_symbol(&compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
-        switch (advance(compiler).type) {
+        struct token field_token = advance(compiler);
+        switch (field_token.type) {
         case TOKEN_BYTE:
             info.pack.fields[field_count] = TYPE_BYTE;
             size += 1;
@@ -728,6 +729,26 @@ static void compile_pack(struct compiler *compiler) {
             info.pack.fields[field_count] = TYPE_WORD;
             size += 8;
             break;
+        case TOKEN_SYMBOL: {
+            struct symbol *field_symbol = lookup_symbol(&compiler->symbols, &field_token.value);
+            if (field_symbol == NULL) {
+                parse_error(compiler, "unknown symbol.\n");
+                exit(1);
+            }
+            if (field_symbol->type == SYM_PACK) {
+                const struct type_info *field_info = lookup_type(
+                    compiler->types,
+                    field_symbol->pack.index);
+                assert(field_info != NULL);
+                assert(field_info->kind == KIND_PACK);
+                size += field_info->pack.size;
+            }
+            else {
+                parse_error(compiler, "only packs can nest in packs.\n");
+                exit(1);
+            }
+            break;
+        }
         default:
             parse_error(compiler, "unexpected token while parsing pack definition.\n");
             exit(1);
@@ -814,6 +835,10 @@ static void compile_comp(struct compiler *compiler) {
             break;
         case TOKEN_SYMBOL: {
             struct symbol *field_symbol = lookup_symbol(&compiler->symbols, &field_token.value);
+            if (field_symbol == NULL) {
+                parse_error(compiler, "unknown symbol.\n");
+                exit(1);
+            }
             switch (field_symbol->type) {
             case SYM_PACK:
                 type = field_symbol->pack.index;
