@@ -307,14 +307,12 @@ static void emit_immediate_u8(struct type_checker *checker, enum w_opcode instru
                        &checker->in_block->locations[checker->ip]);
 }
 
-[[maybe_unused]]
 static void emit_immediate_u16(struct type_checker *checker, enum w_opcode instruction,
                               uint16_t operand) {
     write_immediate_u16(checker->out_block, instruction, operand,
                         &checker->in_block->locations[checker->ip]);
 }
 
-[[maybe_unused]]
 static void emit_immediate_u32(struct type_checker *checker, enum w_opcode instruction,
                               uint32_t operand) {
     write_immediate_u32(checker->out_block, instruction, operand,
@@ -326,22 +324,38 @@ static void emit_immediate_s8(struct type_checker *checker, enum w_opcode instru
     emit_immediate_u8(checker, instruction, s8_to_u8(operand));
 }
 
+static void emit_immediate_s16(struct type_checker *checker, enum w_opcode instruction,
+                              int16_t operand) {
+    emit_immediate_u16(checker, instruction, s16_to_u16(operand));
+}
+
+static void emit_immediate_s32(struct type_checker *checker, enum w_opcode instruction,
+                              int32_t operand) {
+    emit_immediate_u32(checker, instruction, s32_to_u32(operand));
+}
+
 static void emit_u8(struct type_checker *checker, uint8_t value) {
     write_u8(checker->out_block, value, &checker->in_block->locations[checker->ip]);
 }
 
-[[maybe_unused]]
 static void emit_u16(struct type_checker *checker, uint16_t value) {
     write_u16(checker->out_block, value, &checker->in_block->locations[checker->ip]);
 }
 
-[[maybe_unused]]
 static void emit_u32(struct type_checker *checker, uint32_t value) {
     write_u32(checker->out_block, value, &checker->in_block->locations[checker->ip]);
 }
 
 static void emit_s8(struct type_checker *checker, int8_t value) {
     emit_u8(checker, s8_to_u8(value));
+}
+
+static void emit_s16(struct type_checker *checker, int16_t value) {
+    emit_u16(checker, s16_to_u16(value));
+}
+
+static void emit_s32(struct type_checker *checker, int32_t value) {
+    emit_u32(checker, s32_to_u32(value));
 }
 
 static void emit_pack_instruction(struct type_checker *checker, type_index index) {
@@ -371,10 +385,31 @@ static void emit_pack_field(struct type_checker *checker, enum w_opcode instruct
     emit_s8(checker, type_size(field_type));
 }
 
-static void emit_comp_field(struct type_checker *checker, enum w_opcode instruction8, int offset,
-                            int field_count) {
-    emit_immediate_sv(checker, instruction8, field_count - offset);
+static void emit_comp_field(struct type_checker *checker, enum w_opcode instruction8,
+                            int offset) {
+    emit_immediate_sv(checker, instruction8, offset);
 }
+
+static void emit_comp_subcomp(struct type_checker *checker, enum w_opcode instruction8,
+                              int offset, int field_word_count) {
+    assert(offset >= 0);
+    assert(field_word_count >= 0);
+    enum w_opcode instruction16 = instruction8 + 1;
+    enum w_opcode instruction32 = instruction8 + 2;
+    if (offset <= INT8_MAX && field_word_count <= INT8_MAX) {
+        emit_immediate_s8(checker, instruction8, offset);
+        emit_s8(checker, field_word_count);
+    }
+    else if (offset <= INT16_MAX && field_word_count <= INT16_MAX) {
+        emit_immediate_s16(checker, instruction16, offset);
+        emit_s16(checker, field_word_count);
+    }
+    else {
+        emit_immediate_s32(checker, instruction32, offset);
+        emit_s32(checker, field_word_count);
+    }
+}
+
 
 static void emit_pack_field_get(struct type_checker *checker, type_index index, uint8_t offset) {
     const struct type_info *info = lookup_type(checker->types, index);
@@ -387,7 +422,17 @@ static void emit_comp_field_get(struct type_checker *checker, type_index index, 
     const struct type_info *info = lookup_type(checker->types, index);
     assert(info != NULL && info->kind == KIND_COMP);
     assert((int)offset < info->comp.field_count);
-    emit_comp_field(checker, W_OP_COMP_FIELD_GET8, offset, info->comp.field_count);
+    type_index field_type = info->comp.fields[offset];
+    int offset_from_end = info->comp.offsets[offset];
+    const struct type_info *field_info = lookup_type(checker->types, field_type);
+    assert(field_info != NULL);
+    if (field_info->kind != KIND_COMP) {
+        emit_comp_field(checker, W_OP_COMP_FIELD_GET8, offset_from_end);
+    }
+    else {
+        int word_count = field_info->comp.word_count;
+        emit_comp_subcomp(checker, W_OP_COMP_SUBCOMP_GET8, offset_from_end, word_count);
+    }
 }
 
 static void emit_pack_field_set(struct type_checker *checker, type_index index, int offset) {
@@ -403,18 +448,25 @@ static void emit_comp_field_set(struct type_checker *checker, type_index index, 
     assert(info != NULL);
     assert(info->kind == KIND_COMP);
     assert(0 <= offset && offset < info->comp.field_count);
-    emit_comp_field(checker, W_OP_COMP_FIELD_SET8, offset, info->comp.field_count);
+    type_index field_type = info->comp.fields[offset];
+    int offset_from_end = info->comp.offsets[offset];
+    const struct type_info *field_info = lookup_type(checker->types, field_type);
+    assert(field_info != NULL);
+    if (field_info->kind != KIND_COMP) {
+        emit_comp_field(checker, W_OP_COMP_FIELD_SET8, offset_from_end);
+    }
+    else {
+        int word_count = field_info->comp.word_count;
+        emit_comp_subcomp(checker, W_OP_COMP_SUBCOMP_SET8, offset_from_end, word_count);
+    }
 }
 
 static void emit_print_instruction(struct type_checker *checker, type_index type) {
     const struct type_info *info = lookup_type(checker->types, type);
     assert(info);
     if (info->kind == KIND_COMP) {
-        const type_index *fields = (info->comp.field_count <= 8)
-            ? info->comp.compact.fields
-            : info->comp.expanded.fields;
         for (int i = info->comp.field_count - 1; i >= 0; --i) {
-            emit_print_instruction(checker, fields[i]);
+            emit_print_instruction(checker, info->comp.fields[i]);
         }
     }
     else if (!is_signed(type)) {
@@ -621,22 +673,16 @@ static void check_comp_instruction(struct type_checker *checker, type_index inde
     const struct type_info *info = lookup_type(checker->types, index);
     assert(info != NULL && "Invalid state");
     assert(info->kind == KIND_COMP && "Invalid IR code generated");
-    const type_index *fields = (info->comp.field_count <= 8)
-        ? info->comp.compact.fields
-        : info->comp.expanded.fields;
     for (int i = info->comp.field_count - 1; i >= 0; --i) {
-        expect_type(checker, fields[i]);
+        expect_type(checker, info->comp.fields[i]);
     }
     ts_push(checker, index);
 }
 
 static void check_decomp_instruction(struct type_checker *checker) {
     const struct type_info *info = expect_kind(checker, KIND_COMP);
-    const type_index *fields = (info->comp.field_count <= 8)
-        ? info->comp.compact.fields
-        : info->comp.expanded.fields;
     for (int i = 0; i < info->comp.field_count; ++i) {
-        ts_push(checker, fields[i]);
+        ts_push(checker, info->comp.fields[i]);
     }
 }
 
@@ -654,10 +700,7 @@ static void check_comp_field_get(struct type_checker *checker, type_index index,
     const struct type_info *info = lookup_type(checker->types, index);
     assert(info != NULL && info->kind == KIND_COMP);
     assert((int)offset < info->comp.field_count);
-    const type_index *fields = (info->comp.field_count <= 8)
-        ? info->comp.compact.fields
-        : info->comp.expanded.fields;
-    ts_push(checker, fields[offset]);
+    ts_push(checker, info->comp.fields[offset]);
 }
 
 static void check_pack_field_set(struct type_checker *checker, type_index index, int offset) {
@@ -673,10 +716,7 @@ static void check_comp_field_set(struct type_checker *checker, type_index index,
     assert(info != NULL);
     assert(info->kind == KIND_COMP);
     assert(0 <= offset && offset < info->comp.field_count);
-    const type_index *fields = (info->comp.field_count <= 8)
-        ? info->comp.compact.fields
-        : info->comp.expanded.fields;
-    expect_type(checker, fields[offset]);
+    expect_type(checker, info->comp.fields[offset]);
 }
 
 enum type_check_result type_check(struct type_checker *checker) {

@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "string_view.h"
 #include "region.h"
 
 enum simple_type {
@@ -56,14 +57,9 @@ struct type_info {
         } pack;
         struct {
             int field_count;
-            union {
-                struct {
-                    type_index fields[8];
-                } compact;
-                struct {
-                    type_index *fields;
-                } expanded;
-            };
+            int word_count;
+            type_index *fields;
+            int *offsets;
         } comp;
     };
     struct string_view name;

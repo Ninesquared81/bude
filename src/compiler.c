@@ -739,8 +739,13 @@ static void compile_comp(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after comp name.");
     struct type_info info = {.kind = KIND_COMP};
     int field_count = 0;
+    int word_count = 0;
     struct region *temp_region = new_region(TEMP_REGION_SIZE);
-    struct type_node {struct type_node *next; type_index type;} *head = NULL;
+    struct type_node {
+        struct type_node *next;
+        type_index type;
+        int offset;
+    } *head = NULL;
     while (!check(compiler, TOKEN_END)) {
         if (is_at_end(compiler)) {
             parse_error(compiler, "unexpected EOF parsing comp definition.\n");
@@ -758,7 +763,9 @@ static void compile_comp(struct compiler *compiler) {
         insert_symbol(&compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
         type_index type = TYPE_ERROR;
-        switch (advance(compiler).type) {
+        int field_word_count = 1;
+        struct token field_token = advance(compiler);
+        switch (field_token.type) {
         case TOKEN_BYTE:
             type = TYPE_BYTE;
             break;
@@ -789,6 +796,29 @@ static void compile_comp(struct compiler *compiler) {
         case TOKEN_WORD:
             type = TYPE_WORD;
             break;
+        case TOKEN_SYMBOL: {
+            struct symbol *field_symbol = lookup_symbol(&compiler->symbols, &field_token.value);
+            switch (field_symbol->type) {
+            case SYM_PACK:
+                type = field_symbol->pack.index;
+                break;
+            case SYM_COMP: {
+                type = field_symbol->comp.index;
+                const struct type_info *field_info = lookup_type(compiler->types, type);
+                assert(field_info != NULL);
+                assert(field_info->kind == KIND_COMP);
+                field_word_count = field_info->comp.word_count;
+                break;
+            }
+            default:
+                assert(field_token.value.length < (size_t)INT_MAX);
+                parse_error(compiler, "symbol '%*s' is not a valid type.\n",
+                            (int)field_token.value.length,
+                            field_token.value.start);
+                exit(1);                
+            }
+            break;
+        }
         default:
             parse_error(compiler, "unexpected token while parsing comp definition.\n");
             exit(1);
@@ -797,24 +827,19 @@ static void compile_comp(struct compiler *compiler) {
         head = region_alloc(temp_region, sizeof *head);
         head->next = next;
         head->type = type;
+        head->offset = word_count;
         ++field_count;
+        word_count += field_word_count;
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after comp definition");
     info.comp.field_count = field_count;
-    type_index *fields;
-    if (field_count <= 8) {
-        // Compact form; stored in struct itself.
-        fields = &info.comp.compact.fields[0];
-    }
-    else {
-        // Expanded form; dynamically allocated.
-        fields = alloc_extra(compiler->types, field_count * sizeof *fields);
-        info.comp.expanded.fields = fields;
-    }
+    info.comp.fields = alloc_extra(compiler->types, field_count * sizeof *info.comp.fields);
+    info.comp.offsets = alloc_extra(compiler->types, field_count * sizeof *info.comp.offsets);
     struct type_node *current = head;
     for (int i = field_count - 1; i >= 0; --i) {
         assert(current != NULL);  // this should be true, but it doesn't hurt to assert.
-        fields[i] = current->type;
+        info.comp.fields[i] = current->type;
+        info.comp.offsets[i] = word_count - current->offset;
         current = current->next;
     }
     init_type(compiler->types, index, &info);

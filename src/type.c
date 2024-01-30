@@ -83,7 +83,7 @@ bool is_signed(type_index type) {
 }
 
 void init_type_table(struct type_table *types) {
-    types->capacity = 0;
+    types->capacity = TYPE_TABLE_INIT_SIZE;
     types->count = 0;
     types->infos = allocate_array(TYPE_TABLE_INIT_SIZE, sizeof types->infos[0]);
     types->extra_info = new_region(TYPE_TABLE_REGION_SIZE);
@@ -103,6 +103,7 @@ static void grow_type_table(struct type_table *types) {
         : TYPE_TABLE_INIT_SIZE;
     types->infos = reallocate_array(types->infos, old_capacity, new_capacity,
                                     sizeof *types->infos);
+    types->capacity = new_capacity;
 }
 
 type_index new_type(struct type_table *types) {
@@ -110,6 +111,7 @@ type_index new_type(struct type_table *types) {
         grow_type_table(types);
     }
     int index = types->count++;
+    types->infos[index].kind = KIND_UNINIT;
     // Offset to get valid index again (see below).
     return index + SIMPLE_TYPE_COUNT;
 }

@@ -19,3 +19,13 @@ print
 print
 
 print  # print whole comp
+
+
+'\n' print-char
+
+comp nested def
+    inner -> bar
+    other -> int
+end
+
+1u16 2s32 3u8 4s8 bar -42 nested print
