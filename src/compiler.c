@@ -732,6 +732,9 @@ static void compile_pack(struct compiler *compiler) {
             parse_error(compiler, "unexpected token while parsing pack definition.\n");
             exit(1);
         }
+        if (size > 8) {
+            parse_error(compiler, "pack too large.\n");
+        }
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after pack definition.");
     info.pack.field_count = field_count;
