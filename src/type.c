@@ -51,7 +51,6 @@ size_t type_size(struct type_table *table, type_index type) {
     case TYPE_S16:   return 2;
     case TYPE_S32:   return 4;
     }
-    // TODO: get size of custom types.
     const struct type_info *info = lookup_type(table, type);
     if (info == NULL) return 0;
     switch (info->kind) {
