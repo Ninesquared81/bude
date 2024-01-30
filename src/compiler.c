@@ -734,6 +734,7 @@ static void compile_pack(struct compiler *compiler) {
         }
         if (size > 8) {
             parse_error(compiler, "pack too large.\n");
+            exit(1);
         }
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after pack definition.");
