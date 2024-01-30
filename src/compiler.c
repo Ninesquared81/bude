@@ -670,6 +670,7 @@ static void compile_pack(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after pack name.");
     struct type_info info = {.kind = KIND_PACK};
     int field_count = 0;
+    int size = 0;
     for (; field_count < 8 && !check(compiler, TOKEN_END); ++field_count) {
         if (is_at_end(compiler)) {
             parse_error(compiler, "unexpected EOF parsing pack definition.\n");
@@ -689,33 +690,43 @@ static void compile_pack(struct compiler *compiler) {
         switch (advance(compiler).type) {
         case TOKEN_BYTE:
             info.pack.fields[field_count] = TYPE_BYTE;
+            size += 1;
             break;
         case TOKEN_INT:
             info.pack.fields[field_count] = TYPE_INT;
+            size += 8;
             break;
         case TOKEN_PTR:
             info.pack.fields[field_count] = TYPE_PTR;
+            size += 8;
             break;
         case TOKEN_S8:
             info.pack.fields[field_count] = TYPE_S8;
+            size += 1;
             break;
         case TOKEN_S16:
             info.pack.fields[field_count] = TYPE_S16;
+            size += 2;
             break;
         case TOKEN_S32:
             info.pack.fields[field_count] = TYPE_S32;
+            size += 4;
             break;
         case TOKEN_U8:
             info.pack.fields[field_count] = TYPE_U8;
+            size += 1;
             break;
         case TOKEN_U16:
             info.pack.fields[field_count] = TYPE_U16;
+            size += 2;
             break;
         case TOKEN_U32:
             info.pack.fields[field_count] = TYPE_U32;
+            size += 4;
             break;
         case TOKEN_WORD:
             info.pack.fields[field_count] = TYPE_WORD;
+            size += 8;
             break;
         default:
             parse_error(compiler, "unexpected token while parsing pack definition.\n");
@@ -724,6 +735,7 @@ static void compile_pack(struct compiler *compiler) {
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after pack definition.");
     info.pack.field_count = field_count;
+    info.pack.size = size;
     init_type(compiler->types, index, &info);
 }
 

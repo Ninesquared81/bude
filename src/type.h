@@ -53,6 +53,7 @@ struct type_info {
     union {
         struct {
             int field_count;
+            int size;
             type_index fields[8];
         } pack;
         struct {
@@ -63,7 +64,6 @@ struct type_info {
         } comp;
     };
     struct string_view name;
-    size_t size;
 };
 
 const char *kind_name(enum type_kind kind);
