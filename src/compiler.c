@@ -659,10 +659,11 @@ static void compile_character(struct compiler *compiler) {
 }
 
 static void compile_pack(struct compiler *compiler) {
+    struct string_view name = peek_previous(compiler).value;
     expect_consume(compiler, TOKEN_SYMBOL, "Expect pack name after `pack`.");
-    type_index index = new_type(compiler->types);
+    type_index index = new_type(compiler->types, &name);
     struct symbol symbol = {
-        .name = peek_previous(compiler).value,
+        .name = name,
         .type = SYM_PACK,
         .pack.index = index,
     };
@@ -765,10 +766,11 @@ static void compile_pack(struct compiler *compiler) {
 }
 
 static void compile_comp(struct compiler *compiler) {
-    type_index index = new_type(compiler->types);
+    struct string_view name = peek_previous(compiler).value;
+    type_index index = new_type(compiler->types, &name);
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `comp`.");
     struct symbol symbol = {
-        .name = peek_previous(compiler).value,
+        .name = name,
         .type = SYM_COMP,
         .comp.index = index,
     };

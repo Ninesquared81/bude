@@ -36,8 +36,6 @@ static_assert(TYPE_ERROR == 0);
 #define IS_SIMPLE_TYPE(type) \
     ((type) < SIMPLE_TYPE_COUNT && TYPE_ERROR <= (type))
 
-const char *type_name(type_index type);
-size_t type_size(type_index type);
 bool is_signed(type_index type);
 bool is_integral(type_index type);
 
@@ -63,7 +61,7 @@ struct type_info {
             int *offsets;
         } comp;
     };
-    struct string_view name;
+    const char *name;
 };
 
 const char *kind_name(enum type_kind kind);
@@ -75,9 +73,12 @@ struct type_table {
     struct region *extra_info;
 };
 
+const char *type_name(struct type_table *table, type_index type);
+size_t type_size(struct type_table *table, type_index type);
+
 void init_type_table(struct type_table *types);
 void free_type_table(struct type_table *types);
-type_index new_type(struct type_table *types);
+type_index new_type(struct type_table *types, struct string_view *name);
 void init_type(struct type_table *types, type_index type, const struct type_info *info);
 const struct type_info *lookup_type(const struct type_table *types, type_index type);
 void *alloc_extra(struct type_table *types, size_t size);

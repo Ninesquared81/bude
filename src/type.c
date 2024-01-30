@@ -1,6 +1,7 @@
 #include <stddef.h>
 
 #include "memory.h"
+#include "stack.h"
 #include "type.h"
 
 #define TYPE_TABLE_INIT_SIZE 32
@@ -18,7 +19,7 @@ const char *kind_name(enum type_kind kind) {
     return "<Invalid kind>";
 }
 
-const char *type_name(type_index type) {
+const char *type_name(struct type_table *table, type_index type) {
     switch (type) {
     case TYPE_ERROR: return "<TYPE_ERROR>";
     case TYPE_WORD:  return "word";
@@ -32,11 +33,12 @@ const char *type_name(type_index type) {
     case TYPE_S16:   return "s16";
     case TYPE_S32:   return "s32";
     }
-    // TODO: get custom type names.
-    return "<User-defined type>";
+    const struct type_info *info = lookup_type(table, type);
+    if (info == NULL) return "<Undefined type>";
+    return info->name;
 }
 
-size_t type_size(type_index type) {
+size_t type_size(struct type_table *table, type_index type) {
     switch (type) {
     case TYPE_ERROR: return 0;
     case TYPE_WORD:  return 8;
@@ -50,7 +52,16 @@ size_t type_size(type_index type) {
     case TYPE_S32:   return 4;
     }
     // TODO: get size of custom types.
-    return 0;
+    const struct type_info *info = lookup_type(table, type);
+    if (info == NULL) return 0;
+    switch (info->kind) {
+    case KIND_PACK:
+        return info->pack.size;
+    case KIND_COMP:
+        return info->comp.word_count * sizeof(stack_word);
+    default:
+        return 0;
+    }
 }
 
 bool is_integral(type_index type) {
@@ -106,12 +117,14 @@ static void grow_type_table(struct type_table *types) {
     types->capacity = new_capacity;
 }
 
-type_index new_type(struct type_table *types) {
+type_index new_type(struct type_table *types, struct string_view *name) {
     if (types->count + 1 > types->capacity) {
         grow_type_table(types);
     }
     int index = types->count++;
-    types->infos[index].kind = KIND_UNINIT;
+    struct type_info *info = &types->infos[index];
+    info->kind = KIND_UNINIT;
+    info->name = view_to_string(name, types->extra_info);
     // Offset to get valid index again (see below).
     return index + SIMPLE_TYPE_COUNT;
 }

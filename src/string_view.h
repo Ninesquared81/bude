@@ -4,12 +4,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "region.h"
+
 struct string_view {
     const char *start;
     size_t length;
 };
 
-char *view_to_string(struct string_view *view);
+char *view_to_string(struct string_view *view, struct region *region);
 bool sv_eq(const struct string_view *a, const struct string_view *b);
 
 #endif

@@ -3,8 +3,8 @@
 
 #include "string_view.h"
 
-char *view_to_string(struct string_view *view) {
-    char *string = malloc(view->length + 1);
+char *view_to_string(struct string_view *view, struct region *region) {
+    char *string = region_alloc(region, view->length + 1);
     if (string == NULL) return NULL;
     memcpy(string, view->start, view->length);
     string[view->length] = '\0';
