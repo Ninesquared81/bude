@@ -659,8 +659,8 @@ static void compile_character(struct compiler *compiler) {
 }
 
 static void compile_pack(struct compiler *compiler) {
-    struct string_view name = peek_previous(compiler).value;
     expect_consume(compiler, TOKEN_SYMBOL, "Expect pack name after `pack`.");
+    struct string_view name = peek_previous(compiler).value;
     type_index index = new_type(compiler->types, &name);
     struct symbol symbol = {
         .name = name,
@@ -766,9 +766,9 @@ static void compile_pack(struct compiler *compiler) {
 }
 
 static void compile_comp(struct compiler *compiler) {
+    expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `comp`.");
     struct string_view name = peek_previous(compiler).value;
     type_index index = new_type(compiler->types, &name);
-    expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `comp`.");
     struct symbol symbol = {
         .name = name,
         .type = SYM_COMP,
