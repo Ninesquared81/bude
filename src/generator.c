@@ -143,6 +143,95 @@ static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8
     asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
 }
 
+static void generate_pack_field_get(struct asm_block *assembly, int offset, int size) {
+    switch (size) {
+    case 1:
+        asm_write_inst2f(assembly, "movzx", "rax", "byte [rsp+%d]", offset);
+        break;
+    case 2:
+        if (offset % 2 == 0) {
+            asm_write_inst2f(assembly, "movzx", "rax", "word [rsp+%d]", offset);
+        }
+        else {
+            asm_write_inst2f(assembly, "movzx", "rax", "byte [rsp+%d]", offset);
+            asm_write_inst2(assembly, "shl", "eax", "8");
+            asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset + 1);
+        }
+        break;
+    case 4:
+        switch (offset % 4) {
+        case 0:
+            asm_write_inst2f(assembly, "movzx", "rax", "dword [rsp+%d]", offset);
+            break;
+        case 2:
+            asm_write_inst2f(assembly, "movzx", "rax", "word [rsp+%d]", offset);
+            asm_write_inst2(assembly, "shl", "eax", "16");
+            asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 2);
+            break;
+        case 1:
+        case 3:
+            asm_write_inst2f(assembly, "movzx", "rax", "byte [rsp+%d]", offset);
+            asm_write_inst2(assembly, "shl", "rax", "16");
+            asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 1);
+            asm_write_inst2(assembly, "shl", "eax", "8");
+            asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset + 3);
+            break;
+        }
+        break;
+    case 8:
+        assert(offset == 0);
+        asm_write_inst2(assembly, "mov", "rax", "[rsp]");
+        break;
+    default:
+        assert(0 && "bad register size");
+    }
+    asm_write_inst1(assembly, "push", "rax");
+}
+
+static void generate_pack_field_set(struct asm_block *assembly, int offset, int size) {
+    asm_write_inst1(assembly, "pop", "rax");
+    switch (size) {
+    case 1:
+        asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
+        break;
+    case 2:
+        if (offset % 2 == 0) {
+            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
+        }
+        else {
+            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
+            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "ah", offset + 1);
+        }
+        break;
+    case 4:
+        switch (offset % 4) {
+        case 0:
+            asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
+            break;
+        case 2:
+            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
+            asm_write_inst2(assembly, "shr", "eax", "16");
+            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 2);
+            break;
+        case 1:
+        case 3:
+            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
+            asm_write_inst2(assembly, "shr", "eax", "8");
+            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 1);
+            asm_write_inst2(assembly, "shr", "eax", "16");
+            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset + 3);
+            break;
+        }
+        break;
+    case 8:
+        assert(offset == 0);
+        asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+        break;
+    default:
+        assert(0 && "bad register size");
+    }
+}
+
 void generate_code(struct asm_block *assembly, struct ir_block *block) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
@@ -732,6 +821,113 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             };
             ip += 8;
             generate_unpack_instruction(assembly, 8, sizes);
+            break;
+        }
+        case W_OP_PACK_FIELD_GET: {
+            int offset = read_s8(block, ip + 1);
+            int size = read_s8(block, ip + 2);
+            ip += 2;
+            generate_pack_field_get(assembly, offset, size);
+            break;
+        }
+        case W_OP_COMP_FIELD_GET8: {
+            int offset = read_s8(block, ip + 1);
+            ip += 1;
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", offset - 1);
+            break;
+        }
+        case W_OP_COMP_FIELD_GET16: {
+            int offset = read_s16(block, ip + 1);
+            ip += 2;
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", offset - 1);
+            break;
+        }
+        case W_OP_COMP_FIELD_GET32: {
+            int offset = read_s32(block, ip + 1);
+            ip += 4;
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", offset - 1);
+            break;
+        }
+        case W_OP_PACK_FIELD_SET: {
+            int offset = read_s8(block, ip + 1);
+            int size = read_s8(block, ip + 2);
+            ip += 2;
+            generate_pack_field_set(assembly, offset, size);
+            break;
+        }
+        case W_OP_COMP_FIELD_SET8: {
+            int offset = read_s8(block, ip + 1);
+            ip += 1;
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
+            break;
+        }
+        case W_OP_COMP_FIELD_SET16: {
+            int offset = read_s16(block, ip + 1);
+            ip += 2;
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
+            break;
+        }
+        case W_OP_COMP_FIELD_SET32: {
+            int offset = read_s32(block, ip + 1);
+            ip += 4;
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_GET8: {
+            int offset = read_s8(block, ip + 1);
+            int size = read_s8(block, ip + 2);
+            ip += 2;
+            for (int i = 0; i < size; ++i) {
+                asm_write_inst1f(assembly, "push", "[rsp+%d]", offset - 1);
+            }
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_GET16: {
+            int offset = read_s16(block, ip + 1);
+            int size = read_s16(block, ip + 2);
+            ip += 4;
+            for (int i = 0; i < size; ++i) {
+                asm_write_inst1f(assembly, "push", "[rsp+%d]", offset - 1);
+            }
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_GET32: {
+            int offset = read_s32(block, ip + 1);
+            int size = read_s32(block, ip + 2);
+            ip += 8;
+            for (int i = 0; i < size; ++i) {
+                asm_write_inst1f(assembly, "push", "[rsp+%d]", offset - 1);
+            }
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_SET8: {
+            int offset = read_s8(block, ip + 1);
+            int size = read_s8(block, ip + 2);
+            ip += 2;
+            for (int i = 0; i < size; ++i) {
+                asm_write_inst1f(assembly, "pop", "[rsp+%d]", offset - 1);
+            }
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_SET16: {
+            int offset = read_s16(block, ip + 1);
+            int size = read_s16(block, ip + 2);
+            ip += 4;
+            for (int i = 0; i < size; ++i) {
+                asm_write_inst1f(assembly, "pop", "[rsp+%d]", offset - 1);
+            }
+            break;
+        }
+        case W_OP_COMP_SUBCOMP_SET32: {
+            int offset = read_s32(block, ip + 1);
+            int size = read_s32(block, ip + 2);
+            ip += 8;
+            for (int i = 0; i < size; ++i) {
+                asm_write_inst1f(assembly, "pop", "[rsp+%d]", offset - 1);
+            }
             break;
         }
         }
