@@ -22,7 +22,7 @@ static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t
         int size = sizes[i];
         switch (size) {
         case 1:
-            asm_write_inst1f(assembly, "mov", "byte [rsp+%d]", "al", offset);
+            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
             break;
         case 2:
             if (offset % 2 == 0) {
