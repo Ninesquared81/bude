@@ -70,60 +70,109 @@ const char *t_opcode_names[] = {
     [T_OP_AS_S8]             = "T_OP_AS_S8",
     [T_OP_AS_S16]            = "T_OP_AS_S16",
     [T_OP_AS_S32]            = "T_OP_AS_S32",
-
+    [T_OP_PACK8]             = "T_OP_PACK8",
+    [T_OP_PACK16]            = "T_OP_PACK16",
+    [T_OP_PACK32]            = "T_OP_PACK32",
+    [T_OP_COMP8]             = "T_OP_COMP8",
+    [T_OP_COMP16]            = "T_OP_COMP16",
+    [T_OP_COMP32]            = "T_OP_COMP32",
+    [T_OP_UNPACK]            = "T_OP_UNPACK",
+    [T_OP_DECOMP]            = "T_OP_DECOMP",
+    [T_OP_PACK_FIELD_GET8]   = "T_OP_PACK_FIELD_GET8",
+    [T_OP_PACK_FIELD_GET16]  = "T_OP_PACK_FIELD_GET16",
+    [T_OP_PACK_FIELD_GET32]  = "T_OP_PACK_FIELD_GET32",
+    [T_OP_COMP_FIELD_GET8]   = "T_OP_COMP_FIELD_GET8",
+    [T_OP_COMP_FIELD_GET16]  = "T_OP_COMP_FIELD_GET16",
+    [T_OP_COMP_FIELD_GET32]  = "T_OP_COMP_FIELD_GET32",
+    [T_OP_PACK_FIELD_SET8]   = "T_OP_PACK_FIELD_SET8",
+    [T_OP_PACK_FIELD_SET16]  = "T_OP_PACK_FIELD_SET16",
+    [T_OP_PACK_FIELD_SET32]  = "T_OP_PACK_FIELD_SET32",
+    [T_OP_COMP_FIELD_SET8]   = "T_OP_COMP_FIELD_SET8",
+    [T_OP_COMP_FIELD_SET16]  = "T_OP_COMP_FIELD_SET16",
+    [T_OP_COMP_FIELD_SET32]  = "T_OP_COMP_FIELD_SET32",
 };
 
-const char *w_opcode_names[] = {
-    [W_OP_NOP]               = "W_OP_NOP",
-    [W_OP_PUSH8]             = "W_OP_PUSH8",
-    [W_OP_PUSH16]            = "W_OP_PUSH16",
-    [W_OP_PUSH32]            = "W_OP_PUSH32",
-    [W_OP_PUSH64]            = "W_OP_PUSH64",
-    [W_OP_PUSH_INT8]         = "W_OP_PUSH_INT8",
-    [W_OP_PUSH_INT16]        = "W_OP_PUSH_INT16",
-    [W_OP_PUSH_INT32]        = "W_OP_PUSH_INT32",
-    [W_OP_PUSH_INT64]        = "W_OP_PUSH_INT64",
-    [W_OP_PUSH_CHAR8]        = "W_OP_PUSH_CHAR8",
-    [W_OP_LOAD_STRING8]      = "W_OP_LOAD_STRING8",
-    [W_OP_LOAD_STRING16]     = "W_OP_LOAD_STRING16",
-    [W_OP_LOAD_STRING32]     = "W_OP_LOAD_STRING32",
-    [W_OP_POP]               = "W_OP_POP",
-    [W_OP_ADD]               = "W_OP_ADD",
-    [W_OP_AND]               = "W_OP_AND",
-    [W_OP_DEREF]             = "W_OP_DEREF",
-    [W_OP_DIVMOD]            = "W_OP_DIVMOD",
-    [W_OP_IDIVMOD]           = "W_OP_IDIVMOD",
-    [W_OP_EDIVMOD]           = "W_OP_EDIVMOD",
-    [W_OP_DUPE]              = "W_OP_DUPE",
-    [W_OP_EXIT]              = "W_OP_EXIT",
-    [W_OP_FOR_DEC_START]     = "W_OP_FOR_DEC_START",
-    [W_OP_FOR_DEC]           = "W_OP_FOR_DEC",
-    [W_OP_FOR_INC_START]     = "W_OP_FOR_INC_START",
-    [W_OP_FOR_INC]           = "W_OP_FOR_INC",
-    [W_OP_GET_LOOP_VAR]      = "W_OP_GET_LOOP_VAR",
-    [W_OP_JUMP]              = "W_OP_JUMP",
-    [W_OP_JUMP_COND]         = "W_OP_JUMP_COND",
-    [W_OP_JUMP_NCOND]        = "W_OP_JUMP_NCOND",
-    [W_OP_MULT]              = "W_OP_MULT",
-    [W_OP_NOT]               = "W_OP_NOT",
-    [W_OP_OR]                = "W_OP_OR",
-    [W_OP_PRINT]             = "W_OP_PRINT",
-    [W_OP_PRINT_CHAR]        = "W_OP_PRINT_CHAR",
-    [W_OP_PRINT_INT]         = "W_OP_PRINT_INT",
-    [W_OP_SUB]               = "W_OP_SUB",
-    [W_OP_SWAP]              = "W_OP_SWAP",
-    [W_OP_SX8]               = "W_OP_SX8",
-    [W_OP_SX8L]              = "W_OP_SX8L",
-    [W_OP_SX16]              = "W_OP_SX16",
-    [W_OP_SX16L]             = "W_OP_SX16L",
-    [W_OP_SX32]              = "W_OP_SX32",
-    [W_OP_SX32L]             = "W_OP_SX32L",
-    [W_OP_ZX8]               = "W_OP_ZX8",
-    [W_OP_ZX8L]              = "W_OP_ZX8L",
-    [W_OP_ZX16]              = "W_OP_ZX16",
-    [W_OP_ZX16L]             = "W_OP_ZX16L",
-    [W_OP_ZX32]              = "W_OP_ZX32",
-    [W_OP_ZX32L]             = "W_OP_ZX32L",
+const char *w_opcode_names[]  = {
+    [W_OP_NOP]                = "W_OP_NOP",
+    [W_OP_PUSH8]              = "W_OP_PUSH8",
+    [W_OP_PUSH16]             = "W_OP_PUSH16",
+    [W_OP_PUSH32]             = "W_OP_PUSH32",
+    [W_OP_PUSH64]             = "W_OP_PUSH64",
+    [W_OP_PUSH_INT8]          = "W_OP_PUSH_INT8",
+    [W_OP_PUSH_INT16]         = "W_OP_PUSH_INT16",
+    [W_OP_PUSH_INT32]         = "W_OP_PUSH_INT32",
+    [W_OP_PUSH_INT64]         = "W_OP_PUSH_INT64",
+    [W_OP_PUSH_CHAR8]         = "W_OP_PUSH_CHAR8",
+    [W_OP_LOAD_STRING8]       = "W_OP_LOAD_STRING8",
+    [W_OP_LOAD_STRING16]      = "W_OP_LOAD_STRING16",
+    [W_OP_LOAD_STRING32]      = "W_OP_LOAD_STRING32",
+    [W_OP_POP]                = "W_OP_POP",
+    [W_OP_ADD]                = "W_OP_ADD",
+    [W_OP_AND]                = "W_OP_AND",
+    [W_OP_DEREF]              = "W_OP_DEREF",
+    [W_OP_DIVMOD]             = "W_OP_DIVMOD",
+    [W_OP_IDIVMOD]            = "W_OP_IDIVMOD",
+    [W_OP_EDIVMOD]            = "W_OP_EDIVMOD",
+    [W_OP_DUPE]               = "W_OP_DUPE",
+    [W_OP_EXIT]               = "W_OP_EXIT",
+    [W_OP_FOR_DEC_START]      = "W_OP_FOR_DEC_START",
+    [W_OP_FOR_DEC]            = "W_OP_FOR_DEC",
+    [W_OP_FOR_INC_START]      = "W_OP_FOR_INC_START",
+    [W_OP_FOR_INC]            = "W_OP_FOR_INC",
+    [W_OP_GET_LOOP_VAR]       = "W_OP_GET_LOOP_VAR",
+    [W_OP_JUMP]               = "W_OP_JUMP",
+    [W_OP_JUMP_COND]          = "W_OP_JUMP_COND",
+    [W_OP_JUMP_NCOND]         = "W_OP_JUMP_NCOND",
+    [W_OP_MULT]               = "W_OP_MULT",
+    [W_OP_NOT]                = "W_OP_NOT",
+    [W_OP_OR]                 = "W_OP_OR",
+    [W_OP_PRINT]              = "W_OP_PRINT",
+    [W_OP_PRINT_CHAR]         = "W_OP_PRINT_CHAR",
+    [W_OP_PRINT_INT]          = "W_OP_PRINT_INT",
+    [W_OP_SUB]                = "W_OP_SUB",
+    [W_OP_SWAP]               = "W_OP_SWAP",
+    [W_OP_SX8]                = "W_OP_SX8",
+    [W_OP_SX8L]               = "W_OP_SX8L",
+    [W_OP_SX16]               = "W_OP_SX16",
+    [W_OP_SX16L]              = "W_OP_SX16L",
+    [W_OP_SX32]               = "W_OP_SX32",
+    [W_OP_SX32L]              = "W_OP_SX32L",
+    [W_OP_ZX8]                = "W_OP_ZX8",
+    [W_OP_ZX8L]               = "W_OP_ZX8L",
+    [W_OP_ZX16]               = "W_OP_ZX16",
+    [W_OP_ZX16L]              = "W_OP_ZX16L",
+    [W_OP_ZX32]               = "W_OP_ZX32",
+    [W_OP_ZX32L]              = "W_OP_ZX32L",
+    [W_OP_PACK1]              = "W_OP_PACK1",
+    [W_OP_PACK2]              = "W_OP_PACK2",
+    [W_OP_PACK3]              = "W_OP_PACK3",
+    [W_OP_PACK4]              = "W_OP_PACK4",
+    [W_OP_PACK5]              = "W_OP_PACK5",
+    [W_OP_PACK6]              = "W_OP_PACK6",
+    [W_OP_PACK7]              = "W_OP_PACK7",
+    [W_OP_PACK8]              = "W_OP_PACK8",
+    [W_OP_UNPACK1]            = "W_OP_UNPACK1",
+    [W_OP_UNPACK2]            = "W_OP_UNPACK2",
+    [W_OP_UNPACK3]            = "W_OP_UNPACK3",
+    [W_OP_UNPACK4]            = "W_OP_UNPACK4",
+    [W_OP_UNPACK5]            = "W_OP_UNPACK5",
+    [W_OP_UNPACK6]            = "W_OP_UNPACK6",
+    [W_OP_UNPACK7]            = "W_OP_UNPACK7",
+    [W_OP_UNPACK8]            = "W_OP_UNPACK8",
+    [W_OP_PACK_FIELD_GET]     = "W_OP_PACK_FIELD_GET",
+    [W_OP_COMP_FIELD_GET8]    = "W_OP_COMP_FIELD_GET8",
+    [W_OP_COMP_FIELD_GET16]   = "W_OP_COMP_FIELD_GET16",
+    [W_OP_COMP_FIELD_GET32]   = "W_OP_COMP_FIELD_GET32",
+    [W_OP_PACK_FIELD_SET]     = "W_OP_PACK_FIELD_SET",
+    [W_OP_COMP_FIELD_SET8]    = "W_OP_COMP_FIELD_SET8",
+    [W_OP_COMP_FIELD_SET16]   = "W_OP_COMP_FIELD_SET16",
+    [W_OP_COMP_FIELD_SET32]   = "W_OP_COMP_FIELD_SET32",
+    [W_OP_COMP_SUBCOMP_GET8]  = "W_OP_COMP_SUBCOMP_GET8",
+    [W_OP_COMP_SUBCOMP_GET16] = "W_OP_COMP_SUBCOMP_GET16",
+    [W_OP_COMP_SUBCOMP_GET32] = "W_OP_COMP_SUBCOMP_GET32",
+    [W_OP_COMP_SUBCOMP_SET8]  = "W_OP_COMP_SUBCOMP_SET8",
+    [W_OP_COMP_SUBCOMP_SET16] = "W_OP_COMP_SUBCOMP_SET16",
+    [W_OP_COMP_SUBCOMP_SET32] = "W_OP_COMP_SUBCOMP_SET32",
 };
 
 const char *get_t_opcode_name(enum t_opcode opcode) {
@@ -274,7 +323,7 @@ static void grow_jump_info_table(struct jump_info_table *table) {
 
     table->dests = reallocate_array(table->dests, old_capacity, new_capacity,
                                     sizeof table->dests[0]);
-    table->capacity = new_capacity;    
+    table->capacity = new_capacity;
 }
 
 static void grow_string_table(struct string_table *table) {
@@ -331,7 +380,7 @@ void write_u32(struct ir_block *block, uint32_t operand, struct location *locati
     block->code[block->count++] = operand;
     block->code[block->count++] = operand >> 8;
     block->code[block->count++] = operand >> 16;
-    block->code[block->count++] = operand >> 24;    
+    block->code[block->count++] = operand >> 24;
 }
 
 void write_s32(struct ir_block *block, int32_t operand, struct location *location) {
@@ -352,7 +401,7 @@ void write_u64(struct ir_block *block, uint64_t operand, struct location *locati
     block->code[block->count++] = operand >> 32;
     block->code[block->count++] = operand >> 40;
     block->code[block->count++] = operand >> 48;
-    block->code[block->count++] = operand >> 56;    
+    block->code[block->count++] = operand >> 56;
 }
 
 void write_s64(struct ir_block *block, int64_t operand, struct location *location) {
@@ -433,7 +482,7 @@ void overwrite_u16(struct ir_block *block, int start, uint16_t value) {
     assert(0 <= start && start + 1 < block->count);  // Make sure there's space.
     // Note: The IR instruction set is little-endian.
     block->code[start] = value;  // LSB.
-    block->code[start + 1] = value >> 8;  // MSB. 
+    block->code[start + 1] = value >> 8;  // MSB.
 }
 
 void overwrite_s16(struct ir_block *block, int start, int16_t value) {
