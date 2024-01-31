@@ -34,7 +34,7 @@ static const struct type_info *expect_kind(struct type_checker *checker, enum ty
     }
     if (info->kind != kind) {
         type_error(checker, "expected a '%s' type but got type '%s' instead",
-                   kind_name(kind), type_name(type));
+                   kind_name(kind), type_name(checker->types, type));
         exit(1);
     }
     return info;
@@ -44,7 +44,8 @@ static void expect_type(struct type_checker *checker, type_index expected_type) 
     type_index actual_type = ts_pop(checker);
     if (actual_type != expected_type) {
         type_error(checker, "expected type '%s' but got type '%s'",
-                   type_name(expected_type), type_name(actual_type));
+                   type_name(checker->types, expected_type),
+                   type_name(checker->types, actual_type));
         exit(1);
     }
 }
@@ -53,7 +54,8 @@ static void expect_keep_type(struct type_checker *checker, type_index expected_t
     type_index actual_type = ts_peek(checker);
     if (actual_type != expected_type) {
         type_error(checker, "expected type '%s' but got type '%s'",
-                   type_name(expected_type), type_name(actual_type));
+                   type_name(checker->types, expected_type),
+                   type_name(checker->types, actual_type));
         exit(1);
     }
 }
@@ -364,7 +366,7 @@ static void emit_pack_instruction(struct type_checker *checker, type_index index
     emit_simple(checker, instruction);
     for (int i = 0; i < info->pack.field_count; ++i) {
         type_index field_type = info->pack.fields[i];
-        size_t size = type_size(field_type);
+        size_t size = type_size(checker->types, field_type);
         emit_u8(checker, size);
     }
 }
@@ -374,7 +376,7 @@ static void emit_unpack_instruction(struct type_checker *checker, const struct t
     emit_simple(checker, instruction);
     for (int i = 0; i < info->pack.field_count; ++i) {
         type_index field_type = info->pack.fields[i];
-        size_t size = type_size(field_type);
+        size_t size = type_size(checker->types, field_type);
         emit_u8(checker, size);
     }
 }
@@ -382,7 +384,7 @@ static void emit_unpack_instruction(struct type_checker *checker, const struct t
 static void emit_pack_field(struct type_checker *checker, enum w_opcode instruction, int offset,
                             type_index field_type) {
     emit_immediate_s8(checker, instruction, offset);
-    emit_s8(checker, type_size(field_type));
+    emit_s8(checker, type_size(checker->types, field_type));
 }
 
 static void emit_comp_field(struct type_checker *checker, enum w_opcode instruction8,
@@ -653,9 +655,11 @@ static void check_pack_instruction(struct type_checker *checker, type_index inde
         type_index arg_type = ts_pop(checker);
         if (arg_type != field_type) {
             type_error(checker, "invalid type for '%s'[%d]: expected '%s' but got '%s'.",
-                       type_name(index), i, type_name(field_type), type_name(arg_type));
+                       type_name(checker->types, index), i,
+                       type_name(checker->types, field_type),
+                       type_name(checker->types, arg_type));
         }
-        int size = type_size(field_type);
+        int size = type_size(checker->types, field_type);
         i += (size > 0) ? size : 0;
     }
     ts_push(checker, index);
