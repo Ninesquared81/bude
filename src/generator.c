@@ -618,35 +618,35 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
         case W_OP_SX32:
-            asm_write_inst2(assembly, "movsx", "rax", "dword [rsp]");
+            asm_write_inst2(assembly, "movsxd", "rax", "dword [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
         case W_OP_SX32L:
-            asm_write_inst2(assembly, "movsx", "rax", "dword [rsp+8]");
+            asm_write_inst2(assembly, "movsxd", "rax", "dword [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
         case W_OP_ZX8:
-            asm_write_inst2(assembly, "movzx", "rax", "byte [rsp]");
+            asm_write_inst2(assembly, "movzx", "eax", "byte [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
         case W_OP_ZX8L:
-            asm_write_inst2(assembly, "movzx", "rax", "byte [rsp+8]");
+            asm_write_inst2(assembly, "movzx", "eax", "byte [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
         case W_OP_ZX16:
-            asm_write_inst2(assembly, "movzx", "rax", "word [rsp]");
+            asm_write_inst2(assembly, "movzx", "eax", "word [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
         case W_OP_ZX16L:
-            asm_write_inst2(assembly, "movzx", "rax", "word [rsp+8]");
+            asm_write_inst2(assembly, "movzx", "eax", "word [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
         case W_OP_ZX32:
-            asm_write_inst2(assembly, "movzx", "rax", "dword [rsp]");
+            asm_write_inst2(assembly, "mov", "eax", "[rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
         case W_OP_ZX32L:
-            asm_write_inst2(assembly, "mov", "rax", "dword [rsp+8]");
+            asm_write_inst2(assembly, "mov", "eax", "[rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
         case W_OP_PACK1:
