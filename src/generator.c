@@ -13,6 +13,136 @@ void generate_header(struct asm_block *assembly) {
     asm_write(assembly, "\n");
 }
 
+static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t sizes[n]) {
+    assert(n > 0);
+    int offset = n * 8 + sizes[0];
+    for (int i = n - 1; i >= 1; --i) {
+        asm_write_inst1(assembly, "pop", "rax");
+        offset -= 8;
+        int size = sizes[i];
+        switch (size) {
+        case 1:
+            asm_write_inst1f(assembly, "mov", "byte [rsp+%d]", "al", offset);
+            break;
+        case 2:
+            if (offset % 2 == 0) {
+                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
+            }
+            else {
+                // Unaligned.
+                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
+                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "ah", offset + 1);
+            }
+            break;
+        case 4:
+            switch (offset % 4) {
+            case 0:
+                // Dword-aligned.
+                asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
+                break;
+            case 2:
+                // Word-aligned.
+                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
+                asm_write_inst2(assembly, "shl", "eax", "16");
+                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 2);
+                break;
+            case 1:
+            case 3:
+                // Byte-aligned.
+                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
+                asm_write_inst2(assembly, "shl", "eax", "16");
+                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 1);
+                asm_write_inst2(assembly, "shl", "eax", "8");
+                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset + 3);
+                break;
+            }
+            break;
+        case 8:
+            assert(0 && "unreachable");
+            break;
+        default:
+            assert(0 && "bad register size");
+        }
+        offset += size;
+    }
+}
+
+static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8_t sizes[n]) {
+    if (n <= 1) return;  // Effective NOP.
+    int offset = sizes[0];
+    for (int i = 1; i < n; ++i) {
+        int size = sizes[i];
+        switch (size) {
+        case 1:
+            asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset);
+            asm_write_inst2(assembly, "movzx", "rax", "al");
+            break;
+        case 2:
+            if (offset % 2 == 0) {
+                asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset);
+            }
+            else {
+                // Unaligned.
+                asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset);
+                asm_write_inst2f(assembly, "mov", "ah", "byte [rsp+%d]", offset + 1);
+            }
+            asm_write_inst2(assembly, "movzx", "rax", "ax");
+            break;
+        case 4:
+            switch (offset % 4) {
+            case 0:
+                // Dword-aligned.
+                asm_write_inst2f(assembly, "mov", "eax", "dword [rsp+%d]", offset);
+                break;
+            case 2:
+                // Word-aligned.
+                asm_write_inst2f(assembly, "movzx", "eax", "word [rsp+%d]", offset);
+                asm_write_inst2(assembly, "shl", "eax", "16");
+                asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 2);
+                break;
+            case 1:
+            case 3:
+                // Byte-aligned.
+                asm_write_inst2f(assembly, "movzx", "eax", "byte [rsp+%d]", offset);
+                asm_write_inst2(assembly, "shl", "eax", "16");
+                asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 1);
+                asm_write_inst2(assembly, "shl", "eax", "8");
+                asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset + 3);
+                break;
+            }
+            asm_write_inst2(assembly, "mov", "eax", "eax");
+            break;
+        case 8:
+            assert(0 && "unreachable");
+            break;
+        default:
+            assert(0 && "bad register size");
+        }
+        asm_write_inst1(assembly, "push", "rax");
+        offset += size + 8;
+    }
+
+    // Clear higher bits of first field.
+    asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", offset);
+    switch (sizes[0]) {
+    case 1:
+        asm_write_inst2f(assembly, "movzx", "rax", "al", offset);
+        break;
+    case 2:
+        asm_write_inst2f(assembly, "movzx", "rax", "ax", offset);
+        break;
+    case 4:
+        asm_write_inst2f(assembly, "mov", "eax", "eax", offset);
+        break;
+    case 8:
+        assert(0 && "unreachable");
+        break;
+    default:
+        assert(0 && "bad register size");
+    }
+    asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
+}
+
 void generate_code(struct asm_block *assembly, struct ir_block *block) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
@@ -134,6 +264,24 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case W_OP_POP:
             asm_write_inst1(assembly, "pop", "rax");
             break;
+        case W_OP_POPN8: {
+            int8_t n = read_s8(block, ip + 1);
+            ip += 1;
+            asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * n);
+            break;
+        }
+        case W_OP_POPN16: {
+            int16_t n = read_s16(block, ip + 1);
+            ip += 2;
+            asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * n);
+            break;
+        }
+        case W_OP_POPN32: {
+            int32_t n = read_s32(block, ip + 1);
+            ip += 4;
+            asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * n);
+            break;
+        }
         case W_OP_ADD:
             BIN_OP("add");
             break;
@@ -187,6 +335,33 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case W_OP_DUPE:
             asm_write_inst1(assembly, "push", "qword [rsp]");
             break;
+        case W_OP_DUPEN8: {
+            int8_t n = read_s8(block, ip + 1);
+            ip += 1;
+            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
+            for (int i = 0; i < n; ++i) {
+                asm_write_inst1(assembly, "push", "rax");
+            }
+            break;
+        }
+        case W_OP_DUPEN16: {
+            int16_t n = read_s16(block, ip + 1);
+            ip += 2;
+            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
+            for (int i = 0; i < n; ++i) {
+                asm_write_inst1(assembly, "push", "rax");
+            }
+            break;
+        }
+        case W_OP_DUPEN32: {
+            int32_t n = read_s32(block, ip + 1);
+            ip += 4;
+            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
+            for (int i = 0; i < n; ++i) {
+                asm_write_inst1(assembly, "push", "rax");
+            }
+            break;
+        }
         case W_OP_EXIT:
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
@@ -385,6 +560,180 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "mov", "rax", "dword [rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             break;
+        case W_OP_PACK1:
+            ++ip;
+            break;
+        case W_OP_PACK2: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+            };
+            ip += 2;
+            generate_pack_instruction(assembly, 2, sizes);
+            break;
+        }
+        case W_OP_PACK3: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+            };
+            ip += 3;
+            generate_pack_instruction(assembly, 3, sizes);
+            break;
+        }
+        case W_OP_PACK4: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+            };
+            ip += 4;
+            generate_pack_instruction(assembly, 4, sizes);
+            break;
+        }
+        case W_OP_PACK5: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+            };
+            ip += 5;
+            generate_pack_instruction(assembly, 5, sizes);
+            break;
+        }
+        case W_OP_PACK6: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+                read_u8(block, ip + 6),
+            };
+            ip += 6;
+            generate_pack_instruction(assembly, 6, sizes);
+            break;
+        }
+        case W_OP_PACK7: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+                read_u8(block, ip + 6),
+                read_u8(block, ip + 7),
+            };
+            ip += 7;
+            generate_pack_instruction(assembly, 7, sizes);
+            break;
+        }
+        case W_OP_PACK8: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+                read_u8(block, ip + 6),
+                read_u8(block, ip + 7),
+                read_u8(block, ip + 8),
+            };
+            ip += 8;
+            generate_pack_instruction(assembly, 8, sizes);
+            break;
+        }
+        case W_OP_UNPACK1:
+            ++ip;
+            break;
+        case W_OP_UNPACK2: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+            };
+            ip += 2;
+            generate_unpack_instruction(assembly, 2, sizes);
+            break;
+        }
+        case W_OP_UNPACK3: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+            };
+            ip += 3;
+            generate_unpack_instruction(assembly, 3, sizes);
+            break;
+        }
+        case W_OP_UNPACK4: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+            };
+            ip += 4;
+            generate_unpack_instruction(assembly, 4, sizes);
+            break;
+        }
+        case W_OP_UNPACK5: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+            };
+            ip += 5;
+            generate_unpack_instruction(assembly, 5, sizes);
+            break;
+        }
+        case W_OP_UNPACK6: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+                read_u8(block, ip + 6),
+            };
+            ip += 6;
+            generate_unpack_instruction(assembly, 6, sizes);
+            break;
+        }
+        case W_OP_UNPACK7: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+                read_u8(block, ip + 6),
+                read_u8(block, ip + 7),
+            };
+            ip += 7;
+            generate_unpack_instruction(assembly, 7, sizes);
+            break;
+        }
+        case W_OP_UNPACK8: {
+            uint8_t sizes[] = {
+                read_u8(block, ip + 1),
+                read_u8(block, ip + 2),
+                read_u8(block, ip + 3),
+                read_u8(block, ip + 4),
+                read_u8(block, ip + 5),
+                read_u8(block, ip + 6),
+                read_u8(block, ip + 7),
+                read_u8(block, ip + 8),
+            };
+            ip += 8;
+            generate_unpack_instruction(assembly, 8, sizes);
+            break;
+        }
         }
     }
     asm_write(assembly, "  ;;\t=== END ===\n");
