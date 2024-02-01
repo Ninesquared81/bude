@@ -1,0 +1,16 @@
+pack point def
+    x -> s32
+    y -> s32
+end
+
+-5s32 42s32 point  # Create 'point' pack.
+x print  # -5
+y print  # 42
+
+# Swap x and y fields.
+y swap     # Save old value of y.
+x <- y     # Set y to x.
+swap <- x  # Set x to old value of y.
+
+x print  # 42
+y print  # -5
