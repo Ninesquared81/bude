@@ -24,37 +24,10 @@ static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t
             asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
             break;
         case 2:
-            if (offset % 2 == 0) {
-                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
-            }
-            else {
-                // Unaligned.
-                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
-                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "ah", offset + 1);
-            }
+            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
             break;
         case 4:
-            switch (offset % 4) {
-            case 0:
-                // Dword-aligned.
-                asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
-                break;
-            case 2:
-                // Word-aligned.
-                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
-                asm_write_inst2(assembly, "shr", "eax", "16");
-                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 2);
-                break;
-            case 1:
-            case 3:
-                // Byte-aligned.
-                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
-                asm_write_inst2(assembly, "shr", "eax", "16");
-                asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 1);
-                asm_write_inst2(assembly, "shr", "eax", "8");
-                asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset + 3);
-                break;
-            }
+            asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
             break;
         case 8:
             assert(0 && "unreachable");
@@ -74,43 +47,13 @@ static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8
         int size = sizes[i];
         switch (size) {
         case 1:
-            asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset);
-            asm_write_inst2(assembly, "movzx", "rax", "al");
+            asm_write_inst2f(assembly, "movzx", "eax", "byte [rsp+%d]", offset);
             break;
         case 2:
-            if (offset % 2 == 0) {
-                asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset);
-            }
-            else {
-                // Unaligned.
-                asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset);
-                asm_write_inst2f(assembly, "mov", "ah", "byte [rsp+%d]", offset + 1);
-            }
-            asm_write_inst2(assembly, "movzx", "rax", "ax");
+            asm_write_inst2f(assembly, "movzx", "eax", "word [rsp+%d]", offset);
             break;
         case 4:
-            switch (offset % 4) {
-            case 0:
-                // Dword-aligned.
-                asm_write_inst2f(assembly, "mov", "eax", "dword [rsp+%d]", offset);
-                break;
-            case 2:
-                // Word-aligned.
-                asm_write_inst2f(assembly, "movzx", "eax", "word [rsp+%d]", offset);
-                asm_write_inst2(assembly, "shl", "eax", "16");
-                asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 2);
-                break;
-            case 1:
-            case 3:
-                // Byte-aligned.
-                asm_write_inst2f(assembly, "movzx", "eax", "byte [rsp+%d]", offset);
-                asm_write_inst2(assembly, "shl", "eax", "16");
-                asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 1);
-                asm_write_inst2(assembly, "shl", "eax", "8");
-                asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset + 3);
-                break;
-            }
-            asm_write_inst2(assembly, "mov", "eax", "eax");
+            asm_write_inst2f(assembly, "mov", "eax", "dword [rsp+%d]", offset);
             break;
         case 8:
             assert(0 && "unreachable");
@@ -127,10 +70,10 @@ static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8
     asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", offset);
     switch (sizes[0]) {
     case 1:
-        asm_write_inst2f(assembly, "movzx", "rax", "al", offset);
+        asm_write_inst2f(assembly, "movzx", "eax", "al", offset);
         break;
     case 2:
-        asm_write_inst2f(assembly, "movzx", "rax", "ax", offset);
+        asm_write_inst2f(assembly, "movzx", "eax", "ax", offset);
         break;
     case 4:
         asm_write_inst2f(assembly, "mov", "eax", "eax", offset);
@@ -147,37 +90,13 @@ static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8
 static void generate_pack_field_get(struct asm_block *assembly, int offset, int size) {
     switch (size) {
     case 1:
-        asm_write_inst2f(assembly, "movzx", "rax", "byte [rsp+%d]", offset);
+        asm_write_inst2f(assembly, "movzx", "eax", "byte [rsp+%d]", offset);
         break;
     case 2:
-        if (offset % 2 == 0) {
-            asm_write_inst2f(assembly, "movzx", "rax", "word [rsp+%d]", offset);
-        }
-        else {
-            asm_write_inst2f(assembly, "movzx", "rax", "byte [rsp+%d]", offset);
-            asm_write_inst2(assembly, "shl", "eax", "8");
-            asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset + 1);
-        }
+        asm_write_inst2f(assembly, "movzx", "eax", "word [rsp+%d]", offset);
         break;
     case 4:
-        switch (offset % 4) {
-        case 0:
-            asm_write_inst2f(assembly, "movzx", "rax", "dword [rsp+%d]", offset);
-            break;
-        case 2:
-            asm_write_inst2f(assembly, "movzx", "rax", "word [rsp+%d]", offset);
-            asm_write_inst2(assembly, "shl", "eax", "16");
-            asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 2);
-            break;
-        case 1:
-        case 3:
-            asm_write_inst2f(assembly, "movzx", "rax", "byte [rsp+%d]", offset);
-            asm_write_inst2(assembly, "shl", "rax", "16");
-            asm_write_inst2f(assembly, "mov", "ax", "word [rsp+%d]", offset + 1);
-            asm_write_inst2(assembly, "shl", "eax", "8");
-            asm_write_inst2f(assembly, "mov", "al", "byte [rsp+%d]", offset + 3);
-            break;
-        }
+        asm_write_inst2f(assembly, "movzx", "eax", "dword [rsp+%d]", offset);
         break;
     case 8:
         assert(offset == 0);
@@ -196,33 +115,10 @@ static void generate_pack_field_set(struct asm_block *assembly, int offset, int 
         asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
         break;
     case 2:
-        if (offset % 2 == 0) {
-            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
-        }
-        else {
-            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
-            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "ah", offset + 1);
-        }
+        asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
         break;
     case 4:
-        switch (offset % 4) {
-        case 0:
-            asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
-            break;
-        case 2:
-            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
-            asm_write_inst2(assembly, "shr", "eax", "16");
-            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 2);
-            break;
-        case 1:
-        case 3:
-            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
-            asm_write_inst2(assembly, "shr", "eax", "8");
-            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 1);
-            asm_write_inst2(assembly, "shr", "eax", "16");
-            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset + 3);
-            break;
-        }
+        asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
         break;
     case 8:
         assert(offset == 0);
