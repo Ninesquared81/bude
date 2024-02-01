@@ -15,10 +15,9 @@ void generate_header(struct asm_block *assembly) {
 
 static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t sizes[n]) {
     assert(n > 0);
-    int offset = n * 8 + sizes[0];
-    for (int i = n - 1; i >= 1; --i) {
-        asm_write_inst1(assembly, "pop", "rax");
-        offset -= 8;
+    int offset = (n - 1) * 8 + sizes[0];
+    for (int i = 1; i < n; ++i) {
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", (n - i - 1) * 8);
         int size = sizes[i];
         switch (size) {
         case 1:
@@ -43,16 +42,16 @@ static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t
             case 2:
                 // Word-aligned.
                 asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
-                asm_write_inst2(assembly, "shl", "eax", "16");
+                asm_write_inst2(assembly, "shr", "eax", "16");
                 asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 2);
                 break;
             case 1:
             case 3:
                 // Byte-aligned.
                 asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
-                asm_write_inst2(assembly, "shl", "eax", "16");
+                asm_write_inst2(assembly, "shr", "eax", "16");
                 asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset + 1);
-                asm_write_inst2(assembly, "shl", "eax", "8");
+                asm_write_inst2(assembly, "shr", "eax", "8");
                 asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset + 3);
                 break;
             }
@@ -65,6 +64,7 @@ static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t
         }
         offset += size;
     }
+    asm_write_inst2f(assembly, "add", "rsp", "%d", (n - 1) * 8);
 }
 
 static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8_t sizes[n]) {
@@ -123,6 +123,7 @@ static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8
     }
 
     // Clear higher bits of first field.
+    offset -= 8;
     asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", offset);
     switch (sizes[0]) {
     case 1:
@@ -265,28 +266,28 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             break;
         case W_OP_PUSH8: {
             ++ip;
-            int8_t value = read_u8(block, ip);
+            uint8_t value = read_u8(block, ip);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu8, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
         case W_OP_PUSH16: {
             ip += 2;
-            int16_t value = read_u16(block, ip - 1);
+            uint16_t value = read_u16(block, ip - 1);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu16, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
         case W_OP_PUSH32: {
             ip += 4;
-            int32_t value = read_u32(block, ip - 3);
+            uint32_t value = read_u32(block, ip - 3);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu32, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
         case W_OP_PUSH64: {
             ip += 8;
-            int64_t value = read_u64(block, ip - 7);
+            uint64_t value = read_u64(block, ip - 7);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu64, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
