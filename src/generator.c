@@ -324,28 +324,31 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case W_OP_DUPEN8: {
             int8_t n = read_s8(block, ip + 1);
             ip += 1;
-            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
             for (int i = 0; i < n; ++i) {
-                asm_write_inst1(assembly, "push", "rax");
+                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", i * 8);
+                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", (n - i) * 8);
             }
+            asm_write_inst2f(assembly, "sub", "rsp", "%d", n * 8);
             break;
         }
         case W_OP_DUPEN16: {
             int16_t n = read_s16(block, ip + 1);
             ip += 2;
-            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
             for (int i = 0; i < n; ++i) {
-                asm_write_inst1(assembly, "push", "rax");
+                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", i * 8);
+                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", (n - i) * 8);
             }
+            asm_write_inst2f(assembly, "sub", "rsp", "%d", n * 8);
             break;
         }
         case W_OP_DUPEN32: {
             int32_t n = read_s32(block, ip + 1);
             ip += 4;
-            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
             for (int i = 0; i < n; ++i) {
-                asm_write_inst1(assembly, "push", "rax");
+                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", i * 8);
+                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", (n - i) * 8);
             }
+            asm_write_inst2f(assembly, "sub", "rsp", "%d", n * 8);
             break;
         }
         case W_OP_EXIT:
