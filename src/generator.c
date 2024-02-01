@@ -96,7 +96,7 @@ static void generate_pack_field_get(struct asm_block *assembly, int offset, int 
         asm_write_inst2f(assembly, "movzx", "eax", "word [rsp+%d]", offset);
         break;
     case 4:
-        asm_write_inst2f(assembly, "movzx", "eax", "dword [rsp+%d]", offset);
+        asm_write_inst2f(assembly, "mov", "eax", "dword [rsp+%d]", offset);
         break;
     case 8:
         assert(offset == 0);
