@@ -205,8 +205,11 @@ enum w_opcode {
     W_OP_PRINT_INT,
     /* SUB -- Subtract the top stack element from the next element. */
     W_OP_SUB,
-    /* SWAP -- Swap the top two stack elements. */
+    /* SWAP -- Swap the top two stack words. */
     W_OP_SWAP,
+    /* SWAP_COMPSn Imm_sn Imm_sn -- Swap the two comps at the top of the stack with the
+       specified sizes. */
+    W_OP_SWAP_COMPS,
     /* SXn, SXnL -- sign extend an n-bit integer. The -L versions operate on the
        element under the top (i.e. the left-hand side of a binary operation). */
     W_OP_SX8,

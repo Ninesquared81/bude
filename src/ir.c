@@ -134,6 +134,7 @@ const char *w_opcode_names[]  = {
     [W_OP_PRINT_INT]          = "W_OP_PRINT_INT",
     [W_OP_SUB]                = "W_OP_SUB",
     [W_OP_SWAP]               = "W_OP_SWAP",
+    [W_OP_SWAP_COMPS]         = "W_OP_SWAP_COMPS",
     [W_OP_SX8]                = "W_OP_SX8",
     [W_OP_SX8L]               = "W_OP_SX8L",
     [W_OP_SX16]               = "W_OP_SX16",
