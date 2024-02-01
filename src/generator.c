@@ -733,19 +733,19 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case W_OP_COMP_FIELD_GET8: {
             int offset = read_s8(block, ip + 1);
             ip += 1;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", offset - 1);
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
             break;
         }
         case W_OP_COMP_FIELD_GET16: {
             int offset = read_s16(block, ip + 1);
             ip += 2;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", offset - 1);
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
             break;
         }
         case W_OP_COMP_FIELD_GET32: {
             int offset = read_s32(block, ip + 1);
             ip += 4;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", offset - 1);
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
             break;
         }
         case W_OP_PACK_FIELD_SET: {
@@ -759,21 +759,21 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int offset = read_s8(block, ip + 1);
             ip += 1;
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", (offset - 1) * 8);
             break;
         }
         case W_OP_COMP_FIELD_SET16: {
             int offset = read_s16(block, ip + 1);
             ip += 2;
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", (offset - 1) * 8);
             break;
         }
         case W_OP_COMP_FIELD_SET32: {
             int offset = read_s32(block, ip + 1);
             ip += 4;
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", (offset - 1) * 8);
             break;
         }
         case W_OP_COMP_SUBCOMP_GET8: {
@@ -781,7 +781,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int size = read_s8(block, ip + 2);
             ip += 2;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "[rsp+%d]", offset - 1);
+                asm_write_inst1f(assembly, "push", "[rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -790,7 +790,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int size = read_s16(block, ip + 2);
             ip += 4;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "[rsp+%d]", offset - 1);
+                asm_write_inst1f(assembly, "push", "[rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -799,7 +799,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int size = read_s32(block, ip + 2);
             ip += 8;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "[rsp+%d]", offset - 1);
+                asm_write_inst1f(assembly, "push", "[rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -808,7 +808,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int size = read_s8(block, ip + 2);
             ip += 2;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "[rsp+%d]", offset - 1);
+                asm_write_inst1f(assembly, "pop", "[rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -817,7 +817,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int size = read_s16(block, ip + 2);
             ip += 4;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "[rsp+%d]", offset - 1);
+                asm_write_inst1f(assembly, "pop", "[rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -826,7 +826,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             int size = read_s32(block, ip + 2);
             ip += 8;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "[rsp+%d]", offset - 1);
+                asm_write_inst1f(assembly, "pop", "[rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
