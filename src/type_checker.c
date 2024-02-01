@@ -381,9 +381,18 @@ static void emit_unpack_instruction(struct type_checker *checker, const struct t
     }
 }
 
-static void emit_pack_field(struct type_checker *checker, enum w_opcode instruction, int offset,
-                            type_index field_type) {
-    emit_immediate_s8(checker, instruction, offset);
+static void emit_pack_field(struct type_checker *checker, enum w_opcode instruction,
+                            type_index index, int offset) {
+    const struct type_info *info = lookup_type(checker->types, index);
+    assert(info != NULL && info->kind == KIND_PACK);
+    assert(offset < info->pack.field_count);
+    int byte_offset = 0;
+    for (int i = 0; i < offset; ++i) {
+        type_index field = info->pack.fields[i];
+        byte_offset += type_size(checker->types, field);
+    }
+    type_index field_type = info->pack.fields[offset];
+    emit_immediate_s8(checker, instruction, byte_offset);
     emit_s8(checker, type_size(checker->types, field_type));
 }
 
@@ -413,17 +422,14 @@ static void emit_comp_subcomp(struct type_checker *checker, enum w_opcode instru
 }
 
 
-static void emit_pack_field_get(struct type_checker *checker, type_index index, uint8_t offset) {
-    const struct type_info *info = lookup_type(checker->types, index);
-    assert(info != NULL && info->kind == KIND_PACK);
-    assert(offset < info->pack.field_count);
-    emit_pack_field(checker, W_OP_PACK_FIELD_GET, offset, info->pack.fields[offset]);
+static void emit_pack_field_get(struct type_checker *checker, type_index index, int offset) {
+    emit_pack_field(checker, W_OP_PACK_FIELD_GET, index, offset);
 }
 
-static void emit_comp_field_get(struct type_checker *checker, type_index index, uint32_t offset) {
+static void emit_comp_field_get(struct type_checker *checker, type_index index, int offset) {
     const struct type_info *info = lookup_type(checker->types, index);
     assert(info != NULL && info->kind == KIND_COMP);
-    assert((int)offset < info->comp.field_count);
+    assert(offset < info->comp.field_count);
     type_index field_type = info->comp.fields[offset];
     int offset_from_end = info->comp.offsets[offset];
     const struct type_info *field_info = lookup_type(checker->types, field_type);
@@ -438,11 +444,7 @@ static void emit_comp_field_get(struct type_checker *checker, type_index index, 
 }
 
 static void emit_pack_field_set(struct type_checker *checker, type_index index, int offset) {
-    const struct type_info *info = lookup_type(checker->types, index);
-    assert(info != NULL);
-    assert(info->kind == KIND_PACK);
-    assert(0 <= offset && offset < info->pack.field_count);
-    emit_pack_field(checker, W_OP_PACK_FIELD_SET, offset, info->pack.fields[offset]);
+    emit_pack_field(checker, W_OP_PACK_FIELD_SET, index, offset);
 }
 
 static void emit_comp_field_set(struct type_checker *checker, type_index index, int offset) {
