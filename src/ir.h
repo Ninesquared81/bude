@@ -209,7 +209,9 @@ enum w_opcode {
     W_OP_SWAP,
     /* SWAP_COMPSn Imm_sn Imm_sn -- Swap the two comps at the top of the stack with the
        specified sizes. */
-    W_OP_SWAP_COMPS,
+    W_OP_SWAP_COMPS8,
+    W_OP_SWAP_COMPS16,
+    W_OP_SWAP_COMPS32,
     /* SXn, SXnL -- sign extend an n-bit integer. The -L versions operate on the
        element under the top (i.e. the left-hand side of a binary operation). */
     W_OP_SX8,
@@ -321,7 +323,7 @@ bool is_w_jump(enum w_opcode instruction);
              enum t_opcode: is_t_jump,  \
              enum w_opcode: is_w_jump   \
         )(instruction)
-        
+
 
 void init_block(struct ir_block *block, enum ir_instruction_set instruction_set,
                 const char *filename);
