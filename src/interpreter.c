@@ -74,6 +74,17 @@ static void unpack_fields(int count, stack_word fields[count], uint8_t sizes[cou
     }
 }
 
+static void swap_comps(struct interpreter *interpreter, int lhs_size, int rhs_size) {
+    assert(lhs_size > 0);
+    assert(rhs_size > 0);
+    stack_word *lhs = malloc(lhs_size * sizeof *lhs);
+    stack_word *rhs = malloc(rhs_size * sizeof *rhs);
+    pop_all(interpreter->main_stack, rhs_size, rhs);
+    pop_all(interpreter->main_stack, lhs_size, lhs);
+    push_all(interpreter->main_stack, rhs_size, rhs);
+    push_all(interpreter->main_stack, lhs_size, lhs);
+}
+
 enum interpret_result interpret(struct interpreter *interpreter) {
     for (int ip = 0; ip < interpreter->block->count; ++ip) {
         enum w_opcode instruction = interpreter->block->code[ip];
@@ -357,6 +368,27 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             stack_word a = pop(interpreter->main_stack);
             push(interpreter->main_stack, b);
             push(interpreter->main_stack, a);
+            break;
+        }
+        case W_OP_SWAP_COMPS8: {
+            int lhs_size = read_s8(interpreter->block, ip + 1);
+            int rhs_size = read_s8(interpreter->block, ip + 2);
+            ip += 2;
+            swap_comps(interpreter, lhs_size, rhs_size);
+            break;
+        }
+        case W_OP_SWAP_COMPS16: {
+            int lhs_size = read_s16(interpreter->block, ip + 1);
+            int rhs_size = read_s16(interpreter->block, ip + 3);
+            ip += 4;
+            swap_comps(interpreter, lhs_size, rhs_size);
+            break;
+        }
+        case W_OP_SWAP_COMPS32: {
+            int lhs_size = read_s32(interpreter->block, ip + 1);
+            int rhs_size = read_s32(interpreter->block, ip + 5);
+            ip += 8;
+            swap_comps(interpreter, lhs_size, rhs_size);
             break;
         }
         case W_OP_PRINT:
