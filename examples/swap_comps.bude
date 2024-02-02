@@ -21,3 +21,14 @@ swap
 
 print
 print
+
+
+1 2 3 mycomp
+4 5 6 mycomp 7 bigcomp
+
+swap
+11 22 33 mycomp
+swap
+print
+print
+print
