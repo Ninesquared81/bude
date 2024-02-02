@@ -54,7 +54,7 @@ void pop_all(struct stack *stack, size_t n, stack_word buffer[n]) {
         fprintf(stderr, "Stack underflow\n");
         exit(1);
     }
-    memcpy(buffer, stack->top - n, n);
+    memcpy(buffer, stack->top - n, sizeof(stack_word[n]));
     stack->top -= n;
 }
 
