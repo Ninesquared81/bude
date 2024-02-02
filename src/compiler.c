@@ -876,6 +876,7 @@ static void compile_comp(struct compiler *compiler) {
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after comp definition");
     info.comp.field_count = field_count;
+    info.comp.word_count = word_count;
     info.comp.fields = alloc_extra(compiler->types, field_count * sizeof *info.comp.fields);
     info.comp.offsets = alloc_extra(compiler->types, field_count * sizeof *info.comp.offsets);
     struct type_node *current = head;
