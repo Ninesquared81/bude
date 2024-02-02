@@ -129,6 +129,80 @@ static void generate_pack_field_set(struct asm_block *assembly, int offset, int 
     }
 }
 
+static void shift_block_down(struct asm_block *assembly, int size, int count) {
+    for (int i = size - 1; i >= 0; --i) {
+        int read_offset = i * 8;
+        int write_offset = read_offset + 8 * count;
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
+    }
+}
+
+static void shift_block_up(struct asm_block *assembly, int size, int count) {
+    for (int i = 0; i < size; ++i) {
+        int write_offset = i * 8;
+        int read_offset = write_offset + 8 * count;
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
+    }
+}
+
+static void save_block(struct asm_block *assembly, int start_offset, int size) {
+    for (int i = 0; i < size; ++i) {
+        int read_offset = (start_offset + i) * 8;
+        int write_offset = (size - i) * 8;
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", write_offset);
+    }
+}
+
+static void restore_block(struct asm_block *assembly, int start_offset, int size) {
+    for (int i = 0; i < size; ++ i) {
+        int read_offset = (size - i) * 8;
+        int write_offset = (start_offset + i) * 8;
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp-%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
+    }
+}
+
+static void generate_swap_comps(struct asm_block *assembly, int lhs_size, int rhs_size) {
+    if (lhs_size == 1) {
+        // Special case: lhs fits in a register.
+        asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", 8 * rhs_size);
+        shift_block_down(assembly, rhs_size, 1);
+        asm_write_inst2(assembly, "mov", "[rsp]", "rcx");
+    }
+    else if (rhs_size == 1) {
+        // Special case: rhs fits in a register.
+        asm_write_inst2(assembly, "mov", "rcx", "[rsp]");
+        shift_block_up(assembly, lhs_size, 1);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", 8 * lhs_size);
+    }
+    else if (lhs_size == rhs_size) {
+        // Special case: lhs = rhs (i.e. non-overlapping).
+        for (int i = 0; i < rhs_size; ++i) {
+            int lhs_offset = (i + rhs_size) * 8;
+            int rhs_offset = i * 8;
+            asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", rhs_offset);
+            asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", lhs_offset);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", rhs_offset);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", lhs_offset);
+        }
+    }
+    else if (lhs_size < rhs_size) {
+        // General case, lhs < rhs.
+        save_block(assembly, rhs_size, lhs_size);
+        shift_block_down(assembly, rhs_size, lhs_size);
+        restore_block(assembly, 0, lhs_size);
+    }
+    else {
+        // General case, lhs > rhs.
+        save_block(assembly, 0, rhs_size);
+        shift_block_up(assembly, lhs_size, rhs_size);
+        restore_block(assembly, lhs_size, rhs_size);
+    }
+}
+
 void generate_code(struct asm_block *assembly, struct ir_block *block) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
@@ -501,6 +575,27 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
             asm_write_inst2(assembly, "mov", "[rsp]", "rdx");
             break;
+        case W_OP_SWAP_COMPS8: {
+            int lhs_size = read_s8(block, ip + 1);
+            int rhs_size = read_s8(block, ip + 2);
+            ip += 2;
+            generate_swap_comps(assembly, lhs_size, rhs_size);
+            break;
+        }
+        case W_OP_SWAP_COMPS16: {
+            int lhs_size = read_s16(block, ip + 1);
+            int rhs_size = read_s16(block, ip + 2);
+            ip += 4;
+            generate_swap_comps(assembly, lhs_size, rhs_size);
+            break;
+        }
+        case W_OP_SWAP_COMPS32: {
+            int lhs_size = read_s32(block, ip + 1);
+            int rhs_size = read_s32(block, ip + 2);
+            ip += 8;
+            generate_swap_comps(assembly, lhs_size, rhs_size);
+            break;
+        }
         case W_OP_SX8:
             asm_write_inst2(assembly, "movsx", "rax", "byte [rsp]");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
