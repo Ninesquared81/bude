@@ -1,0 +1,23 @@
+comp mycomp def
+    x -> int
+    y -> int
+    z -> int
+end
+
+comp bigcomp def
+    a -> mycomp
+    b -> int
+end
+
+42 5 -7 mycomp
+100
+bigcomp
+
+dupe
+print
+
+decomp
+swap
+
+print
+print
