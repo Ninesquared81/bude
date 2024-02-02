@@ -917,7 +917,7 @@ enum type_check_result type_check(struct type_checker *checker) {
                 emit_simple(checker, W_OP_DUPE);
             }
             else {
-                emit_immediate_sv(checker, W_OP_DUPEN8, info->comp.field_count);
+                emit_immediate_sv(checker, W_OP_DUPEN8, info->comp.word_count);
             }
             break;
         }
