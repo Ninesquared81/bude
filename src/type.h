@@ -76,6 +76,9 @@ struct type_table {
 const char *type_name(struct type_table *table, type_index type);
 size_t type_size(struct type_table *table, type_index type);
 
+bool is_pack(struct type_table *table, type_index type);
+bool is_comp(struct type_table *table, type_index type);
+
 void init_type_table(struct type_table *types);
 void free_type_table(struct type_table *types);
 type_index new_type(struct type_table *types, struct string_view *name);

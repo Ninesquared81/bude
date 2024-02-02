@@ -484,6 +484,11 @@ static void emit_print_instruction(struct type_checker *checker, type_index type
     }
 }
 
+static void emit_swap_comps(struct type_checker *checker, int lhs_size, int rhs_size) {
+    // Note: this instruction is encoded in the same way as COMP_SUBCOMPn, so we reuse that.
+    emit_comp_subcomp(checker, W_OP_SWAP_COMPS8, lhs_size, rhs_size);
+}
+
 static bool check_pointer_addition(struct type_checker *checker,
                                    type_index lhs_type, type_index rhs_type) {
     enum w_opcode conversion = W_OP_NOP;
@@ -1020,7 +1025,18 @@ enum type_check_result type_check(struct type_checker *checker) {
             type_index lhs_type = ts_pop(checker);
             ts_push(checker, rhs_type);
             ts_push(checker, lhs_type);
-            emit_simple(checker, W_OP_SWAP);
+            if (!is_comp(checker->types, lhs_type) && !is_comp(checker->types, rhs_type)) {
+                emit_simple(checker, W_OP_SWAP);
+            }
+            else {
+                const struct type_info *lhs_info = lookup_type(checker->types, lhs_type);
+                const struct type_info *rhs_info = lookup_type(checker->types, rhs_type);
+                assert(lhs_info != NULL);
+                assert(rhs_info != NULL);
+                int lhs_size = (lhs_info->kind == KIND_COMP) ? lhs_info->comp.word_count : 1;
+                int rhs_size = (rhs_info->kind == KIND_COMP) ? rhs_info->comp.word_count : 1;
+                emit_swap_comps(checker, lhs_size, rhs_size);
+            }
             break;
         }
         case T_OP_AS_BYTE: {

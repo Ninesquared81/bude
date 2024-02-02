@@ -92,6 +92,20 @@ bool is_signed(type_index type) {
     }
 }
 
+bool is_pack(struct type_table *table, type_index type) {
+    if (IS_SIMPLE_TYPE(type)) return false;
+    const struct type_info *info = lookup_type(table, type);
+    assert(info != NULL);
+    return info->kind == KIND_PACK;
+}
+
+bool is_comp(struct type_table *table, type_index type) {
+    if (IS_SIMPLE_TYPE(type)) return false;
+    const struct type_info *info = lookup_type(table, type);
+    assert(info != NULL);
+    return info->kind == KIND_COMP;
+}
+
 void init_type_table(struct type_table *types) {
     types->capacity = TYPE_TABLE_INIT_SIZE;
     types->count = 0;
