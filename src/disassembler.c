@@ -138,6 +138,26 @@ static int w_comp_field32_instruction(const char *name, struct ir_block *block, 
     return offset + 5;
 }
 
+static int w_comp_subcomp8_instruction(const char *name, struct ir_block *block, int offset) {
+    int subcomp = read_s8(block, offset + 1);
+    int length = read_s8(block, offset + 2);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
+    return offset + 3;
+}
+
+static int w_comp_subcomp16_instruction(const char *name, struct ir_block *block, int offset) {
+    int subcomp = read_s16(block, offset + 1);
+    int length = read_s16(block, offset + 3);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
+    return offset + 5;
+}
+
+static int w_comp_subcomp32_instruction(const char *name, struct ir_block *block, int offset) {
+    int subcomp = read_s32(block, offset + 1);
+    int length = read_s32(block, offset + 5);
+    printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
+    return offset + 9;
+}
 
 static int disassemble_t_instruction(struct ir_block *block, int offset) {
     enum t_opcode instruction = block->code[offset];
@@ -375,6 +395,12 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return simple_instruction("W_OP_SUB", offset);
     case W_OP_SWAP:
         return simple_instruction("W_OP_SWAP", offset);
+    case W_OP_SWAP_COMPS8:
+        return w_comp_subcomp8_instruction("W_OP_SWAP_COMPS8", block, offset);
+    case W_OP_SWAP_COMPS16:
+        return w_comp_subcomp16_instruction("W_OP_SWAP_COMPS16", block, offset);
+    case W_OP_SWAP_COMPS32:
+        return w_comp_subcomp32_instruction("W_OP_SWAP_COMPS32", block, offset);
     case W_OP_SX8:
         return simple_instruction("W_OP_SX8", offset);
     case W_OP_SX8L:
@@ -447,6 +473,18 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return w_comp_field16_instruction("W_OP_COMP_FIELD_SET16", block, offset);
     case W_OP_COMP_FIELD_SET32:
         return w_comp_field32_instruction("W_OP_COMP_FIELD_SET32", block, offset);
+    case W_OP_COMP_SUBCOMP_GET8:
+        return w_comp_subcomp8_instruction("W_OP_COMP_SUBCOMP_GET8", block, offset);
+    case W_OP_COMP_SUBCOMP_GET16:
+        return w_comp_subcomp16_instruction("W_OP_COMP_SUBCOMP_GET16", block, offset);
+    case W_OP_COMP_SUBCOMP_GET32:
+        return w_comp_subcomp32_instruction("W_OP_COMP_SUBCOMP_GET32", block, offset);
+    case W_OP_COMP_SUBCOMP_SET8:
+        return w_comp_subcomp8_instruction("W_OP_COMP_SUBCOMP_SET8", block, offset);
+    case W_OP_COMP_SUBCOMP_SET16:
+        return w_comp_subcomp16_instruction("W_OP_COMP_SUBCOMP_SET16", block, offset);
+    case W_OP_COMP_SUBCOMP_SET32:
+        return w_comp_subcomp32_instruction("W_OP_COMP_SUBCOMP_SET32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
