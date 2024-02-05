@@ -32,8 +32,10 @@ enum t_opcode {
     T_OP_PUSH_INT16,
     T_OP_PUSH_INT32,
     T_OP_PUSH_INT64,
-    /* PUSH_CHAR8 Imm_u8 -- Push an ASCII character to the stack. */
+    /* PUSH_CHARn Imm_un -- Push a Unicode codepoint to the stack. */
     T_OP_PUSH_CHAR8,
+    T_OP_PUSH_CHAR16,
+    T_OP_PUSH_CHAR32,
     /* LOAD_STRINGn Idx_un -- Load a string (ptr word) onto the stack from the strings table. */
     T_OP_LOAD_STRING8,
     T_OP_LOAD_STRING16,
@@ -141,8 +143,10 @@ enum w_opcode {
     W_OP_PUSH_INT16,
     W_OP_PUSH_INT32,
     W_OP_PUSH_INT64,
-    /* PUSH_CHAR8 Imm_u8 -- Push an ASCII character to the stack. */
+    /* PUSH_CHARn Imm_un -- Push a Unicode codepoint to the stack. */
     W_OP_PUSH_CHAR8,
+    W_OP_PUSH_CHAR16,
+    W_OP_PUSH_CHAR32,
     /* LOAD_STRINGn Imm_un -- Load a string (ptr word) onto the stack from the strings table. */
     W_OP_LOAD_STRING8,
     W_OP_LOAD_STRING16,
