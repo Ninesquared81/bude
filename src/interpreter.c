@@ -10,6 +10,7 @@
 #include "ir.h"
 #include "stack.h"
 #include "type_punning.h"
+#include "unicode.h"
 
 
 #define BIN_OP(op, stack) do {     \
@@ -83,6 +84,8 @@ static void swap_comps(struct interpreter *interpreter, int lhs_size, int rhs_si
     pop_all(interpreter->main_stack, lhs_size, lhs);
     push_all(interpreter->main_stack, rhs_size, rhs);
     push_all(interpreter->main_stack, lhs_size, lhs);
+    free(lhs);
+    free(rhs);
 }
 
 enum interpret_result interpret(struct interpreter *interpreter) {
@@ -141,9 +144,24 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_PUSH_CHAR8: {
-            ++ip;
-            uint8_t value = read_u8(interpreter->block, ip);
-            push(interpreter->main_stack, value);
+            uint8_t value = read_u8(interpreter->block, ip + 1);
+            ip += 1;
+            stack_word chr = encode_utf8_u32(value);
+            push(interpreter->main_stack, chr);
+            break;
+        }
+        case W_OP_PUSH_CHAR16: {
+            uint16_t value = read_u16(interpreter->block, ip + 1);
+            ip += 2;
+            stack_word chr = encode_utf8_u32(value);
+            push(interpreter->main_stack, chr);
+            break;
+        }
+        case W_OP_PUSH_CHAR32: {
+            uint32_t value = read_u32(interpreter->block, ip + 1);
+            ip += 4;
+            stack_word chr = encode_utf8_u32(value);
+            push(interpreter->main_stack, chr);
             break;
         }
         case W_OP_LOAD_STRING8: {
