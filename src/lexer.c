@@ -129,12 +129,14 @@ static enum token_type symbol_type(struct lexer *lexer) {
             case 'r': return check_keyword(lexer, 3, 2, "ef", TOKEN_DEREF);
             }
             break;
+        case 'i': return check_keyword(lexer, 2, 4, "vmod", TOKEN_DIVMOD);
         case 'o': return check_terminal(lexer, 2, TOKEN_DO);
         case 'u': return check_keyword(lexer, 2, 2, "pe", TOKEN_DUPE);
         }
         break;
     case 'e':
         switch (lexer->start[1]) {
+        case 'd': return check_keyword(lexer, 2, 5, "ivmod", TOKEN_EDIVMOD);
         case 'l':
             if (lexer->current - lexer->start > 2) {
                 switch (lexer->start[2]) {

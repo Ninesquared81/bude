@@ -991,8 +991,14 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_DUPE:
         emit_simple(compiler, T_OP_DUPE);
         break;
+    case TOKEN_EDIVMOD:
+        emit_simple(compiler, T_OP_EDIVMOD);
+        break;
     case TOKEN_EXIT:
         emit_simple(compiler, T_OP_EXIT);
+        break;
+    case TOKEN_IDIVMOD:
+        emit_simple(compiler, T_OP_IDIVMOD);
         break;
     case TOKEN_MINUS:
         emit_simple(compiler, T_OP_SUB);
