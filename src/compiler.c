@@ -1009,6 +1009,11 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_OR:
         emit_simple(compiler, T_OP_OR);
         break;
+    case TOKEN_PERCENT:
+        emit_simple(compiler, T_OP_DIVMOD);
+        emit_simple(compiler, T_OP_SWAP);
+        emit_simple(compiler, T_OP_POP);
+        break;
     case TOKEN_PLUS:
         emit_simple(compiler, T_OP_ADD);
         break;
@@ -1021,8 +1026,9 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_PRINT_CHAR:
         emit_simple(compiler, T_OP_PRINT_CHAR);
         break;
-    case TOKEN_SLASH_PERCENT:
+    case TOKEN_SLASH:
         emit_simple(compiler, T_OP_DIVMOD);
+        emit_simple(compiler, T_OP_POP);
         break;
     case TOKEN_STAR:
         emit_simple(compiler, T_OP_MULT);
