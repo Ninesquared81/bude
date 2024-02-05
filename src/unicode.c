@@ -34,7 +34,7 @@ struct utf8 encode_utf8_codepoint(uint32_t codepoint) {
             utf8.bytes[i] = UTF8_PRE_CONT | (codepoint & UTF8_MASK_CONT);
             codepoint >>= UTF8_BITS_CONT;
         }
-        /* Note: UTF-8 allows values up to 0x3fffff, but we can't assume
+        /* Note: UTF-8 allows values up to 0x1fffff, but we can't assume
            the user passed a value in that range, so we trancate.
            Strictly, UTF-8 can only encode valid codepoints, so 0x10FFFF
            is the de jure maximum, but here we allow up the de facto maximum. */
