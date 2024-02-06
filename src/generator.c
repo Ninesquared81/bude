@@ -236,29 +236,26 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             // Do nothing.
             break;
         case W_OP_PUSH8: {
-            ++ip;
-            uint8_t value = read_u8(block, ip);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu8, value);
-            asm_write_inst1(assembly, "push", "rax");
+            uint8_t value = read_u8(block, ip + 1);
+            ip += 1;
+            asm_write_inst1f(assembly, "push", "%"PRIu8, value);
             break;
         }
         case W_OP_PUSH16: {
+            uint16_t value = read_u16(block, ip + 1);
             ip += 2;
-            uint16_t value = read_u16(block, ip - 1);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu16, value);
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst1f(assembly, "push", "%"PRIu16, value);
             break;
         }
         case W_OP_PUSH32: {
+            uint32_t value = read_u32(block, ip + 1);
             ip += 4;
-            uint32_t value = read_u32(block, ip - 3);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu32, value);
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2f(assembly, "push", "%"PRIu32, value);
             break;
         }
         case W_OP_PUSH64: {
+            uint64_t value = read_u64(block, ip + 1);
             ip += 8;
-            uint64_t value = read_u64(block, ip - 7);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRIu64, value);
             asm_write_inst1(assembly, "push", "rax");
             break;
