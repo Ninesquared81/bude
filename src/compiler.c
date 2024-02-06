@@ -12,6 +12,7 @@
 #include "string_builder.h"
 #include "symbol.h"
 #include "type_punning.h"
+#include "unicode.h"
 
 
 #define TEMP_REGION_SIZE 4096
@@ -104,6 +105,7 @@ static void emit_simple(struct compiler *compiler, enum t_opcode instruction) {
     write_simple(compiler->block, instruction, &compiler->previous_token.location);
 }
 
+[[maybe_unused]]
 static void emit_immediate_u8(struct compiler *compiler, enum t_opcode instruction,
                               uint8_t operand) {
     write_immediate_u8(compiler->block, instruction, operand,
@@ -646,16 +648,29 @@ static void compile_string(struct compiler *compiler) {
 
 static void compile_character(struct compiler *compiler) {
     struct string_view value = peek_previous(compiler).value;
-    char character = value.start[1];
-    if (character == '\\') {
-        int escaped = escape_character(value.start[2]);
+    uint32_t codepoint = 0;
+    const char *c = value.start + 1;
+    if (*c != '\\') {
+        // Normal character.
+        codepoint = decode_utf8(&c);
+        if (codepoint == UTF8_DECODE_ERROR) {
+            parse_error(compiler, "unable to decode UTF-8 character.\n");
+        }
+    }
+    else {
+        int escaped = escape_character(*++c);
+        ++c;
         if (escaped == -1) {
             parse_error(compiler, "invalid escape sequence '\\%c'.\n", value.start[2]);
             exit(1);
         }
-        character = escaped;
+        codepoint = escaped;
     }
-    emit_immediate_u8(compiler, T_OP_PUSH_CHAR8, character);
+    if (*c != '\'') {
+        parse_error(compiler, "character literal contains multiple characters.\n");
+        exit(1);
+    }
+    emit_immediate_uv(compiler, T_OP_PUSH_CHAR8, codepoint);
 }
 
 static void compile_pack(struct compiler *compiler) {
