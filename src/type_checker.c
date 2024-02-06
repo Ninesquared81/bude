@@ -782,6 +782,14 @@ enum type_check_result type_check(struct type_checker *checker) {
             ts_push(checker, TYPE_CHAR);
             copy_immediate_u8(checker, W_OP_PUSH_CHAR8);
             break;
+        case T_OP_PUSH_CHAR16:
+            ts_push(checker, TYPE_CHAR);
+            copy_immediate_u16(checker, W_OP_PUSH_CHAR16);
+            break;
+        case T_OP_PUSH_CHAR32:
+            ts_push(checker, TYPE_CHAR);
+            copy_immediate_u32(checker, W_OP_PUSH_CHAR32);
+            break;
         case T_OP_LOAD_STRING8:
             ts_push(checker, TYPE_PTR);
             ts_push(checker, TYPE_WORD);
