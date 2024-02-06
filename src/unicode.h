@@ -19,6 +19,11 @@
 #define UTF8_BITS4 3
 #define UTF8_BITS_CONT 6
 
+#define UTF8_DECODE_ERROR 0xffffffffu
+
+#define HAS_PREFIX(byte, prefix) \
+    ((byte & prefix) == prefix)
+
 struct utf8 {
     int n_bytes;
     uint8_t bytes[4];
@@ -26,5 +31,6 @@ struct utf8 {
 
 struct utf8 encode_utf8_codepoint(uint32_t codepoint);
 uint32_t encode_utf8_u32(uint32_t codepoint);
+uint32_t decode_utf8(const char **start);
 
 #endif

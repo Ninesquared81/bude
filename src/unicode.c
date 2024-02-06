@@ -49,3 +49,51 @@ uint32_t encode_utf8_u32(uint32_t codepoint) {
     memcpy(&u32, utf8.bytes, 4);
     return u32;
 }
+
+
+uint32_t decode_utf8(const char **start) {
+    uint8_t byte = *(*start)++;
+    uint32_t codepoint = byte;
+    if (HAS_PREFIX(byte, UTF8_PRE_CONT)) {
+        // Continuation byte: invalid start point
+        return UTF8_DECODE_ERROR;
+    }
+    if (byte <= UTF8_MAX1) return byte;
+    if (HAS_PREFIX(byte, UTF8_PRE2)) {
+        byte = *(*start)++;
+        if (!HAS_PREFIX(byte, UTF8_PRE_CONT)) {
+            // Expected a continuation byte.
+            return UTF8_DECODE_ERROR;
+        }
+        codepoint <<= UTF8_BITS_CONT;
+        codepoint |= (byte & UTF8_MASK_CONT);
+    }
+    else if (HAS_PREFIX(byte, UTF8_PRE3)) {
+        for (int i = 0; i < 2; ++i) {
+            byte = *(*start)++;
+            if (!HAS_PREFIX(byte, UTF8_PRE_CONT)) {
+                // Expected a continuation byte.
+                return UTF8_DECODE_ERROR;
+            }
+            codepoint <<= UTF8_BITS_CONT;
+            codepoint |= (byte & UTF8_MASK_CONT);
+        }
+    }
+    else if (HAS_PREFIX(byte, UTF8_PRE4)) {
+        for (int i = 0; i < 3; ++i) {
+            byte = *(*start)++;
+            if (!HAS_PREFIX(byte, UTF8_PRE_CONT)) {
+                // Expected a continuation byte.
+                return UTF8_DECODE_ERROR;
+            }
+            codepoint <<= UTF8_BITS_CONT;
+            codepoint |= (byte & UTF8_MASK_CONT);
+        }
+
+    }
+    else {
+        // Invalid prefix.
+        return UTF8_DECODE_ERROR;
+    }
+    return codepoint;
+}
