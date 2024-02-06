@@ -412,9 +412,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_PRINT:
             printf("%"PRIsw"\n", pop(interpreter->main_stack));
             break;
-        case W_OP_PRINT_CHAR:
-            printf("%c", (char)(uint8_t)pop(interpreter->main_stack));
+        case W_OP_PRINT_CHAR: {
+            stack_word value = pop(interpreter->main_stack);
+            char bytes[4];
+            memcpy(bytes, &value, sizeof bytes);
+            printf("%s", bytes);
             break;
+        }
         case W_OP_PRINT_INT:
             printf("%"PRIssw"\n", u64_to_s64(pop(interpreter->main_stack)));
             break;
