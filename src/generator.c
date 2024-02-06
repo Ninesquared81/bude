@@ -5,6 +5,7 @@
 #include "asm.h"
 #include "generator.h"
 #include "ir.h"
+#include "unicode.h"
 
 
 void generate_header(struct asm_block *assembly) {
@@ -291,10 +292,24 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             break;
         }
         case W_OP_PUSH_CHAR8: {
-            ++ip;
-            uint8_t value = read_u8(block, ip);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu8, value);
-            asm_write_inst1(assembly, "push", "rax");
+            uint8_t codepoint = read_u8(block, ip + 1);
+            ip += 1;
+            uint32_t bytes = encode_utf8_u32(codepoint);
+            asm_write_inst1f(assembly, "push", "%"PRIu32, bytes);
+            break;
+        }
+        case W_OP_PUSH_CHAR16: {
+            uint16_t codepoint = read_u16(block, ip + 1);
+            ip += 2;
+            uint32_t bytes = encode_utf8_u32(codepoint);
+            asm_write_inst1f(assembly, "push", "%"PRIu32, bytes);
+            break;
+        }
+        case W_OP_PUSH_CHAR32: {
+            uint32_t codepoint = read_u32(block, ip + 1);
+            ip += 4;
+            uint32_t bytes = encode_utf8_u32(codepoint);
+            asm_write_inst1f(assembly, "push", "%"PRIu32, bytes);
             break;
         }
         case W_OP_LOAD_STRING8: {
