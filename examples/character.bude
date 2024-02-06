@@ -1,4 +1,4 @@
 'H' print-char
-'i' print-char
+'é' print-char
 '!' print-char
 '\n' print-char
