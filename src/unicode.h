@@ -21,8 +21,8 @@
 
 #define UTF8_DECODE_ERROR 0xffffffffu
 
-#define HAS_PREFIX(byte, prefix) \
-    ((byte & prefix) == prefix)
+#define HAS_PREFIX(byte, prefix, mask)               \
+    ((byte & mask) == prefix)
 
 struct utf8 {
     int n_bytes;
