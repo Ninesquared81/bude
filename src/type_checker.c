@@ -779,7 +779,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             copy_immediate_u64(checker, W_OP_PUSH_INT64);
             break;
         case T_OP_PUSH_CHAR8:
-            ts_push(checker, TYPE_BYTE);
+            ts_push(checker, TYPE_CHAR);
             copy_immediate_u8(checker, W_OP_PUSH_CHAR8);
             break;
         case T_OP_LOAD_STRING8:
@@ -969,7 +969,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_PRINT_CHAR: {
-            if (ts_pop(checker) != TYPE_BYTE) {
+            if (ts_pop(checker) != TYPE_CHAR) {
                 checker->had_error = true;
                 type_error(checker, "expected byte for `print-char`");
             }
