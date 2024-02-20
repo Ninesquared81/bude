@@ -250,7 +250,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         case W_OP_PUSH32: {
             uint32_t value = read_u32(block, ip + 1);
             ip += 4;
-            asm_write_inst2f(assembly, "push", "%"PRIu32, value);
+            asm_write_inst1f(assembly, "push", "%"PRIu32, value);
             break;
         }
         case W_OP_PUSH64: {
@@ -578,6 +578,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst2(assembly, "sub", "rsp", "32");
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            break;
         case W_OP_PRINT_INT:
             asm_write_inst1(assembly, "pop", "rdx");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_s64]");

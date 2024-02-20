@@ -424,7 +424,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         case W_OP_PRINT_STRING: {
             stack_word length = pop(interpreter->main_stack);
-            char *start = (char *)(uintptr)pop(interpreter->main_stack);
+            char *start = (char *)(uintptr_t)pop(interpreter->main_stack);
             assert(length < INT_MAX);
             printf("%*s", (int)length, start);
             break;

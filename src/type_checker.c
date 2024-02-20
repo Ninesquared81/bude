@@ -810,7 +810,7 @@ enum type_check_result type_check(struct type_checker *checker) {
             const struct type_info *info = lookup_type(checker->types, type);
             assert(info != NULL && "Unknown type");
             if (type == TYPE_STRING) {
-                emit_immeidate_s8(checker, W_OP_POPN8, 2);
+                emit_immediate_s8(checker, W_OP_POPN8, 2);
             }
             if (info->kind != KIND_COMP) {
                 emit_simple(checker, W_OP_POP);
