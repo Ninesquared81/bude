@@ -569,6 +569,15 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
             break;
+        case W_OP_PRINT_STRING:
+            asm_write_inst1f(assembly, "pop", "rdx", "Length.");
+            asm_write_inst1f(assembly, "pop", "r8", "Start pointer.");
+            asm_write_inst2(assembly, "lea", "rcx", "[fmt_string]");
+            asm_write_inst2(assembly, "mov", "rbp", "rsp");
+            asm_write_inst2(assembly, "and", "spl", "0F0h");
+            asm_write_inst2(assembly, "sub", "rsp", "32");
+            asm_write_inst1(assembly, "call", "[printf]");
+            asm_write_inst2(assembly, "mov", "rsp", "rbp");
         case W_OP_PRINT_INT:
             asm_write_inst1(assembly, "pop", "rdx");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_s64]");
@@ -975,6 +984,9 @@ void generate_constants(struct asm_block *assembly, struct ir_block *block) {
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_char");
     asm_write_inst2(assembly, "db", "'%%c'", "0");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "fmt_string");
+    asm_write_inst2(assembly, "db", "'%%s'", "0");
     asm_write(assembly, "\n");
     for (size_t i = 0; i < block->strings.count; ++i) {
         asm_label(assembly, "str%u", i);
