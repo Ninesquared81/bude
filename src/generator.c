@@ -987,7 +987,7 @@ void generate_constants(struct asm_block *assembly, struct ir_block *block) {
     asm_write_inst2(assembly, "db", "'%%c'", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_string");
-    asm_write_inst2(assembly, "db", "'%%s'", "0");
+    asm_write_inst2(assembly, "db", "'%%*s'", "0");
     asm_write(assembly, "\n");
     for (size_t i = 0; i < block->strings.count; ++i) {
         asm_label(assembly, "str%u", i);
