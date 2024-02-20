@@ -24,6 +24,7 @@ enum simple_type {
     TYPE_S32,
 
     TYPE_CHAR,
+    TYPE_STRING,
 };
 
 // Each type has a unique numeric identifier. For simple types,
@@ -31,8 +32,8 @@ enum simple_type {
 // such as packs and comps use subsequent identifiers.
 typedef int type_index;
 
-#define SIMPLE_TYPE_COUNT 12
-static_assert(SIMPLE_TYPE_COUNT == TYPE_CHAR + 1);
+#define SIMPLE_TYPE_COUNT 13
+static_assert(SIMPLE_TYPE_COUNT == TYPE_STRING + 1);
 static_assert(TYPE_ERROR == 0);
 
 #define IS_SIMPLE_TYPE(type) \

@@ -791,24 +791,24 @@ enum type_check_result type_check(struct type_checker *checker) {
             copy_immediate_u32(checker, W_OP_PUSH_CHAR32);
             break;
         case T_OP_LOAD_STRING8:
-            ts_push(checker, TYPE_PTR);
-            ts_push(checker, TYPE_WORD);
+            ts_push(checker, TYPE_STRING);
             copy_immediate_u8(checker, W_OP_LOAD_STRING8);
             break;
         case T_OP_LOAD_STRING16:
-            ts_push(checker, TYPE_PTR);
-            ts_push(checker, TYPE_WORD);
+            ts_push(checker, TYPE_STRING);
             copy_immediate_u16(checker, W_OP_LOAD_STRING16);
             break;
         case T_OP_LOAD_STRING32:
-            ts_push(checker, TYPE_PTR);
-            ts_push(checker, TYPE_WORD);
+            ts_push(checker, TYPE_STRING);
             copy_immediate_u32(checker, W_OP_LOAD_STRING32);
             break;
         case T_OP_POP: {
             type_index type = ts_pop(checker);
             const struct type_info *info = lookup_type(checker->types, type);
             assert(info != NULL && "Unknown type");
+            if (type == TYPE_STRING) {
+                emit_immeidate_s8(checker, W_OP_POPN8, 2);
+            }
             if (info->kind != KIND_COMP) {
                 emit_simple(checker, W_OP_POP);
             }
@@ -926,7 +926,12 @@ enum type_check_result type_check(struct type_checker *checker) {
             ts_push(checker, type);
             const struct type_info *info = lookup_type(checker->types, type);
             assert(info != NULL && "Unknown type");
-            if (info->kind != KIND_COMP) {
+            if (type == TYPE_STRING) {
+                // Strings are a special case: they count as simple types, but behave like a comp.
+                // However, since they are built in, we aready know their field types (ptr, int).
+                emit_immediate_s8(checker, W_OP_DUPEN8, 2);
+            }
+            else if (info->kind != KIND_COMP) {
                 emit_simple(checker, W_OP_DUPE);
             }
             else {
