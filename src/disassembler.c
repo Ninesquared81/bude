@@ -391,6 +391,8 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return simple_instruction("W_OP_PRINT_CHAR", offset);
     case W_OP_PRINT_INT:
         return simple_instruction("W_OP_PRINT_INT", offset);
+    case W_OP_PRINT_STRING:
+        return simple_instruction("W_OP_PRINT_STRING", offset);
     case W_OP_SUB:
         return simple_instruction("W_OP_SUB", offset);
     case W_OP_SWAP:
