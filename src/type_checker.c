@@ -473,6 +473,9 @@ static void emit_print_instruction(struct type_checker *checker, type_index type
             emit_print_instruction(checker, info->comp.fields[i]);
         }
     }
+    else if (type == TYPE_STRING) {
+        emit_simple(checker, W_OP_PRINT_STRING);
+    }
     else if (!is_signed(type)) {
         emit_simple(checker, W_OP_PRINT);
     }

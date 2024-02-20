@@ -88,6 +88,8 @@ enum t_opcode {
     T_OP_PRINT_CHAR,
     /* PRINT_INT -- Print the top element of the stack as a signed integer. */
     T_OP_PRINT_INT,
+    /* PRINT_STRING -- Print the top two stack elements (start pointer, length) as a string. */
+    T_OP_PRINT_STRING,
     /* SUB -- Subtract the top stack element from the next element. */
     T_OP_SUB,
     /* SWAP -- Swap the top two stack elements. */

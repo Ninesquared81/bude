@@ -422,6 +422,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_PRINT_INT:
             printf("%"PRIssw"\n", u64_to_s64(pop(interpreter->main_stack)));
             break;
+        case W_OP_PRINT_STRING: {
+            stack_word length = pop(interpreter->main_stack);
+            char *start = (char *)(uintptr)pop(interpreter->main_stack);
+            assert(length < INT_MAX);
+            printf("%*s", (int)length, start);
+            break;
+        }
         case W_OP_SX8: {
             stack_word b = pop(interpreter->main_stack);
             b &= 0xFF;  // Mask off higher bits.
