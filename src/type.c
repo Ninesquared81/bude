@@ -106,11 +106,32 @@ bool is_comp(struct type_table *table, type_index type) {
     return info->kind == KIND_COMP;
 }
 
+static void init_builtin_types(struct type_table *types) {
+    static_assert(TYPE_TABLE_INIT_SIZE >= BUILTIN_TYPE_COUNT);
+    assert(types->count == 0);
+    static type_index string_fields[] = {
+        TYPE_PTR,
+        TYPE_WORD,
+    };
+    static int string_offsets[] = {2, 1};
+    types->infos[types->count++] = (struct type_info) {
+        .kind = KIND_COMP,
+        .comp = {
+            .field_count = 2,
+            .word_count = 2,
+            .fields = string_fields,
+            .offsets = string_offsets,
+        }
+    };
+    assert(types->count == BUILTIN_TYPE_COUNT);
+}
+
 void init_type_table(struct type_table *types) {
     types->capacity = TYPE_TABLE_INIT_SIZE;
     types->count = 0;
     types->infos = allocate_array(TYPE_TABLE_INIT_SIZE, sizeof types->infos[0]);
     types->extra_info = new_region(TYPE_TABLE_REGION_SIZE);
+    init_builtin_types(types);
 }
 
 void free_type_table(struct type_table *types) {
