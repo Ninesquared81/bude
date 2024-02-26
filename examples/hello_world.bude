@@ -1,5 +1,6 @@
 "Hello, World!\n"  # Pushes (ptr length) to stack.
-for do
-    dupe deref print-char
-    1 +  # Increment pointer.
-end
+#for do
+#    dupe deref print-char
+#    1 +  # Increment pointer.
+#end
+print
