@@ -696,7 +696,7 @@ static void compile_pack(struct compiler *compiler) {
         struct symbol field = {
             .name = peek_previous(compiler).value,
             .type = SYM_PACK_FIELD,
-            .pack_field_get = {
+            .pack_field = {
                 .pack = index,
                 .field_offset = field_count,
             },
@@ -809,7 +809,7 @@ static void compile_comp(struct compiler *compiler) {
         struct symbol field = {
             .name = peek_previous(compiler).value,
             .type = SYM_COMP_FIELD,
-            .comp_field_get = {
+            .comp_field = {
                 .comp = index,
                 .field_offset = field_count,
             },
@@ -915,12 +915,12 @@ static void compile_assignment(struct compiler *compiler) {
     }
     switch (symbol->type) {
     case SYM_PACK_FIELD:
-        emit_pack_field(compiler, T_OP_PACK_FIELD_SET8, symbol->pack_field_get.pack,
-                        symbol->pack_field_get.field_offset);
+        emit_pack_field(compiler, T_OP_PACK_FIELD_SET8, symbol->pack_field.pack,
+                        symbol->pack_field.field_offset);
         break;
     case SYM_COMP_FIELD:
-        emit_comp_field(compiler, T_OP_COMP_FIELD_SET8, symbol->comp_field_get.comp,
-                        symbol->comp_field_get.field_offset);
+        emit_comp_field(compiler, T_OP_COMP_FIELD_SET8, symbol->comp_field.comp,
+                        symbol->comp_field.field_offset);
         break;
     default:
         parse_error(compiler, "Incorrect symbol type for `<-`.");
@@ -951,12 +951,12 @@ static void compile_comp_symbol(struct compiler *compiler, struct symbol *symbol
 
 static void compile_pack_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
     emit_pack_field(compiler, T_OP_PACK_FIELD_GET8,
-                    symbol->pack_field_get.pack, symbol->pack_field_get.field_offset);
+                    symbol->pack_field.pack, symbol->pack_field.field_offset);
 }
 
 static void compile_comp_field_get_symbol(struct compiler *compiler, struct symbol *symbol) {
-    int offset = symbol->comp_field_get.field_offset;
-    type_index comp = symbol->comp_field_get.comp;
+    int offset = symbol->comp_field.field_offset;
+    type_index comp = symbol->comp_field.comp;
     emit_comp_field(compiler, T_OP_COMP_FIELD_GET8, comp, offset);
 }
 
