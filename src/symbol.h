@@ -34,11 +34,11 @@ struct symbol {
         struct {
             type_index pack;
             int field_offset;
-        } pack_field_get;
+        } pack_field;
         struct {
             type_index comp;
             int field_offset;
-        } comp_field_get;
+        } comp_field;
     };
 };
 
