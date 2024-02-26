@@ -468,13 +468,13 @@ static void emit_comp_field_set(struct type_checker *checker, type_index index, 
 static void emit_print_instruction(struct type_checker *checker, type_index type) {
     const struct type_info *info = lookup_type(checker->types, type);
     assert(info);
-    if (info->kind == KIND_COMP) {
+    if (type == TYPE_STRING) {
+        emit_simple(checker, W_OP_PRINT_STRING);
+    }
+    else if (info->kind == KIND_COMP) {
         for (int i = info->comp.field_count - 1; i >= 0; --i) {
             emit_print_instruction(checker, info->comp.fields[i]);
         }
-    }
-    else if (type == TYPE_STRING) {
-        emit_simple(checker, W_OP_PRINT_STRING);
     }
     else if (!is_signed(type)) {
         emit_simple(checker, W_OP_PRINT);
