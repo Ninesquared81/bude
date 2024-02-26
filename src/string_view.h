@@ -12,7 +12,7 @@ struct string_view {
 };
 
 #define SV_LIT_INIT(str_lit) \
-    {.start = str_lit, .length = sizeof str_lit}
+    {.start = str_lit, .length = sizeof str_lit - 1}
 #define SV_LIT(str_lit) ((struct string_view) SV_LIT_INIT(str_lit))
 
 char *view_to_string(struct string_view *view, struct region *region);
