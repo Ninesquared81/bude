@@ -11,11 +11,9 @@ struct string_view {
     size_t length;
 };
 
-#define SV_LIT(str_lit) \
-    ((struct string_view) { \
-        .start = str_lit,   \
-        .length = sizeof str_lit})
-
+#define SV_LIT_INIT(str_lit) \
+    {.start = str_lit, .length = sizeof str_lit}
+#define SV_LIT(str_lit) ((struct string_view) SV_LIT_INIT(str_lit))
 
 char *view_to_string(struct string_view *view, struct region *region);
 bool sv_eq(const struct string_view *a, const struct string_view *b);

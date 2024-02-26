@@ -49,7 +49,7 @@ static struct symdict_slot *find_slot(const struct symbol_dictionary *dict,
     return slot;
 }
 
-void insert_symbol(struct symbol_dictionary *dict, struct symbol *symbol) {
+void insert_symbol(struct symbol_dictionary *dict, const struct symbol *symbol) {
     uint32_t hash = hash_sv(&symbol->name);
     struct symdict_slot *slot = find_slot(dict, &symbol->name, hash);
     assert(slot);  // Todo: grow dict when there isn't space.
