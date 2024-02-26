@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "builtins.h"
 #include "compiler.h"
 #include "ir.h"
 #include "lexer.h"
@@ -1106,6 +1107,7 @@ void compile(const char *src, struct ir_block *block, const char *filename,
              struct type_table *types) {
     struct compiler compiler;
     init_compiler(&compiler, src, block, filename, types);
+    init_builtins(&compiler->symbols);
     compile_expr(&compiler);
     emit_simple(&compiler, T_OP_NOP);
     free_compiler(&compiler);
