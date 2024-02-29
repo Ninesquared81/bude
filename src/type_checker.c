@@ -622,15 +622,11 @@ static void check_unreachable(struct type_checker *checker) {
         while (ip + 1 < checker->in_block->count && !is_jump_dest(checker->in_block, ip + 1)) {
             ++ip;
         }
-        if (ip + 1 < checker->in_block->count) {
-            type_error(checker, "code from index %d to %d is unreachable",
-                       start_ip, ip);
-        }
-        else {
-            type_error(checker, "code from index %d to end is unreachable",
-                       start_ip);
+        if (ip + 1 >= checker->in_block->count) {
+            type_error(checker, "code from index %d to end is unreachable", start_ip);
             return;
         }
+        type_error(checker, "code from index %d to %d is unreachable", start_ip, ip);
         checker->ip = ip;
     }
     int src = find_jump_src(checker);
