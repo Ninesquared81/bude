@@ -5,7 +5,7 @@
 #include <inttypes.h>
 
 
-#define STACK_SIZE 4 * 1024 * 1024
+#define STACK_SIZE (4 * 1024 * 1024)
 #define PRIsw  PRIu64
 #define PRIssw PRId64
 
