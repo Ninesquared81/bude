@@ -54,8 +54,9 @@ struct region *copy_region(const struct region *region) {
 }
 
 void *region_alloc(struct region *region, size_t size) {
-    ALIGN(region->alloc_count, size);
+    if (size == 0) return NULL;
     if (size > region->size) return NULL;
+    ALIGN(region->alloc_count, size);
     if (region->alloc_count + size > region->size) {
         if (region->next == NULL) {
             region->next = new_region(region->size);
@@ -66,4 +67,10 @@ void *region_alloc(struct region *region, size_t size) {
     void *start = &region->bytes[region->alloc_count];
     region->alloc_count += size;
     return start;
+}
+
+void *region_calloc(struct region *region, size_t count, size_t size) {
+    if (size == 0) return NULL;
+    if (SIZE_MAX / size < count) return NULL;  // Multiplication overflow.
+    return region_alloc(region, count * size);  // Region zeroed on initial allocation.
 }
