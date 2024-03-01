@@ -552,16 +552,20 @@ static bool save_state(struct type_checker *checker) {
     return save_state_at(checker, checker->ip);
 }
 
-static bool load_state(struct type_checker *checker, int ip) {
-    struct type_checker_states *states =&checker->states;
+static bool load_state_at(struct type_checker *checker, int ip) {
+    struct type_checker_states *states = &checker->states;
     size_t index = find_state(states, ip);
     struct tstack_state *state = states->states[index];
-    if (state == NULL) {
+    if (state == NULL || states->ips[index] != index) {
         return false;
     }
     memcpy(checker->tstack->types, state->types, state->count);
     checker->tstack->top = &checker->tstack->types[state->count];
     return true;
+}
+
+static bool load_state(struct type_checker *checker) {
+    return load_state_at(checker, checker->ip);
 }
 
 static bool check_state_at(struct type_checker *checker, int ip) {
