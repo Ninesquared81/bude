@@ -613,17 +613,29 @@ static bool save_jump(struct type_checker *checker, int dest_offset) {
     return true;
 }
 
+static bool is_state_saved(struct type_checker *checker, int ip) {
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, ip);
+    // This ought to be true, since we shoudln't need to insert destinations.
+    assert(index < states->count && states->ips[index] == ip);
+    return states->states[index] != NULL;
+}
+
+static bool is_forward_jump_dest(struct type_checker *checker, int ip) {
+    return is_jump_dest(checker->in_block, ip) && is_state_saved(checker, ip);
+}
+
 static void check_unreachable(struct type_checker *checker) {
     while (checker->in_block->code[checker->ip + 1] == W_OP_NOP
            && !is_jump_dest(checker->in_block, checker->ip + 1)) {
         ++checker->ip;
         if (checker->ip >= checker->in_block->count) return;
     }
-    if (!is_jump_dest(checker->in_block, checker->ip + 1)) {
+    if (!is_forward_jump_dest(checker, checker->ip + 1)) {
         checker->had_error = true;
         int start_ip = checker->ip + 1;
         int ip = start_ip;
-        while (ip + 1 < checker->in_block->count && !is_jump_dest(checker->in_block, ip + 1)) {
+        while (ip + 1 < checker->in_block->count && !is_forward_jump_dest(checker, ip + 1)) {
             ++ip;
         }
         if (ip + 1 >= checker->in_block->count) {
@@ -633,12 +645,9 @@ static void check_unreachable(struct type_checker *checker) {
         type_error(checker, "code from index %d to %d is unreachable", start_ip, ip);
         checker->ip = ip;
     }
-    int src = find_jump_src(checker);
-    if (src == -1) {
-        type_error(checker, "could not find source of jump");
-        return;
-    }
-    load_state(checker, src);
+    // Load previous state.
+    bool success = load_state_at(checker, checker->ip + 1);
+    assert(success && "could not load previous state");
 }
 
 static void check_jump_instruction(struct type_checker *checker) {
