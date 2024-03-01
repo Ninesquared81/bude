@@ -586,20 +586,6 @@ static bool check_state(struct type_checker *checker) {
     return check_state_at(checker, checker->ip);
 }
 
-static int find_jump_src(struct type_checker *checker) {
-    struct type_checker_states *states = &checker->states;
-    if (states->size == 0) {
-        return -1;
-    }
-    size_t index = find_state(states, checker->ip);
-    assert(index < (size_t)checker->in_block->jumps.count);
-    if (states->states[index] == NULL) {
-        // State not found.
-        return -1;
-    }
-    return states->jump_srcs[index];
-}
-
 static bool save_jump(struct type_checker *checker, int dest_offset) {
     int dest = checker->ip + dest_offset + 1;
     struct type_checker_states *states = &checker->states;
