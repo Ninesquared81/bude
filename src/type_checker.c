@@ -1027,9 +1027,10 @@ enum type_check_result type_check(struct type_checker *checker) {
             break;
         }
         case T_OP_PRINT_CHAR: {
-            if (ts_pop(checker) != TYPE_CHAR) {
+            type_index type = ts_pop(checker);
+            if (type != TYPE_CHAR && type != TYPE_BYTE) {
                 checker->had_error = true;
-                type_error(checker, "expected byte for `print-char`");
+                type_error(checker, "expected char or byte for `print-char`");
             }
             emit_simple(checker, W_OP_PRINT_CHAR);
             break;
