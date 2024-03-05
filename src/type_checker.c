@@ -231,6 +231,123 @@ static enum w_opcode sign_extend(type_index type) {
     }
 }
 
+static size_t find_state(struct type_checker_states *states, int ip) {
+    int hi = states->size - 1;
+    int lo = 0;
+    while (hi > lo) {
+        size_t mid = lo + (hi - lo) / 2;
+        int state = states->ips[mid];
+        if (state == ip) {
+            return mid;
+        }
+        if (state < ip) {
+            lo = mid + 1;
+        }
+        else {
+            hi = mid - 1;
+        }
+    }
+    return lo;
+}
+
+static bool save_state_with_index(struct type_checker *checker, size_t index) {
+    struct type_checker_states *states = &checker->states;
+    assert(index < (size_t)checker->in_block->jumps.count);
+    if (states->states[index] != NULL) {
+        // There was already a state saved there.
+        return false;
+    }
+    size_t count = TSTACK_COUNT(checker->tstack);
+    size_t tstack_size = count * sizeof(type_index);
+    struct tstack_state *state = region_alloc(states->region, sizeof *state + tstack_size);
+    state->count = count;
+    memcpy(state->types, checker->tstack->types, tstack_size);
+    states->states[index] = state;
+    return true;
+}
+
+static bool save_state_at(struct type_checker *checker, int ip) {
+    size_t index = find_state(&checker->states, ip);
+    assert(index < checker->states.size);
+    return save_state_with_index(checker, index);
+}
+
+[[maybe_unused]]
+static bool save_state(struct type_checker *checker) {
+    return save_state_at(checker, checker->ip);
+}
+
+static bool load_state_at(struct type_checker *checker, int ip) {
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, ip);
+    struct tstack_state *state = states->states[index];
+    if (state == NULL || states->ips[index] != ip) {
+        return false;
+    }
+    memcpy(checker->tstack->types, state->types, state->count);
+    checker->tstack->top = &checker->tstack->types[state->count];
+    return true;
+}
+
+[[maybe_unused]]
+static bool load_state(struct type_checker *checker) {
+    return load_state_at(checker, checker->ip);
+}
+
+static bool check_state_with_index(struct type_checker *checker, size_t index) {
+    struct type_checker_states *states = &checker->states;
+    struct tstack_state *state = states->states[index];
+    if (state == NULL) {
+        // Did not find state.
+        return false;
+    }
+    if ((ptrdiff_t)state->count != TSTACK_COUNT(checker->tstack)) {
+        return false;
+    }
+    return memcmp(state->types, checker->tstack->types, state->count) == 0;
+}
+
+static bool check_state_at(struct type_checker *checker, int ip) {
+    size_t index = find_state(&checker->states, ip);
+    assert(index < checker->states.size);
+    return check_state_with_index(checker, index);
+}
+
+[[maybe_unused]]
+static bool check_state(struct type_checker *checker) {
+    return check_state_at(checker, checker->ip);
+}
+
+static bool save_jump(struct type_checker *checker, int dest_offset) {
+    int dest = checker->ip + dest_offset + 1;
+    int wir_src = checker->out_block->count;
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, dest);
+    assert(index < (size_t)checker->in_block->jumps.count);
+    struct src_list *src_node = region_alloc(states->region, sizeof *src_node);
+    assert(src_node);
+    src_node->next = states->wir_srcs[index];
+    src_node->src = wir_src;
+    states->wir_srcs[index] = src_node;
+    if (!save_state_at(checker, dest)) {
+        // If jump was already saved.
+        return check_state_at(checker, dest);
+    }
+    return true;
+}
+
+static bool is_state_saved(struct type_checker *checker, int ip) {
+    struct type_checker_states *states = &checker->states;
+    size_t index = find_state(states, ip);
+    // This ought to be true, since we shouldn't need to insert destinations.
+    assert(index < states->size && states->ips[index] == ip);
+    return states->states[index] != NULL;
+}
+
+static bool is_forward_jump_dest(struct type_checker *checker, int ip) {
+    return is_jump_dest(checker->in_block, ip) && is_state_saved(checker, ip);
+}
+
 static void emit_simple(struct type_checker *checker, enum w_opcode instruction) {
     write_simple(checker->out_block, instruction, &checker->in_block->locations[checker->ip]);
 }
@@ -297,11 +414,24 @@ static void copy_immediate_u64(struct type_checker *checker, enum w_opcode instr
 
 static void copy_jump_instruction(struct type_checker *checker, enum w_opcode instruction) {
     int16_t jump = read_s16(checker->in_block, checker->ip + 1);
-    write_immediate_s16(checker->out_block, instruction, jump,
-                        &checker->in_block->locations[checker->ip]);
-    int dest = checker->out_block->count - 2 + jump;  // -2 because of operand.
-    add_jump(checker->out_block, dest);
     checker->ip += 2;
+    int dest = checker->ip + jump - 1;  // -1 since jumps work in a dumb way (should fix).
+    size_t index = find_state(&checker->states, dest);
+    assert(index < checker->states.size);
+    assert(checker->states.ips[index] == dest);
+    int wir_jump = 0;
+    if (jump < 0) {
+        // Backwards jump: destination already known.
+        int wir_dest = checker->states.wir_dests[index];
+        int wir_src = checker->out_block->count;
+        wir_jump = wir_dest - wir_src;
+    }
+    write_immediate_s16(checker->out_block, instruction, wir_jump,
+                        &checker->in_block->locations[checker->ip]);
+}
+
+static void patch_jump(struct type_checker *checker, int ip, int jump) {
+    overwrite_s16(checker->out_block, ip + 1, jump);
 }
 
 static void emit_immediate_u8(struct type_checker *checker, enum w_opcode instruction,
@@ -513,105 +643,6 @@ static bool check_pointer_addition(struct type_checker *checker,
     return true;
 }
 
-static size_t find_state(struct type_checker_states *states, int ip) {
-    int hi = states->size - 1;
-    int lo = 0;
-    while (hi > lo) {
-        size_t mid = lo + (hi - lo) / 2;
-        int state = states->ips[mid];
-        if (state == ip) {
-            return mid;
-        }
-        if (state < ip) {
-            lo = mid + 1;
-        }
-        else {
-            hi = mid - 1;
-        }
-    }
-    return lo;
-}
-
-static bool save_state_at(struct type_checker *checker, int ip) {
-    struct type_checker_states *states = &checker->states;
-    size_t index = find_state(states, ip);
-    assert(index < (size_t)checker->in_block->jumps.count);
-    if (states->states[index] != NULL) {
-        // There was already a state saved there.
-        return false;
-    }
-    size_t count = TSTACK_COUNT(checker->tstack);
-    size_t tstack_size = count * sizeof(type_index);
-    struct tstack_state *state = malloc(sizeof *state + tstack_size);
-    state->count = count;
-    memcpy(state->types, checker->tstack->types, tstack_size);
-    states->states[index] = state;
-    return true;
-}
-
-static bool save_state(struct type_checker *checker) {
-    return save_state_at(checker, checker->ip);
-}
-
-static bool load_state_at(struct type_checker *checker, int ip) {
-    struct type_checker_states *states = &checker->states;
-    size_t index = find_state(states, ip);
-    struct tstack_state *state = states->states[index];
-    if (state == NULL || states->ips[index] != index) {
-        return false;
-    }
-    memcpy(checker->tstack->types, state->types, state->count);
-    checker->tstack->top = &checker->tstack->types[state->count];
-    return true;
-}
-
-static bool load_state(struct type_checker *checker) {
-    return load_state_at(checker, checker->ip);
-}
-
-static bool check_state_at(struct type_checker *checker, int ip) {
-    struct type_checker_states *states = &checker->states;
-    size_t index = find_state(states, ip);
-    struct tstack_state *state = states->states[index];
-    if (state == NULL) {
-        // Did not find state.
-        return false;
-    }
-    if ((ptrdiff_t)state->count != TSTACK_COUNT(checker->tstack)) {
-        return false;
-    }
-    return memcmp(state->types, checker->tstack->types, state->count) == 0;
-}
-
-static bool check_state(struct type_checker *checker) {
-    return check_state_at(checker, checker->ip);
-}
-
-static bool save_jump(struct type_checker *checker, int dest_offset) {
-    int dest = checker->ip + dest_offset + 1;
-    struct type_checker_states *states = &checker->states;
-    size_t index = find_state(states, dest);
-    assert(index < (size_t)checker->in_block->jumps.count);
-    states->jump_srcs[index] = checker->ip;
-    if (!save_state_at(checker, dest)) {
-        // If jump was already saved.
-        return check_state_at(checker, dest);
-    }
-    return true;
-}
-
-static bool is_state_saved(struct type_checker *checker, int ip) {
-    struct type_checker_states *states = &checker->states;
-    size_t index = find_state(states, ip);
-    // This ought to be true, since we shoudln't need to insert destinations.
-    assert(index < states->count && states->ips[index] == ip);
-    return states->states[index] != NULL;
-}
-
-static bool is_forward_jump_dest(struct type_checker *checker, int ip) {
-    return is_jump_dest(checker->in_block, ip) && is_state_saved(checker, ip);
-}
-
 static void check_unreachable(struct type_checker *checker) {
     while (checker->in_block->code[checker->ip + 1] == W_OP_NOP
            && !is_jump_dest(checker->in_block, checker->ip + 1)) {
@@ -732,11 +763,26 @@ static void check_comp_field_set(struct type_checker *checker, type_index index,
 enum type_check_result type_check(struct type_checker *checker) {
     for (; checker->ip < checker->in_block->count; ++checker->ip) {
         if (is_jump_dest(checker->in_block, checker->ip)) {
-            if (!save_state(checker)) {
+            size_t index = find_state(&checker->states, checker->ip);
+            int wir_dest = checker->out_block->count;
+            // Save jump destination.
+            checker->states.wir_dests[index] = wir_dest;
+            add_jump(checker->out_block, wir_dest);
+            if (!save_state_with_index(checker, index)) {
                 // Previous state was saved here.
-                if (!check_state(checker)) {
+                if (!check_state_with_index(checker, index)) {
                     checker->had_error = true;
-                    type_error(checker, "inconsistent stack after jump instruction", checker->ip);
+                    type_error(checker, "inconsistent stack after jump instruction");
+                }
+                struct src_list *wir_src_node = checker->states.wir_srcs[index];
+                assert(wir_src_node != NULL && "There must be at least one src saved.");
+                // Patch every jump that ends here.
+                for (; wir_src_node != NULL; wir_src_node = wir_src_node->next) {
+                    int wir_jump = wir_dest - wir_src_node->src;
+                    // NOTE: To get to this point, the jump SHOULD be a forwards jump.
+                    // If not, there's some logic error in the program, so we assert.
+                    assert(wir_jump > 0 && "Invalid state");
+                    patch_jump(checker, wir_src_node->src, wir_jump);
                 }
             }
         }

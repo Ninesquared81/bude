@@ -22,11 +22,17 @@ struct tstack_state {
     type_index types[];
 };
 
+struct src_list {
+    struct src_list *next;
+    int src;
+};
+
 struct type_checker_states {
     size_t size;
     struct tstack_state **states;
     int *ips;
-    int *jump_srcs;
+    int *wir_dests;
+    struct src_list **wir_srcs;
     struct region *region;
 };
 
