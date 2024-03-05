@@ -8,6 +8,7 @@
 #include "type.h"
 
 #define TYPE_STACK_SIZE STACK_SIZE
+#define TYPE_STACK_STATES_REGION_SIZE TYPE_STACK_SIZE
 
 #define TSTACK_COUNT(tstack) (tstack->top - tstack->types)
 
@@ -26,6 +27,7 @@ struct type_checker_states {
     struct tstack_state **states;
     int *ips;
     int *jump_srcs;
+    struct region *region;
 };
 
 struct type_checker {

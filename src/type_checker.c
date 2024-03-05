@@ -67,21 +67,22 @@ void reset_type_stack(struct type_stack *tstack) {
 static void init_type_checker_states(struct type_checker_states *states,
                                      struct jump_info_table *jumps) {
     states->size = jumps->count;
-    states->states = calloc(states->size, sizeof *states->states);
-    states->ips = calloc(states->size, sizeof *states->ips);
-    states->jump_srcs = calloc(states->size, sizeof *states->jump_srcs);
+    states->region = new_region(TYPE_STACK_STATES_REGION_SIZE);
+    if (states->region == NULL) {
+        fprintf(stderr, "Failed to allocate region for type checker states");
+        exit(1);
+    }
+    states->states    = region_calloc(states->region, states->size, sizeof *states->states);
+    states->ips       = region_calloc(states->region, states->size, sizeof *states->ips);
+    states->wir_dests = region_calloc(states->region, states->size, sizeof *states->wir_dests);
+    states->wir_srcs  = region_calloc(states->region, states->size, sizeof *states->wir_srcs);
     memcpy(states->ips, jumps->dests, states->size * sizeof states->ips[0]);
 }
 
 static void free_type_checker_states(struct type_checker_states *states) {
-    for (size_t i = 0; i < states->size; ++i) {
-        // NOTE: it's safe to pass NULL to free, so no need to check for it.
-        free(states->states[i]);
-    }
-    states->size = 0;
-    free(states->states);
-    free(states->ips);
-    free(states->jump_srcs);
+    kill_region(states->region);
+    // Zero out all fields.
+    *states = (struct type_checker_states) {0};
 }
 
 void init_type_checker(struct type_checker *checker, struct ir_block *in_block,
