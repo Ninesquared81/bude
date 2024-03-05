@@ -424,7 +424,7 @@ static void copy_jump_instruction(struct type_checker *checker, enum w_opcode in
         // Backwards jump: destination already known.
         int wir_dest = checker->states.wir_dests[index];
         int wir_src = checker->out_block->count;
-        wir_jump = wir_dest - wir_src;
+        wir_jump = wir_dest - wir_src - 1;
     }
     write_immediate_s16(checker->out_block, instruction, wir_jump,
                         &checker->in_block->locations[checker->ip]);
@@ -778,7 +778,7 @@ enum type_check_result type_check(struct type_checker *checker) {
                 assert(wir_src_node != NULL && "There must be at least one src saved.");
                 // Patch every jump that ends here.
                 for (; wir_src_node != NULL; wir_src_node = wir_src_node->next) {
-                    int wir_jump = wir_dest - wir_src_node->src;
+                    int wir_jump = wir_dest - wir_src_node->src - 1;
                     // NOTE: To get to this point, the jump SHOULD be a forwards jump.
                     // If not, there's some logic error in the program, so we assert.
                     assert(wir_jump > 0 && "Invalid state");
