@@ -31,4 +31,6 @@ struct function_table {
 void init_function_table(struct function_table *functions);
 void free_function_table(struct function_table *functions);
 
+int add_function(struct function_table *table, struct function *function);
+
 #endif

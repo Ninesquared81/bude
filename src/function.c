@@ -17,3 +17,19 @@ void free_function_table(struct function_table *functions) {
     kill_region(functions.region);
     functions.region = NULL;
 }
+
+int add_function(struct function_table *table, struct function *function) {
+    if (functions.count + 1 > functions.capacity) {
+        int old_capacity = functions.capacity;
+        int new_capacity = old_capacity + old_capacity/2;
+        if (new_capacity == 0) {
+            new_capacity = FUNCTION_TABLE_INIT_SIZE;
+        }
+        functions.functions = reallocate_array(functions.functions, old_capacity,
+                                               new_capacity, sizeof(struct function));
+        functions.capacity = new_capacity;
+    }
+    int index = functions.count++;
+    functions.functions[index] = *function;
+    return index;
+}
