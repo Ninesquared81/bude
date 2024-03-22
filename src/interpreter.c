@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "disassembler.h"
+#include "function.h"
 #include "interpreter.h"
 #include "ir.h"
 #include "stack.h"
@@ -32,6 +33,7 @@ bool init_interpreter(struct interpreter *interpreter, struct ir_block *block) {
     init_stack(interpreter->main_stack);
     init_stack(interpreter->auxiliary_stack);
     init_stack(interpreter->loop_stack);
+    init_function_table(&interpreter->functions);
     return true;
 }
 
@@ -39,6 +41,7 @@ void free_interpreter(struct interpreter *interpreter) {
     free(interpreter->main_stack);
     free(interpreter->auxiliary_stack);
     free(interpreter->loop_stack);
+    free_function_table(&interpreter->functions);
     interpreter->main_stack = NULL;
     interpreter->auxiliary_stack = NULL;
 }

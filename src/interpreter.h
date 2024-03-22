@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 
+#include "function.h"
 #include "ir.h"
 #include "stack.h"
 
@@ -16,6 +17,7 @@ struct interpreter {
     struct stack *main_stack;
     struct stack *auxiliary_stack;
     struct stack *loop_stack;
+    struct function_table functions;
 };
 
 bool init_interpreter(struct interpreter *interpreter, struct ir_block *block);
