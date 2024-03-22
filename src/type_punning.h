@@ -8,7 +8,7 @@ union pun16 {uint16_t u16; int16_t s16;};
 union pun32 {uint32_t u32; int32_t s32;};
 union pun64 {uint64_t u64; int64_t s64;};
 
-struct pair32 {uint32t a, b;};
+struct pair32 {uint32_t a, b;};
 union pun_pair32 {struct pair32 pair32; uint64_t u64;};
 
 #define u8_to_s8(value) ((union pun8) {.u8 = value}).s8
