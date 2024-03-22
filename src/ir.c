@@ -95,6 +95,7 @@ const char *t_opcode_names[] = {
     [T_OP_CALL8]             = "T_OP_CALL8",
     [T_OP_CALL16]            = "T_OP_CALL16",
     [T_OP_CALL32]            = "T_OP_CALL32",
+    [T_OP_RET]               = "T_OP_RET",
 };
 
 const char *w_opcode_names[]  = {
@@ -190,6 +191,7 @@ const char *w_opcode_names[]  = {
     [W_OP_CALL8]              = "W_OP_CALL8",
     [W_OP_CALL16]             = "W_OP_CALL16",
     [W_OP_CALL32]             = "W_OP_CALL32",
+    [W_OP_RET]                = "W_OP_RET",
 };
 
 const char *get_t_opcode_name(enum t_opcode opcode) {

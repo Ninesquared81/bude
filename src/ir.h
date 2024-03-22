@@ -132,6 +132,8 @@ enum t_opcode {
     T_OP_CALL8,
     T_OP_CALL16,
     T_OP_CALL32,
+    /* RET -- Return from the current function. */
+    T_OP_RET,
 };
 
 enum w_opcode {
@@ -282,6 +284,8 @@ enum w_opcode {
     W_OP_CALL8,
     W_OP_CALL16,
     W_OP_CALL32,
+    /* RET -- Return from the current function. */
+    W_OP_RET,
 };
 
 static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);
