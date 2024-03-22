@@ -17,6 +17,7 @@ struct interpreter {
     struct stack *main_stack;
     struct stack *auxiliary_stack;
     struct stack *loop_stack;
+    struct stack *call_stack;
     struct function_table functions;
 };
 

@@ -26,13 +26,15 @@ bool init_interpreter(struct interpreter *interpreter, struct ir_block *block) {
     interpreter->main_stack = malloc(sizeof *interpreter->main_stack);
     interpreter->auxiliary_stack = malloc(sizeof *interpreter->auxiliary_stack);
     interpreter->loop_stack = malloc(sizeof *interpreter->loop_stack);
+    interpreter->call_stack = malloc(sizeof *interpreter->call_stack);
     if (interpreter->main_stack == NULL || interpreter->auxiliary_stack == NULL
-        || interpreter->loop_stack == NULL) {
+        || interpreter->loop_stack == NULL || interpreter->call_stack == NULL) {
         return false;
     }
     init_stack(interpreter->main_stack);
     init_stack(interpreter->auxiliary_stack);
     init_stack(interpreter->loop_stack);
+    init_stack(interpreter->call_stack);
     init_function_table(&interpreter->functions);
     return true;
 }
@@ -41,9 +43,12 @@ void free_interpreter(struct interpreter *interpreter) {
     free(interpreter->main_stack);
     free(interpreter->auxiliary_stack);
     free(interpreter->loop_stack);
+    free(interpreter->call_stack);
     free_function_table(&interpreter->functions);
     interpreter->main_stack = NULL;
     interpreter->auxiliary_stack = NULL;
+    interpreter->loop_stack = NULL;
+    interpreter->call_stack = NULL;
 }
 
 static void jump(struct ir_block *block, int offset, int *ip) {
