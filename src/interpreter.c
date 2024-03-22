@@ -96,10 +96,21 @@ static void swap_comps(struct interpreter *interpreter, int lhs_size, int rhs_si
     free(rhs);
 }
 
-static void call(struct interpreter *interpreter, int index) {
-    (void)interpreter;
-    (void)index;
-    assert(0 && "Not implemented");
+static void call(struct interpreter *interpreter, int index, int *ip) {
+    struct pair32 retinfo = {interpreter->current_function, *ip};
+    push(interpreter->call_stack, pair32_to_u64(retinfo));
+    assert(0 && "replacing block not implemented yet");
+    interpreter->current_function = index;
+    *ip = -1;  // -1 since ip will  be incremented.
+}
+
+static int ret(struct interpreter *interpreter) {
+    struct pair32 retinfo = u64_to_pair32(pop(interpreter->call_stack));
+    int index = retinfo.a;
+    int ip = retinfo.b;
+    assert(0 && "replacing block not implemented yet");
+    interpreter->current_function = index;
+    return ip;
 }
 
 enum interpret_result interpret(struct interpreter *interpreter) {
@@ -937,21 +948,24 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_CALL8: {
             uint8_t index = read_u8(interpreter->block, ip + 1);
             ip += 1;
-            call(interpreter, index);
+            call(interpreter, index, &ip);
             break;
         }
         case W_OP_CALL16: {
             uint16_t index = read_u16(interpreter->block, ip + 1);
             ip += 2;
-            call(interpreter, index);
+            call(interpreter, index, &ip);
             break;
         }
         case W_OP_CALL32: {
             uint32_t index = read_u32(interpreter->block, ip + 1);
             ip += 4;
-            call(interpreter, index);
+            call(interpreter, index, &ip);
             break;
         }
+        case W_OP_RET:
+            ip = ret(interpreter);
+            break;
         }
     }
     return INTERPRET_OK;

@@ -19,6 +19,7 @@ struct interpreter {
     struct stack *loop_stack;
     struct stack *call_stack;
     struct function_table functions;
+    int current_function;
 };
 
 bool init_interpreter(struct interpreter *interpreter, struct ir_block *block);
