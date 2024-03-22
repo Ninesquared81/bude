@@ -91,6 +91,12 @@ static void swap_comps(struct interpreter *interpreter, int lhs_size, int rhs_si
     free(rhs);
 }
 
+static void call(struct interpreter *interpreter, int index) {
+    (void)interpreter;
+    (void)index;
+    assert(0 && "Not implemented");
+}
+
 enum interpret_result interpret(struct interpreter *interpreter) {
     for (int ip = 0; ip < interpreter->block->count; ++ip) {
         enum w_opcode instruction = interpreter->block->code[ip];
@@ -921,6 +927,24 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push_all(interpreter->main_stack, offset, words);
             free(subcomp);
             free(words);
+            break;
+        }
+        case W_OP_CALL8: {
+            uint8_t index = read_u8(interpreter->block, ip + 1);
+            ip += 1;
+            call(interpreter, index);
+            break;
+        }
+        case W_OP_CALL16: {
+            uint16_t index = read_u16(interpreter->block, ip + 1);
+            ip += 2;
+            call(interpreter, index);
+            break;
+        }
+        case W_OP_CALL32: {
+            uint32_t index = read_u32(interpreter->block, ip + 1);
+            ip += 4;
+            call(interpreter, index);
             break;
         }
         }
