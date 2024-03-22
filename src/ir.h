@@ -128,6 +128,10 @@ enum t_opcode {
     T_OP_COMP_FIELD_SET8,
     T_OP_COMP_FIELD_SET16,
     T_OP_COMP_FIELD_SET32,
+    /* CALLn Idx_un -- Call the function specified by the index in the function table. */
+    T_OP_CALL8,
+    T_OP_CALL16,
+    T_OP_CALL32,
 };
 
 enum w_opcode {
@@ -274,6 +278,10 @@ enum w_opcode {
     W_OP_COMP_SUBCOMP_SET8,
     W_OP_COMP_SUBCOMP_SET16,
     W_OP_COMP_SUBCOMP_SET32,
+    /* CALLn Idx_un -- Call the function specified by the index in the function table. */
+    W_OP_CALL8,
+    W_OP_CALL16,
+    W_OP_CALL32,
 };
 
 static_assert(T_OP_NOP == 0 && W_OP_NOP == 0);

@@ -299,6 +299,12 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
         return t_comp_field16_instruction("T_OP_COMP_FIELD_SET16", block, offset);
     case T_OP_COMP_FIELD_SET32:
         return t_comp_field32_instruction("T_OP_COMP_FIELD_SET32", block, offset);
+    case T_OP_CALL8:
+        return immediate_u8_instruction("T_OP_CALL8", block, offset);
+    case T_OP_CALL16:
+        return immediate_u16_instruction("T_OP_CALL16", block, offset);
+    case T_OP_CALL32:
+        return immediate_u32_instruction("T_OP_CALL32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
@@ -495,6 +501,12 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return w_comp_subcomp16_instruction("W_OP_COMP_SUBCOMP_SET16", block, offset);
     case W_OP_COMP_SUBCOMP_SET32:
         return w_comp_subcomp32_instruction("W_OP_COMP_SUBCOMP_SET32", block, offset);
+    case W_OP_CALL8:
+        return immediate_u8_instruction("W_OP_CALL8", block, offset);
+    case W_OP_CALL16:
+        return immediate_u16_instruction("W_OP_CALL16", block, offset);
+    case W_OP_CALL32:
+        return immediate_u32_instruction("W_OP_CALL32", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
