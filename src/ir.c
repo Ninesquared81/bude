@@ -92,6 +92,9 @@ const char *t_opcode_names[] = {
     [T_OP_COMP_FIELD_SET8]   = "T_OP_COMP_FIELD_SET8",
     [T_OP_COMP_FIELD_SET16]  = "T_OP_COMP_FIELD_SET16",
     [T_OP_COMP_FIELD_SET32]  = "T_OP_COMP_FIELD_SET32",
+    [T_OP_CALL8]             = "T_OP_CALL8",
+    [T_OP_CALL16]            = "T_OP_CALL16",
+    [T_OP_CALL32]            = "T_OP_CALL32",
 };
 
 const char *w_opcode_names[]  = {
@@ -184,6 +187,9 @@ const char *w_opcode_names[]  = {
     [W_OP_COMP_SUBCOMP_SET8]  = "W_OP_COMP_SUBCOMP_SET8",
     [W_OP_COMP_SUBCOMP_SET16] = "W_OP_COMP_SUBCOMP_SET16",
     [W_OP_COMP_SUBCOMP_SET32] = "W_OP_COMP_SUBCOMP_SET32",
+    [W_OP_CALL8]              = "W_OP_CALL8",
+    [W_OP_CALL16]             = "W_OP_CALL16",
+    [W_OP_CALL32]             = "W_OP_CALL32",
 };
 
 const char *get_t_opcode_name(enum t_opcode opcode) {
