@@ -23,7 +23,7 @@ union pun_pair32 {struct pair32 pair32; uint64_t u64;};
 #define u64_to_s64(value) ((union pun64) {.u64 = value}).s64
 #define s64_to_u64(value) ((union pun64) {.s64 = value}).u64
 
-#define pair32_to_u64(value) ((union pun_tup32) {.pair32 = value}).u64
-#define u64_to_pair32(value) ((union pun_tup32) {.u64 = value}).pair32
+#define pair32_to_u64(value) ((union pun_pair32) {.pair32 = value}).u64
+#define u64_to_pair32(value) ((union pun_pair32) {.u64 = value}).pair32
 
 #endif
