@@ -26,9 +26,10 @@ struct function_table {
     int capacity;
     struct function *functions;
     struct region *region;
+    const char *filename;
 };
 
-void init_function_table(struct function_table *functions);
+void init_function_table(struct function_table *functions, const char *filename);
 void free_function_table(struct function_table *functions);
 
 int add_function(struct function_table *table, struct function *function);

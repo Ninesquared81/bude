@@ -3,7 +3,8 @@
 #include "function.h"
 #include "memory.h"
 
-void init_function_table(struct function_table *functions) {
+void init_function_table(struct function_table *functions, const char *filename) {
+    functions->filename = filename;
     functions->count = 0;
     functions->capacity = FUNCTION_TABLE_INIT_SIZE;
     functions->functions = allocate_array(FUNCTION_TABLE_INIT_SIZE, sizeof(struct function));
