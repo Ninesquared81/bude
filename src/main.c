@@ -243,46 +243,46 @@ int main(int argc, char *argv[]) {
     parse_args(argc, argv, &opts);
     load_source(opts.filename, inbuf);
 
-    struct ir_block tblock, wblock;
-    init_block(&tblock, IR_TYPED, opts.filename);
-    init_block(&wblock, IR_WORD_ORIENTED, opts.filename);
     struct type_table types;
     init_type_table(&types);
     struct function_table functions;
-    init_function_table(&functions);
-    compile(inbuf, &tblock, opts.filename, &types, &functions);
+    init_function_table(&functions, opts.filename);
+    compile(inbuf, opts.filename, &types, &functions);
     free(inbuf);
+    struct function *main_func = get_function(&functions, 0);
+    struct ir_block *tblock = &main_func->t_code;
+    struct ir_block *wblock = &main_func->w_code;
     if (opts.optimise) {
-        optimise(&tblock);
+        optimise(tblock);
     }
     if (opts.dump_ir) {
         printf("=== Before type checking: ===\n");
-        disassemble_block(&tblock);
+        disassemble_block(tblock);
         printf("------------------------------------------------\n");
     }
     struct type_checker checker;
-    init_type_checker(&checker, &tblock, &wblock, &types);
+    init_type_checker(&checker, tblock, wblock, &types);
     if (type_check(&checker) == TYPE_CHECK_ERROR) {
         // Error message(s) already emitted.
         exit(1);
     }
     if (opts.dump_ir) {
         printf("=== After type checking: ===\n");
-        disassemble_block(&wblock);
+        disassemble_block(wblock);
         if (opts.interpret) {
             printf("------------------------------------------------\n");
         }
     }
     if (opts.interpret) {
         struct interpreter interpreter;
-        init_interpreter(&interpreter, &wblock);
+        init_interpreter(&interpreter, wblock);
         interpret(&interpreter);
         free_interpreter(&interpreter);
     }
     if (opts.generate_asm) {
         struct asm_block *assembly = malloc(sizeof *assembly);
         init_assembly(assembly);
-        if (generate(&wblock, assembly) != GENERATE_OK) {
+        if (generate(wblock, assembly) != GENERATE_OK) {
             fprintf(stderr, "Failed to write assembly code.\n");
             exit(1);
         }
@@ -303,9 +303,7 @@ int main(int argc, char *argv[]) {
         }
         free(assembly);
     }
-    free_block(&tblock);
-    free_block(&wblock);
     free_type_table(&types);
-
+    free_function_table(&functions);
     return 0;
 }

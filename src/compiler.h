@@ -6,8 +6,8 @@
 #include "type.h"
 
 
-void compile(const char *src, struct ir_block *block, const char *filename,
-             struct type_table *types, struct function_table *functions);
+void compile(const char *src, const char *filename, struct type_table *types,
+             struct function_table *functions);
 
 #endif
 

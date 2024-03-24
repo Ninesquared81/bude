@@ -29,11 +29,10 @@ struct compiler {
     struct function_table *functions;
 };
 
-static void init_compiler(struct compiler *compiler, const char *src,
-                          struct ir_block *block, const char *filename,
+static void init_compiler(struct compiler *compiler, const char *src, const char *filename,
                           struct type_table *types, struct function_table *functions) {
+    compiler->block = NULL;  // Will be set later.
     init_lexer(&compiler->lexer, src, filename);
-    compiler->block = block;
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
     init_symbol_dictionary(&compiler->symbols);
@@ -1105,10 +1104,10 @@ static void compile_expr(struct compiler *compiler) {
     }
 }
 
-void compile(const char *src, struct ir_block *block, const char *filename,
-             struct type_table *types, struct function_table *functions) {
+void compile(const char *src, const char *filename, struct type_table *types,
+             struct function_table *functions) {
     struct compiler compiler;
-    init_compiler(&compiler, src, block, filename, types, functions);
+    init_compiler(&compiler, src, filename, types, functions);
     init_builtins(&compiler.symbols);
     assert(functions->count == 0);  // We assume that the function table is empty.
     add_function(functions, 0, 0);  // Main/script function.
