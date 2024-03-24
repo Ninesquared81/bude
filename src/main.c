@@ -7,6 +7,7 @@
 #include "asm.h"
 #include "compiler.h"
 #include "disassembler.h"
+#include "function.h"
 #include "generator.h"
 #include "interpreter.h"
 #include "ir.h"
@@ -247,7 +248,9 @@ int main(int argc, char *argv[]) {
     init_block(&wblock, IR_WORD_ORIENTED, opts.filename);
     struct type_table types;
     init_type_table(&types);
-    compile(inbuf, &tblock, opts.filename, &types);
+    struct function_table functions;
+    init_function_table(&functions);
+    compile(inbuf, &tblock, opts.filename, &types, &functions);
     free(inbuf);
     if (opts.optimise) {
         optimise(&tblock);

@@ -26,11 +26,12 @@ struct compiler {
     struct symbol_dictionary symbols;
     size_t for_loop_level;
     struct type_table *types;
+    struct function_table *functions;
 };
 
 static void init_compiler(struct compiler *compiler, const char *src,
                           struct ir_block *block, const char *filename,
-                          struct type_table *types) {
+                          struct type_table *types, struct function_table *functions) {
     init_lexer(&compiler->lexer, src, filename);
     compiler->block = block;
     compiler->current_token = next_token(&compiler->lexer);
@@ -38,6 +39,7 @@ static void init_compiler(struct compiler *compiler, const char *src,
     init_symbol_dictionary(&compiler->symbols);
     compiler->for_loop_level = 0;
     compiler->types = types;
+    compiler->functions = functions;
 }
 
 static void free_compiler(struct compiler *compiler) {
@@ -1104,9 +1106,9 @@ static void compile_expr(struct compiler *compiler) {
 }
 
 void compile(const char *src, struct ir_block *block, const char *filename,
-             struct type_table *types) {
+             struct type_table *types, struct function_table *functions) {
     struct compiler compiler;
-    init_compiler(&compiler, src, block, filename, types);
+    init_compiler(&compiler, src, block, filename, types, functions);
     init_builtins(&compiler.symbols);
     compile_expr(&compiler);
     emit_simple(&compiler, T_OP_NOP);
