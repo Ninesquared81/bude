@@ -53,6 +53,15 @@ struct region *copy_region(const struct region *region) {
     return new;
 }
 
+void clear_region(struct region *region) {
+    // Need to maintain that the memory is zeored.
+    memset(region->bytes, 0, region->size);
+    region->alloc_count = 0;
+    if (region->next != NULL) {
+        clear_region(region->next);
+    }
+}
+
 void *region_alloc(struct region *region, size_t size) {
     if (size == 0) return NULL;
     if (size > region->size) return NULL;

@@ -13,6 +13,7 @@ struct region {
 struct region *new_region(size_t size);
 void kill_region(struct region *region);
 struct region *copy_region(const struct region *region);
+void clear_region(struct region *region);
 
 void *region_alloc(struct region *region, size_t size);
 void *region_calloc(struct region *region, size_t count, size_t size);
