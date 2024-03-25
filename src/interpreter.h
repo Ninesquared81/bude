@@ -18,11 +18,11 @@ struct interpreter {
     struct stack *auxiliary_stack;
     struct stack *loop_stack;
     struct stack *call_stack;
-    struct function_table functions;
+    struct function_table *functions;
     int current_function;
 };
 
-bool init_interpreter(struct interpreter *interpreter, struct ir_block *block);
+bool init_interpreter(struct interpreter *interpreter, struct function_table *functions);
 void free_interpreter(struct interpreter *interpreter);
 
 enum interpret_result interpret(struct interpreter *interpreter);

@@ -21,8 +21,10 @@
     } while (0)
 
 
-bool init_interpreter(struct interpreter *interpreter, struct ir_block *block) {
-    interpreter->block = block;
+bool init_interpreter(struct interpreter *interpreter, struct function_table *functions) {
+    interpreter->functions = functions;
+    struct function *main_func = get_function(functions, 0);
+    interpreter->block = &main_func->w_code;
     interpreter->main_stack = malloc(sizeof *interpreter->main_stack);
     interpreter->auxiliary_stack = malloc(sizeof *interpreter->auxiliary_stack);
     interpreter->loop_stack = malloc(sizeof *interpreter->loop_stack);
@@ -35,7 +37,6 @@ bool init_interpreter(struct interpreter *interpreter, struct ir_block *block) {
     init_stack(interpreter->auxiliary_stack);
     init_stack(interpreter->loop_stack);
     init_stack(interpreter->call_stack);
-    init_function_table(&interpreter->functions);
     return true;
 }
 
@@ -44,7 +45,6 @@ void free_interpreter(struct interpreter *interpreter) {
     free(interpreter->auxiliary_stack);
     free(interpreter->loop_stack);
     free(interpreter->call_stack);
-    free_function_table(&interpreter->functions);
     interpreter->main_stack = NULL;
     interpreter->auxiliary_stack = NULL;
     interpreter->loop_stack = NULL;

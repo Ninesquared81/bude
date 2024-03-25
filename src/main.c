@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
     }
     if (opts.interpret) {
         struct interpreter interpreter;
-        init_interpreter(&interpreter, wblock);
+        init_interpreter(&interpreter, &functions);
         interpret(&interpreter);
         free_interpreter(&interpreter);
     }
