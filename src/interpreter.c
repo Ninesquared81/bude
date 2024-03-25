@@ -99,16 +99,18 @@ static void swap_comps(struct interpreter *interpreter, int lhs_size, int rhs_si
 static void call(struct interpreter *interpreter, int index, int *ip) {
     struct pair32 retinfo = {interpreter->current_function, *ip};
     push(interpreter->call_stack, pair32_to_u64(retinfo));
-    assert(0 && "replacing block not implemented yet");
+    struct function *callee = get_function(interpreter->functions, index);
+    interpreter->block = &callee->w_code;
     interpreter->current_function = index;
-    *ip = -1;  // -1 since ip will  be incremented.
+    *ip = -1;  // -1 since ip will be incremented.
 }
 
 static int ret(struct interpreter *interpreter) {
     struct pair32 retinfo = u64_to_pair32(pop(interpreter->call_stack));
     int index = retinfo.a;
     int ip = retinfo.b;
-    assert(0 && "replacing block not implemented yet");
+    struct function *caller = get_function(interpreter->functions, index);
+    interpreter->block = &caller->w_code;
     interpreter->current_function = index;
     return ip;
 }
