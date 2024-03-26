@@ -699,7 +699,7 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
         struct symbol *symbol = lookup_symbol(&compiler->symbols, &token->value);
         if (symbol == NULL) {
             assert(token->value.length <= (size_t)INT_MAX);
-            compile_error(compiler, "Unknown symbol %*s",
+            compile_error(compiler, "Unknown symbol '%.*s'",
                           token->value.length, token->value.start);
             exit(1);
         }
