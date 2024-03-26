@@ -16,6 +16,7 @@ enum symbol_type {
     SYM_COMP,
     SYM_PACK_FIELD,
     SYM_COMP_FIELD,
+    SYM_FUNCTION,
 };
 
 struct symbol {
@@ -39,6 +40,9 @@ struct symbol {
             type_index comp;
             int field_offset;
         } comp_field;
+        struct {
+            int index;
+        } function;
     };
 };
 
