@@ -214,11 +214,11 @@ static void emit_pack_field(struct compiler *compiler, enum t_opcode instruction
 
 static void emit_comp_field(struct compiler *compiler, enum t_opcode instruction8,
                             type_index comp, int offset) {
-    if (IN_RANGE(comp, INT8_MIN, INT8_MIN) && IN_RANGE(offset, INT8_MIN, INT8_MAX)) {
+    if (IN_RANGE(comp, INT8_MIN, INT8_MAX) && IN_RANGE(offset, INT8_MIN, INT8_MAX)) {
         emit_immediate_s8(compiler, instruction8, comp);
         emit_s8(compiler, offset);
     }
-    else if (IN_RANGE(comp, INT16_MIN, INT16_MIN) && IN_RANGE(offset, INT16_MIN, INT16_MAX)) {
+    else if (IN_RANGE(comp, INT16_MIN, INT16_MAX) && IN_RANGE(offset, INT16_MIN, INT16_MAX)) {
         emit_immediate_s16(compiler, instruction8 + 1, comp);
         emit_s16(compiler, offset);
     }
