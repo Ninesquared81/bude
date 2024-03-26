@@ -24,6 +24,7 @@
 bool init_interpreter(struct interpreter *interpreter, struct function_table *functions) {
     interpreter->functions = functions;
     struct function *main_func = get_function(functions, 0);
+    interpreter->current_function = 0;  // Function 0 is the entry point.
     interpreter->block = &main_func->w_code;
     interpreter->main_stack = malloc(sizeof *interpreter->main_stack);
     interpreter->auxiliary_stack = malloc(sizeof *interpreter->auxiliary_stack);
