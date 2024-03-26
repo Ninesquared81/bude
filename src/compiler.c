@@ -1044,6 +1044,7 @@ static void compile_function(struct compiler *compiler) {
         rets[i] = ret_list->type;
         ret_list = ret_list->next;  // Again, no memory leak because regions.
     }
+    clear_region(compiler->temp);
     int index = add_function(compiler->functions, param_count, ret_count, params, rets);
     struct symbol symbol = {
         .name = name,
