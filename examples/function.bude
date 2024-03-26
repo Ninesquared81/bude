@@ -1,0 +1,17 @@
+func hi def
+    "Hi\n" print
+end
+
+# func string greet def
+#     "Hello, " print
+#     print
+#     "!\n"
+# end
+
+func int int add -> int def
+    +
+end
+
+# "World" greet
+hi
+42 -5 add print
