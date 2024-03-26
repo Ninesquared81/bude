@@ -52,6 +52,7 @@ enum token_type {
     TOKEN_S32,
     TOKEN_SLASH,
     TOKEN_STAR,
+    TOKEN_STRING,
     TOKEN_SWAP,
     TOKEN_THEN,
     TOKEN_TO,

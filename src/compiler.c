@@ -695,6 +695,7 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
     case TOKEN_U16: return TYPE_U16;
     case TOKEN_U32: return TYPE_U32;
     case TOKEN_WORD: return TYPE_WORD;
+    case TOKEN_STRING: return TYPE_STRING;
     case TOKEN_SYMBOL: {
         struct symbol *symbol = lookup_symbol(&compiler->symbols, &token->value);
         if (symbol == NULL) {
@@ -786,6 +787,10 @@ static void compile_pack(struct compiler *compiler) {
         case TOKEN_WORD:
             info.pack.fields[field_count] = TYPE_WORD;
             size += 8;
+            break;
+        case TOKEN_STRING:
+            parse_error(compiler, "only packs can nest in packs.\n");
+            exit(1);
             break;
         case TOKEN_SYMBOL: {
             struct symbol *field_symbol = lookup_symbol(&compiler->symbols, &field_token.value);
@@ -891,6 +896,10 @@ static void compile_comp(struct compiler *compiler) {
             break;
         case TOKEN_WORD:
             type = TYPE_WORD;
+            break;
+        case TOKEN_STRING:
+            type = TYPE_STRING;
+            field_word_count = 2;
             break;
         case TOKEN_SYMBOL: {
             struct symbol *field_symbol = lookup_symbol(&compiler->symbols, &field_token.value);
