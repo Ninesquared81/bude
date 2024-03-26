@@ -747,77 +747,20 @@ static void compile_pack(struct compiler *compiler) {
         insert_symbol(&compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
         struct token field_token = advance(compiler);
-        switch (field_token.type) {
-        case TOKEN_BYTE:
-            info.pack.fields[field_count] = TYPE_BYTE;
-            size += 1;
-            break;
-        case TOKEN_INT:
-            info.pack.fields[field_count] = TYPE_INT;
-            size += 8;
-            break;
-        case TOKEN_PTR:
-            info.pack.fields[field_count] = TYPE_PTR;
-            size += 8;
-            break;
-        case TOKEN_S8:
-            info.pack.fields[field_count] = TYPE_S8;
-            size += 1;
-            break;
-        case TOKEN_S16:
-            info.pack.fields[field_count] = TYPE_S16;
-            size += 2;
-            break;
-        case TOKEN_S32:
-            info.pack.fields[field_count] = TYPE_S32;
-            size += 4;
-            break;
-        case TOKEN_U8:
-            info.pack.fields[field_count] = TYPE_U8;
-            size += 1;
-            break;
-        case TOKEN_U16:
-            info.pack.fields[field_count] = TYPE_U16;
-            size += 2;
-            break;
-        case TOKEN_U32:
-            info.pack.fields[field_count] = TYPE_U32;
-            size += 4;
-            break;
-        case TOKEN_WORD:
-            info.pack.fields[field_count] = TYPE_WORD;
-            size += 8;
-            break;
-        case TOKEN_STRING:
-            parse_error(compiler, "only packs can nest in packs.\n");
-            exit(1);
-            break;
-        case TOKEN_SYMBOL: {
-            struct symbol *field_symbol = lookup_symbol(&compiler->symbols, &field_token.value);
-            if (field_symbol == NULL) {
-                parse_error(compiler, "unknown symbol.\n");
-                exit(1);
-            }
-            if (field_symbol->type == SYM_PACK) {
-                const struct type_info *field_info = lookup_type(
-                    compiler->types,
-                    field_symbol->pack.index);
-                assert(field_info != NULL);
-                assert(field_info->kind == KIND_PACK);
-                size += field_info->pack.size;
-            }
-            else {
-                parse_error(compiler, "only packs can nest in packs.\n");
-                exit(1);
-            }
-            break;
-        }
-        default:
-            parse_error(compiler, "unexpected token while parsing pack definition.\n");
+        type_index field_type = parse_type(compiler, &field_token);
+        if (field_type == TYPE_ERROR) {
+            parse_error(compiler, "unknown type.");
             exit(1);
         }
+        int field_size = type_size(compiler->types, field_type);
+        if (field_size > 8) {
+            parse_error(compiler, "pack field too large.");
+            exit(1);
+        }
+        info.pack.fields[field_count] = field_type;
+        size += field_size;
         if (size > 8) {
-            parse_error(compiler, "pack too large.\n");
+            parse_error(compiler, "pack too large.");
             exit(1);
         }
     }
@@ -849,7 +792,7 @@ static void compile_comp(struct compiler *compiler) {
     } *head = NULL;
     while (!check(compiler, TOKEN_END)) {
         if (is_at_end(compiler)) {
-            parse_error(compiler, "unexpected EOF parsing comp definition.\n");
+            parse_error(compiler, "unexpected EOF parsing comp definition.");
             exit(1);
         }
         expect_consume(compiler, TOKEN_SYMBOL, "Expect field name.");
@@ -863,73 +806,18 @@ static void compile_comp(struct compiler *compiler) {
         };
         insert_symbol(&compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
-        type_index type = TYPE_ERROR;
-        int field_word_count = 1;
         struct token field_token = advance(compiler);
-        switch (field_token.type) {
-        case TOKEN_BYTE:
-            type = TYPE_BYTE;
-            break;
-        case TOKEN_INT:
-            type = TYPE_INT;
-            break;
-        case TOKEN_PTR:
-            type = TYPE_PTR;
-            break;
-        case TOKEN_S8:
-            type = TYPE_S8;
-            break;
-        case TOKEN_S16:
-            type = TYPE_S16;
-            break;
-        case TOKEN_S32:
-            type = TYPE_S32;
-            break;
-        case TOKEN_U8:
-            type = TYPE_U8;
-            break;
-        case TOKEN_U16:
-            type = TYPE_U16;
-            break;
-        case TOKEN_U32:
-            type = TYPE_U32;
-            break;
-        case TOKEN_WORD:
-            type = TYPE_WORD;
-            break;
-        case TOKEN_STRING:
-            type = TYPE_STRING;
-            field_word_count = 2;
-            break;
-        case TOKEN_SYMBOL: {
-            struct symbol *field_symbol = lookup_symbol(&compiler->symbols, &field_token.value);
-            if (field_symbol == NULL) {
-                parse_error(compiler, "unknown symbol.\n");
-                exit(1);
-            }
-            switch (field_symbol->type) {
-            case SYM_PACK:
-                type = field_symbol->pack.index;
-                break;
-            case SYM_COMP: {
-                type = field_symbol->comp.index;
-                const struct type_info *field_info = lookup_type(compiler->types, type);
-                assert(field_info != NULL);
-                assert(field_info->kind == KIND_COMP);
-                field_word_count = field_info->comp.word_count;
-                break;
-            }
-            default:
-                assert(field_token.value.length < (size_t)INT_MAX);
-                parse_error(compiler, "symbol '%*s' is not a valid type.\n",
-                            (int)field_token.value.length,
-                            field_token.value.start);
-                exit(1);                
-            }
-            break;
+        type_index type = parse_type(compiler, &field_token);
+        int field_word_count = 1;
+        if (is_comp(compiler->types, type)) {
+            // NOTE: this includes strings.
+            const struct type_info *info = lookup_type(compiler->types, type);
+            assert(info != NULL);
+            assert(info->kind == KIND_COMP);
+            field_word_count = info->comp.word_count;
         }
-        default:
-            parse_error(compiler, "unexpected token while parsing comp definition.\n");
+        if (type == TYPE_ERROR) {
+            parse_error(compiler, "unknown type while parsing comp definition.\n");
             exit(1);
         }
         struct type_node *next = head;
