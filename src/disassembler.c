@@ -87,7 +87,7 @@ static int t_pack_field16_instruction(const char *name, struct ir_block *block, 
 
 static int t_pack_field32_instruction(const char *name, struct ir_block *block, int offset) {
     type_index pack = read_s32(block, offset + 1);
-    int field = read_u8(block, offset + 4);
+    int field = read_u8(block, offset + 5);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
     return offset + 6;
 }
@@ -101,14 +101,14 @@ static int t_comp_field8_instruction(const char *name, struct ir_block *block, i
 
 static int t_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
     type_index comp = read_s16(block, offset + 1);
-    int field = read_u16(block, offset + 2);
+    int field = read_u16(block, offset + 3);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
     return offset + 5;
 }
 
 static int t_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
     type_index comp = read_s32(block, offset + 1);
-    int field = read_u32(block, offset + 2);
+    int field = read_u32(block, offset + 5);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
     return offset + 9;
 }
