@@ -999,6 +999,7 @@ static void compile_function(struct compiler *compiler) {
             exit(1);
         }
         node->next = param_list;
+        node->type = param;
         param_list = node;
         ++param_count;
     }
@@ -1022,6 +1023,7 @@ static void compile_function(struct compiler *compiler) {
                 exit(1);
             }
             node->next = ret_list;
+            node->type = ret;
             ret_list = node;
             ++ret_count;
         }
