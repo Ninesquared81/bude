@@ -1086,6 +1086,11 @@ static void compile_comp_field_get_symbol(struct compiler *compiler, struct symb
     emit_comp_field(compiler, T_OP_COMP_FIELD_GET8, comp, offset);
 }
 
+static void compile_function_symbol(struct compiler *compiler, struct symbol *symbol) {
+    int index = symbol->function.index;
+    emit_immediate_uv(compiler, T_OP_CALL8, index);
+}
+
 static void compile_symbol(struct compiler *compiler) {
     struct string_view symbol_text = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
@@ -1111,6 +1116,9 @@ static void compile_symbol(struct compiler *compiler) {
         break;
     case SYM_COMP_FIELD:
         compile_comp_field_get_symbol(compiler, symbol);
+        break;
+    case SYM_FUNCTION:
+        compile_function_symbol(compiler, symbol);
         break;
     }
 }
