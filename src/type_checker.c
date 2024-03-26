@@ -89,13 +89,14 @@ static void free_type_checker_states(struct type_checker_states *states) {
     *states = (struct type_checker_states) {0};
 }
 
-void init_type_checker(struct type_checker *checker, struct ir_block *in_block,
-                       struct ir_block *out_block, struct type_table *types) {
-    init_type_checker_states(&checker->states, &in_block->jumps);
-    checker->in_block = in_block;
-    checker->out_block = out_block;
+void init_type_checker(struct type_checker *checker, struct function_table *functions,
+                       struct type_table *types) {
+    init_type_checker_states(&checker->states);
+    // The ir_blocks will be set later.
+    checker->in_block = NULL;
+    checker->out_block = NULL;
+    checker->functions = functions;
     checker->types = types;
-    copy_metadata(checker->out_block, checker->in_block);
     checker->tstack = malloc(sizeof *checker->tstack);
     checker->ip = 0;
     checker->had_error = false;
