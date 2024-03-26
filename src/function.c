@@ -26,7 +26,7 @@ void free_function_table(struct function_table *functions) {
     functions->region = NULL;
 }
 
-int insert_function(struct function_table *table, struct function *function) {
+static int insert_function(struct function_table *table, struct function *function) {
     if (table->count + 1 > table->capacity) {
         int old_capacity = table->capacity;
         int new_capacity = old_capacity + old_capacity/2;
@@ -42,24 +42,11 @@ int insert_function(struct function_table *table, struct function *function) {
     return index;
 }
 
-int add_function(struct function_table *table, int param_count, int ret_count, ...) {
+int add_function(struct function_table *table, int param_count, int ret_count,
+                 type_index params[param_count], type_index rets[ret_count]) {
     assert(param_count >= 0);
     assert(ret_count >= 0);
-    struct signature sig = {.param_count = param_count, .ret_count = ret_count};
-    sig.params = region_calloc(table->region, param_count, sizeof(type_index));
-    sig.rets = region_calloc(table->region, ret_count, sizeof(type_index));
-    va_list args;
-    va_start(args, ret_count);
-    for (int i = 0; i < param_count; ++i) {
-        type_index param = va_arg(args, type_index);
-        sig.params[i] = param;
-    }
-    for (int i = 0; i < ret_count; ++i) {
-        type_index ret = va_arg(args, type_index);
-        sig.rets[i] = ret;
-    }
-    va_end(args);
-    struct function function = {.sig = sig};
+    struct function function = {.sig = {param_count, ret_count, params, rets}};
     init_block(&function.t_code, IR_TYPED, table->filename);
     init_block(&function.w_code, IR_WORD_ORIENTED, table->filename);
     return insert_function(table, &function);

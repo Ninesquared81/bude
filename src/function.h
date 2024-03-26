@@ -32,8 +32,8 @@ struct function_table {
 void init_function_table(struct function_table *functions, const char *filename);
 void free_function_table(struct function_table *functions);
 
-int insert_function(struct function_table *table, struct function *function);
-int add_function(struct function_table *table, int param_count, int ret_count, ...);
+int add_function(struct function_table *table, int param_count, int ret_count,
+                 type_index params[param_count], type_index rets[ret_count]);
 struct function *get_function(struct function_table *table, int index);
 
 #endif
