@@ -277,11 +277,6 @@ static bool save_state_at(struct type_checker *checker, int ip) {
     return save_state_with_index(checker, index);
 }
 
-[[maybe_unused]]
-static bool save_state(struct type_checker *checker) {
-    return save_state_at(checker, checker->ip);
-}
-
 static bool load_state_at(struct type_checker *checker, int ip) {
     struct type_checker_states *states = &checker->states;
     size_t index = find_state(states, ip);
@@ -294,9 +289,6 @@ static bool load_state_at(struct type_checker *checker, int ip) {
     return true;
 }
 
-[[maybe_unused]]
-static bool load_state(struct type_checker *checker) {
-    return load_state_at(checker, checker->ip);
 }
 
 static bool check_state_with_index(struct type_checker *checker, size_t index) {
@@ -316,11 +308,6 @@ static bool check_state_at(struct type_checker *checker, int ip) {
     size_t index = find_state(&checker->states, ip);
     assert(index < checker->states.size);
     return check_state_with_index(checker, index);
-}
-
-[[maybe_unused]]
-static bool check_state(struct type_checker *checker) {
-    return check_state_at(checker, checker->ip);
 }
 
 static bool save_jump(struct type_checker *checker, int dest_offset) {
