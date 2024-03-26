@@ -26,7 +26,7 @@ void free_function_table(struct function_table *functions) {
     functions->region = NULL;
 }
 
-static int insert_function(struct function_table *table, struct function *function) {
+int insert_function(struct function_table *table, struct function *function) {
     if (table->count + 1 > table->capacity) {
         int old_capacity = table->capacity;
         int new_capacity = old_capacity + old_capacity/2;
