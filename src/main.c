@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
         printf("------------------------------------------------\n");
     }
     struct type_checker checker;
-    init_type_checker(&checker, tblock, wblock, &types);
+    init_type_checker(&checker, &functions, &types);
     if (type_check(&checker) == TYPE_CHECK_ERROR) {
         // Error message(s) already emitted.
         exit(1);
