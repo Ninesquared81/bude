@@ -1237,7 +1237,7 @@ void compile(const char *src, const char *filename, struct type_table *types,
     init_compiler(&compiler, src, filename, types, functions);
     init_builtins(&compiler.symbols);
     assert(functions->count == 0);  // We assume that the function table is empty.
-    add_function(functions, 0, 0);  // Main/script function.
+    add_function(functions, 0, 0, NULL, NULL);  // Main/script function.
     struct function *main_func =  get_function(functions, 0);
     compiler.block = &main_func->t_code;
     compile_expr(&compiler);
