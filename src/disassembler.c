@@ -6,7 +6,7 @@
 #include "ir.h"
 #include "type.h"
 
-#define OPCODE_FORMAT "-20s"
+#define OPCODE_FORMAT "-21s"
 
 static int immediate_u8_instruction(const char *name, struct ir_block *block, int offset) {
     printf("%"OPCODE_FORMAT" %"PRIu8"\n", name, read_u8(block, offset + 1));
