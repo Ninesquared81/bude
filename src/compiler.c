@@ -683,6 +683,38 @@ static void compile_character(struct compiler *compiler) {
     emit_immediate_uv(compiler, T_OP_PUSH_CHAR8, codepoint);
 }
 
+static type_index parse_type(struct compiler *compiler, struct token *token) {
+    switch (token->type) {
+    case TOKEN_BYTE: return TYPE_BYTE;
+    case TOKEN_INT: return TYPE_INT;
+    case TOKEN_PTR: return TYPE_PTR;
+    case TOKEN_S8: return TYPE_S8;
+    case TOKEN_S16: return TYPE_S16;
+    case TOKEN_S32: return TYPE_S32;
+    case TOKEN_U8: return TYPE_U8;
+    case TOKEN_U16: return TYPE_U16;
+    case TOKEN_U32: return TYPE_U32;
+    case TOKEN_WORD: return TYPE_WORD;
+    case TOKEN_SYMBOL: {
+        struct symbol *symbol = lookup_symbol(&compiler->symbols, &token->value);
+        if (symbol == NULL) {
+            assert(token->value.length <= (size_t)INT_MAX);
+            compile_error(compiler, "Unknown symbol %*s",
+                          token->value.length, token->value.start);
+            exit(1);
+        }
+        switch (symbol->type) {
+        case SYM_COMP: return symbol->comp.index;
+        case SYM_PACK: return symbol->pack.index;
+        default: return TYPE_ERROR;
+        }
+        break;
+    }
+    default: return TYPE_ERROR;
+    }
+    return TYPE_ERROR;
+}
+
 static void compile_pack(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_SYMBOL, "Expect pack name after `pack`.");
     struct string_view name = peek_previous(compiler).value;
