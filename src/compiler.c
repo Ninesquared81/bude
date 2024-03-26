@@ -40,8 +40,8 @@ static void init_compiler(struct compiler *compiler, const char *src, const char
     compiler->for_loop_level = 0;
     compiler->types = types;
     compiler->functions = functions;
-    compiler->region = new_region(TEMP_REGION_SIZE);
-    if (compiler->region == NULL) {
+    compiler->temp = new_region(TEMP_REGION_SIZE);
+    if (compiler->temp == NULL) {
         fprintf(stderr, "Failed to allocate temporary region in compiler.\n");
         exit(1);
     }
@@ -49,8 +49,8 @@ static void init_compiler(struct compiler *compiler, const char *src, const char
 
 static void free_compiler(struct compiler *compiler) {
     free_symbol_dictionary(&compiler->symbols);
-    kill_region(compiler->region);
-    compiler->region = NULL;
+    kill_region(compiler->temp);
+    compiler->temp = NULL;
 }
 
 static void parse_error(struct compiler *compiler, const char *restrict message, ...) {
