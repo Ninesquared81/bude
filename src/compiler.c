@@ -970,6 +970,90 @@ static void compile_assignment(struct compiler *compiler) {
     }
 }
 
+static void compile_function(struct compiler *compiler) {
+    /* `func` params... name [`->` rets...] `def` body... `end` */
+    struct token prev = advance(compiler);
+    if (prev.type == TOKEN_RIGHT_ARROW || prev.type == TOKEN_DEF || is_at_end(compiler)) {
+        parse_error(compiler, "Expect function name.");
+        exit(1);
+    }
+    struct type_list {
+        struct type_list *next;
+        type_index type;
+    };
+    struct type_list *param_list = NULL;
+    struct type_list *ret_list = NULL;
+    int param_count = 0;
+    int ret_count = 0;
+    while (!check(compiler, TOKEN_RIGHT_ARROW) && !check(compiler, TOKEN_DEF)) {
+        // Parameter types.
+        type_index param = parse_type(compiler, &prev);
+        if (param == TYPE_ERROR) {
+            parse_error(compiler, "Expect paramater type.");
+            exit(1);
+        }
+        prev = advance(compiler);
+        struct type_list *node = region_alloc(compiler->temp, sizeof *node);
+        if (node == NULL) {
+            fprintf(stderr, "Failed to allocate type_list node.\n");
+            exit(1);
+        }
+        node->next = param_list;
+        param_list = node;
+        ++param_count;
+    }
+    if (prev.type != TOKEN_SYMBOL) {
+        parse_error(compiler, "Expect function name after parameter types.");
+        exit(1);
+    }
+    struct string_view name = prev.value;
+    if (match(compiler, TOKEN_RIGHT_ARROW)) {
+        // Return values.
+        while (!check(compiler, TOKEN_DEF)) {
+            struct token token = advance(compiler);
+            type_index ret = parse_type(compiler, &token);
+            if (ret == TYPE_ERROR) {
+                parse_error(compiler, "Expect return type.");
+                exit(1);
+            }
+            struct type_list *node = region_alloc(compiler->temp, sizeof *node);
+            if (node == NULL) {
+                fprintf(stderr, "Failed to allocate type_list node.\n");
+                exit(1);
+            }
+            node->next = ret_list;
+            ret_list = node;
+            ++ret_count;
+        }
+    }
+    type_index *params = region_calloc(compiler->functions->region, param_count, sizeof *params);
+    if (params == NULL && param_count != 0) {
+        fprintf(stderr, "Failed to allocate `params` array.");
+        exit(1);
+    }
+    for (int i = param_count - 1; i >= 0; --i) {
+        params[i] = param_list->type;
+        param_list = param_list->next;  // This isn't a memory leak (because regions).
+    }
+    type_index *rets = region_calloc(compiler->functions->region, ret_count, sizeof *rets);
+    if (rets == NULL && ret_count != 0) {
+        fprintf(stderr, "Failed to allocate `rets` array.");
+        exit(1);
+    }
+    for (int i = ret_count - 1; i >= 0; --i) {
+        rets[i] = ret_list->type;
+        ret_list = ret_list->next;  // Again, no memory leak because regions.
+    }
+    int index = add_function(compiler->functions, param_count, ret_count, params, rets);
+    struct symbol symbol = {
+        .name = name,
+        .type = SYM_FUNCTION,
+        .function.index = index
+    };
+    insert_symbol(&compiler->symbols, &symbol);
+    expect_consume(compiler, TOKEN_DEF, "Expect `def` after function signature.");
+}
+
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
     size_t level = symbol->loop_var.level;
     if (level > compiler->for_loop_level) {
@@ -1114,6 +1198,9 @@ static void compile_expr(struct compiler *compiler) {
         }
         else if (match(compiler, TOKEN_FOR)) {
             compile_for_loop(compiler);
+        }
+        else if (match(compiler, TOKEN_FUNC)) {
+            compile_function(compiler);
         }
         else if (match(compiler, TOKEN_IF)) {
             compile_conditional(compiler);
