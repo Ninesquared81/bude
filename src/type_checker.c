@@ -64,14 +64,18 @@ void reset_type_stack(struct type_stack *tstack) {
     tstack->top = tstack->types;
 }
 
-static void init_type_checker_states(struct type_checker_states *states,
-                                     struct jump_info_table *jumps) {
-    states->size = jumps->count;
+static void init_type_checker_states(struct type_checker_states *states) {
     states->region = new_region(TYPE_STACK_STATES_REGION_SIZE);
     if (states->region == NULL) {
         fprintf(stderr, "Failed to allocate region for type checker states");
         exit(1);
     }
+}
+
+static void reset_type_checker_states(struct type_checker_states *states,
+                                      struct jump_info_table *jumps) {
+    clear_region(states->region);
+    states->size = jumps->count;
     states->states    = region_calloc(states->region, states->size, sizeof *states->states);
     states->ips       = region_calloc(states->region, states->size, sizeof *states->ips);
     states->wir_dests = region_calloc(states->region, states->size, sizeof *states->wir_dests);
