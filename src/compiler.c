@@ -1175,6 +1175,9 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_PRINT_CHAR:
         emit_simple(compiler, T_OP_PRINT_CHAR);
         break;
+    case TOKEN_RET:
+        emit_simple(compiler, T_OP_RET);
+        break;
     case TOKEN_SLASH:
         emit_simple(compiler, T_OP_DIVMOD);
         emit_simple(compiler, T_OP_POP);
