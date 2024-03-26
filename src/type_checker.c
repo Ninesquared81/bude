@@ -289,6 +289,18 @@ static bool load_state_at(struct type_checker *checker, int ip) {
     return true;
 }
 
+static bool check_type_array(struct type_checker *checker, size_t count,
+                             type_index types[count]) {
+    if ((ptrdiff_t)count != TSTACK_COUNT(checker->tstack)) {
+        return false;
+    }
+    if (count == 0) {
+        // We allow `types` to be NULL for no types, so we cannot rely on memcmp for this case.
+        return true;
+    }
+    assert(count > 0);
+    assert(types != NULL);
+    return memcmp(types, checker->tstack->types, count * sizeof *types) == 0;
 }
 
 static bool check_state_with_index(struct type_checker *checker, size_t index) {
@@ -298,10 +310,7 @@ static bool check_state_with_index(struct type_checker *checker, size_t index) {
         // Did not find state.
         return false;
     }
-    if ((ptrdiff_t)state->count != TSTACK_COUNT(checker->tstack)) {
-        return false;
-    }
-    return memcmp(state->types, checker->tstack->types, state->count) == 0;
+    return check_type_array(checker, state->count, state->types);
 }
 
 static bool check_state_at(struct type_checker *checker, int ip) {
