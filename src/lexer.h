@@ -30,6 +30,7 @@ enum token_type {
     TOKEN_EXIT,
     TOKEN_FOR,
     TOKEN_FROM,
+    TOKEN_FUNC,
     TOKEN_IDIVMOD,
     TOKEN_IF,
     TOKEN_INT,
