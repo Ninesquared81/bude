@@ -1053,6 +1053,12 @@ static void compile_function(struct compiler *compiler) {
     };
     insert_symbol(&compiler->symbols, &symbol);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after function signature.");
+    struct ir_block *previous_block = compiler->block;
+    compiler->block = &get_function(compiler->functions, index)->t_code;
+    compile_expr(compiler);  // Body.
+    emit_simple(compiler, T_OP_RET);  // Implicit return at end of function.
+    compiler->block = previous_block;
+    expect_consume(compiler, TOKEN_END, "Expect `end` after function body.");
 }
 
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
