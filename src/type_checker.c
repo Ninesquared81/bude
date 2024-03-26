@@ -799,6 +799,7 @@ static void start_function(struct type_checker *checker, struct function *functi
         memcpy(&checker->tstack->types, params, param_count * sizeof *params);
     }
     checker->tstack->top = checker->tstack->types + param_count;
+    checker->ip = 0;
 }
 
 static void type_check_function(struct type_checker *checker, struct function *function) {
