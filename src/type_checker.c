@@ -761,7 +761,48 @@ static void check_comp_field_set(struct type_checker *checker, type_index index,
     expect_type(checker, info->comp.fields[offset]);
 }
 
-enum type_check_result type_check(struct type_checker *checker) {
+static void check_function_call(struct type_checker *checker, int index) {
+    struct function *function = get_function(checker->functions, index);
+    assert(function != NULL);
+    int param_count = function->sig.param_count;
+    type_index *params = function->sig.params;
+    for (int i = param_count - 1; i >= 0; --i) {
+        expect_type(checker, params[i]);
+    }
+    int ret_count = function->sig.ret_count;
+    type_index *rets = function->sig.rets;
+    for (int i = 0; i < ret_count; ++i) {
+        ts_push(checker, rets[i]);
+    }
+}
+
+static void check_function_return(struct type_checker *checker, struct function *function) {
+    int ret_count = function->sig.ret_count;
+    type_index *rets = function->sig.rets;
+    if (!check_type_array(checker, ret_count, rets)) {
+        type_error(checker, "Return types do not match function signature");
+    }
+}
+
+static void start_function(struct type_checker *checker, struct function *function) {
+    /* NOTE: there is no corresponding `end_function()` function since all the cleanup
+       happens at the start of the next function (or at the end of all functions). */
+    checker->in_block = &function->t_code;
+    checker->out_block = &function->w_code;
+    copy_metadata(checker->out_block, checker->in_block);
+    reset_type_checker_states(&checker->states, &checker->in_block->jumps);
+    type_index *params = function->sig.params;
+    int param_count = function->sig.param_count;
+    assert(param_count >= 0);
+    if (param_count > 0) {
+        assert(params != NULL);
+        memcpy(&checker->tstack->types, params, param_count * sizeof *params);
+    }
+    checker->tstack->top = checker->tstack->types + param_count;
+}
+
+static void type_check_function(struct type_checker *checker, struct function *function) {
+    start_function(checker, function);
     for (; checker->ip < checker->in_block->count; ++checker->ip) {
         if (is_jump_dest(checker->in_block, checker->ip)) {
             size_t index = find_state(&checker->states, checker->ip);
@@ -1330,7 +1371,40 @@ enum type_check_result type_check(struct type_checker *checker) {
             emit_comp_field_set(checker, index, offset);
             break;
         }
+        case T_OP_CALL8: {
+            uint8_t index = read_u8(checker->in_block, checker->ip + 1);
+            checker->ip += 1;
+            check_function_call(checker, index);
+            emit_immediate_u8(checker, W_OP_CALL8, index);
+            break;
         }
+        case T_OP_CALL16: {
+            uint16_t index = read_u16(checker->in_block, checker->ip + 1);
+            checker->ip += 2;
+            check_function_call(checker, index);
+            emit_immediate_u16(checker, W_OP_CALL16, index);
+            break;
+        }
+        case T_OP_CALL32: {
+            uint32_t index = read_u32(checker->in_block, checker->ip + 1);
+            checker->ip += 4;
+            check_function_call(checker, index);
+            emit_immediate_u32(checker, W_OP_CALL32, index);
+            break;
+        }
+        case T_OP_RET:
+            check_function_return(checker, function);
+            check_unreachable(checker);
+            emit_simple(checker, W_OP_RET);
+            break;
+        }
+    }
+}
+
+enum type_check_result type_check(struct type_checker *checker) {
+    for (int i = 0; i < checker->functions->count; ++i) {
+        struct function *function = get_function(checker->functions, i);
+        type_check_function(checker, function);
     }
     emit_simple(checker, W_OP_NOP);  // Emit final NOP.
     return (!checker->had_error) ? TYPE_CHECK_OK : TYPE_CHECK_ERROR;
