@@ -632,8 +632,7 @@ static void compile_string(struct compiler *compiler) {
     struct string_builder builder = {0};
     struct string_builder *current = &builder;
     const char *start = token.value.start + 1;
-    struct region *temp_region = new_region(TEMP_REGION_SIZE);
-    start_view(current, start, temp_region);
+    start_view(current, start, compiler->temp);
     for (const char *c = start; *c != '"'; ++c) {
         if (*c == '\\') {
             int escaped = escape_character(c[1]);
@@ -641,19 +640,19 @@ static void compile_string(struct compiler *compiler) {
                 parse_error(compiler, "invalid escape sequence '\\%c'.\n", c[1]);
                 exit(1);
             }
-            current = store_char(current, escaped, temp_region);
+            current = store_char(current, escaped, compiler->temp);
             ++c;  // Consume the escaped character.
         }
         else {
             if (!SB_IS_VIEW(current)) {
-                current = start_view(current, c, temp_region);
+                current = start_view(current, c, compiler->temp);
             }
             ++current->view.length;
         }
     }
     uint32_t index = write_string(compiler->block, &builder);
     emit_immediate_uv(compiler, T_OP_LOAD_STRING8, index);
-    kill_region(temp_region);
+    clear_region(compiler->temp);
 }
 
 static void compile_character(struct compiler *compiler) {
@@ -784,7 +783,6 @@ static void compile_comp(struct compiler *compiler) {
     struct type_info info = {.kind = KIND_COMP};
     int field_count = 0;
     int word_count = 0;
-    struct region *temp_region = new_region(TEMP_REGION_SIZE);
     struct type_node {
         struct type_node *next;
         type_index type;
@@ -821,7 +819,7 @@ static void compile_comp(struct compiler *compiler) {
             exit(1);
         }
         struct type_node *next = head;
-        head = region_alloc(temp_region, sizeof *head);
+        head = region_alloc(compiler->temp, sizeof *head);
         head->next = next;
         head->type = type;
         head->offset = word_count;
@@ -841,6 +839,7 @@ static void compile_comp(struct compiler *compiler) {
         current = current->next;
     }
     init_type(compiler->types, index, &info);
+    clear_region(compiler->temp);
 }
 
 static void compile_assignment(struct compiler *compiler) {
