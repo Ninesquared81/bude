@@ -3,7 +3,7 @@
 
 #include <assert.h>
 
-#include "function.h"
+#include "module.h"
 #include "ir.h"
 #include "stack.h"
 #include "type.h"
@@ -43,7 +43,7 @@ struct type_checker {
     struct ir_block *out_block;
     struct type_stack *tstack;
     struct type_table *types;
-    struct function_table *functions;
+    struct module *module;
     int ip;
     bool had_error;
 };
@@ -55,8 +55,7 @@ enum type_check_result {
 
 void reset_type_stack(struct type_stack *tstack);
 
-void init_type_checker(struct type_checker *checker, struct function_table *functions,
-                       struct type_table *types);
+void init_type_checker(struct type_checker *checker, struct module *module);
 void free_type_checker(struct type_checker *checker);
 
 void ts_push(struct type_checker *checker, type_index type);

@@ -9,6 +9,7 @@
 #include "function.h"
 #include "interpreter.h"
 #include "ir.h"
+#include "module.h"
 #include "stack.h"
 #include "type_punning.h"
 #include "unicode.h"
@@ -21,9 +22,9 @@
     } while (0)
 
 
-bool init_interpreter(struct interpreter *interpreter, struct function_table *functions) {
-    interpreter->functions = functions;
-    struct function *main_func = get_function(functions, 0);
+bool init_interpreter(struct interpreter *interpreter, struct module *module) {
+    interpreter->module = module;
+    struct function *main_func = get_function(&module->functions, 0);
     interpreter->current_function = 0;  // Function 0 is the entry point.
     interpreter->block = &main_func->w_code;
     interpreter->main_stack = malloc(sizeof *interpreter->main_stack);
@@ -100,7 +101,7 @@ static void swap_comps(struct interpreter *interpreter, int lhs_size, int rhs_si
 static void call(struct interpreter *interpreter, int index, int *ip) {
     struct pair32 retinfo = {interpreter->current_function, *ip};
     push(interpreter->call_stack, pair32_to_u64(retinfo));
-    struct function *callee = get_function(interpreter->functions, index);
+    struct function *callee = get_function(&interpreter->module->functions, index);
     interpreter->block = &callee->w_code;
     interpreter->current_function = index;
     *ip = -1;  // -1 since ip will be incremented.
@@ -110,7 +111,7 @@ static int ret(struct interpreter *interpreter) {
     struct pair32 retinfo = u64_to_pair32(pop(interpreter->call_stack));
     int index = retinfo.a;
     int ip = retinfo.b;
-    struct function *caller = get_function(interpreter->functions, index);
+    struct function *caller = get_function(&interpreter->module->functions, index);
     interpreter->block = &caller->w_code;
     interpreter->current_function = index;
     return ip;
@@ -195,7 +196,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_LOAD_STRING8: {
             ++ip;
             uint8_t index = read_u8(interpreter->block, ip);
-            struct string_view *view = read_string(interpreter->block, index);
+            struct string_view *view = read_string(interpreter->module, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
             break;
@@ -203,7 +204,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_LOAD_STRING16: {
             ip += 2;
             uint16_t index = read_u16(interpreter->block, ip - 1);
-            struct string_view *view = read_string(interpreter->block, index);
+            struct string_view *view = read_string(interpreter->module, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
             break;
@@ -211,7 +212,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_LOAD_STRING32: {
             ip += 4;
             uint32_t index = read_u32(interpreter->block, ip - 3);
-            struct string_view *view = read_string(interpreter->block, index);
+            struct string_view *view = read_string(interpreter->module, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
             break;

@@ -5,7 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+#include "function.h"
 #include "location.h"
+#include "module.h"
 #include "type_checker.h"
 #include "type_punning.h"
 
@@ -17,7 +20,7 @@ struct arithm_conv {
 };
 
 static void type_error(struct type_checker *checker, const char *restrict message, ...) {
-    ir_error(checker->in_block, checker->ip, "Type error: ");
+    ir_error(checker->module->filename, checker->in_block, checker->ip, "Type error: ");
     va_list args;
     va_start(args, message);
     vfprintf(stderr, message, args);
@@ -89,14 +92,13 @@ static void free_type_checker_states(struct type_checker_states *states) {
     *states = (struct type_checker_states) {0};
 }
 
-void init_type_checker(struct type_checker *checker, struct function_table *functions,
-                       struct type_table *types) {
+void init_type_checker(struct type_checker *checker, struct module *module) {
     init_type_checker_states(&checker->states);
     // The ir_blocks will be set later.
     checker->in_block = NULL;
     checker->out_block = NULL;
-    checker->functions = functions;
-    checker->types = types;
+    checker->module = module;
+    checker->types = &module->types;  // The type table is used a lot so it gets its own field.
     checker->tstack = malloc(sizeof *checker->tstack);
     checker->ip = 0;
     checker->had_error = false;
@@ -762,7 +764,7 @@ static void check_comp_field_set(struct type_checker *checker, type_index index,
 }
 
 static void check_function_call(struct type_checker *checker, int index) {
-    struct function *function = get_function(checker->functions, index);
+    struct function *function = get_function(&checker->module->functions, index);
     assert(function != NULL);
     int param_count = function->sig.param_count;
     type_index *params = function->sig.params;
@@ -1403,8 +1405,8 @@ static void type_check_function(struct type_checker *checker, struct function *f
 }
 
 enum type_check_result type_check(struct type_checker *checker) {
-    for (int i = 0; i < checker->functions->count; ++i) {
-        struct function *function = get_function(checker->functions, i);
+    for (int i = 0; i < checker->module->functions.count; ++i) {
+        struct function *function = get_function(&checker->module->functions, i);
         type_check_function(checker, function);
     }
     emit_simple(checker, W_OP_NOP);  // Emit final NOP.

@@ -2,12 +2,9 @@
 #define COMPILER_H
 
 #include "ir.h"
-#include "function.h"
-#include "type.h"
+#include "module.h"
 
-
-void compile(const char *src, const char *filename, struct type_table *types,
-             struct function_table *functions);
+void compile(const char *src, struct module *module);
 
 #endif
 

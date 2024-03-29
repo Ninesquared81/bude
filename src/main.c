@@ -243,46 +243,41 @@ int main(int argc, char *argv[]) {
     parse_args(argc, argv, &opts);
     load_source(opts.filename, inbuf);
 
-    struct type_table types;
-    init_type_table(&types);
-    struct function_table functions;
-    init_function_table(&functions, opts.filename);
-    compile(inbuf, opts.filename, &types, &functions);
+    struct module module;
+    init_module(&module, opts.filename);
+    compile(inbuf, &module);
     free(inbuf);
-    struct function *main_func = get_function(&functions, 0);
-    struct ir_block *tblock = &main_func->t_code;
-    struct ir_block *wblock = &main_func->w_code;
     if (opts.optimise) {
-        optimise(tblock);
+        // optimise(&module);
     }
     if (opts.dump_ir) {
         printf("=== Before type checking: ===\n");
-        disassemble_block(tblock);
+        disassemble_tir(&module);
         printf("------------------------------------------------\n");
     }
     struct type_checker checker;
-    init_type_checker(&checker, &functions, &types);
+    init_type_checker(&checker, &module);
     if (type_check(&checker) == TYPE_CHECK_ERROR) {
         // Error message(s) already emitted.
         exit(1);
     }
     if (opts.dump_ir) {
         printf("=== After type checking: ===\n");
-        disassemble_block(wblock);
+        disassemble_wir(&module);
         if (opts.interpret) {
             printf("------------------------------------------------\n");
         }
     }
     if (opts.interpret) {
         struct interpreter interpreter;
-        init_interpreter(&interpreter, &functions);
+        init_interpreter(&interpreter, &module);
         interpret(&interpreter);
         free_interpreter(&interpreter);
     }
     if (opts.generate_asm) {
         struct asm_block *assembly = malloc(sizeof *assembly);
         init_assembly(assembly);
-        if (generate(wblock, assembly) != GENERATE_OK) {
+        if (generate(&module, assembly) != GENERATE_OK) {
             fprintf(stderr, "Failed to write assembly code.\n");
             exit(1);
         }
@@ -291,7 +286,7 @@ int main(int argc, char *argv[]) {
             outfile = fopen(opts.output_filename, "w");
             if (outfile == NULL) {
                 fprintf(stderr, "Failed to open output file '%s': %s.\n",
-                       opts.output_filename, strerror(errno));
+                        opts.output_filename, strerror(errno));
                 exit(1);
             }
         }
@@ -303,7 +298,6 @@ int main(int argc, char *argv[]) {
         }
         free(assembly);
     }
-    free_type_table(&types);
-    free_function_table(&functions);
+    free_module(&module);
     return 0;
 }

@@ -17,14 +17,6 @@
 #define JUMP_INFO_TABLE_INIT_SIZE 8
 #endif
 
-#ifndef STRING_TABLE_INIT_SIZE
-#define STRING_TABLE_INIT_SIZE 64
-#endif
-
-#ifndef MEMORY_INIT_SIZE
-#define MEMORY_INIT_SIZE 1024
-#endif
-
 
 const char *t_opcode_names[] = {
     [T_OP_NOP]               = "T_OP_NOP",
@@ -234,24 +226,13 @@ bool is_w_jump(enum w_opcode instruction) {
     }
 }
 
-void init_block(struct ir_block *block, enum ir_instruction_set instruction_set,
-                const char *restrict filename) {
+void init_block(struct ir_block *block, enum ir_instruction_set instruction_set) {
     block->code = allocate_array(BLOCK_INIT_SIZE, sizeof *block->code);
     block->locations = allocate_array(BLOCK_INIT_SIZE, sizeof *block->locations);
     block->capacity = BLOCK_INIT_SIZE;
     block->count = 0;
     block->instruction_set = instruction_set;
-    block->filename = filename;
-    block->max_for_loop_level = 0;
     init_jump_info_table(&block->jumps);
-    init_string_table(&block->strings);
-    init_string_table(&block->symbols);
-    block->static_memory = new_region(MEMORY_INIT_SIZE);
-    //CHECK_ALLOCATION(block->static_memory);
-    if (block->static_memory == NULL) {
-        fprintf(stderr, "Failed to allocate region!\n");
-        exit(1);
-    }
 }
 
 void free_block(struct ir_block *block) {
@@ -262,9 +243,6 @@ void free_block(struct ir_block *block) {
     block->capacity = 0;
     block->count = 0;
     free_jump_info_table(&block->jumps);
-    free_string_table(&block->strings);
-    free_string_table(&block->symbols);
-    kill_region(block->static_memory);
 }
 
 void init_jump_info_table(struct jump_info_table *table) {
@@ -278,52 +256,6 @@ void free_jump_info_table(struct jump_info_table *table) {
     table->dests = NULL;
     table->capacity = 0;
     table->count = 0;
-}
-
-void init_string_table(struct string_table *table) {
-    table->views = allocate_array(STRING_TABLE_INIT_SIZE, sizeof *table->views);
-    table->capacity = STRING_TABLE_INIT_SIZE;
-    table->count = 0;
-}
-
-void free_string_table(struct string_table *table) {
-    free_array(table->views, table->capacity, sizeof *table->views);
-    table->views = NULL;
-    table->capacity = 0;
-    table->count = 0;
-}
-
-void copy_jump_info_table(struct jump_info_table *restrict dest,
-                          struct jump_info_table *restrict src) {
-    int new_count = dest->count + src->count;
-    if (new_count > dest->capacity) {
-        dest->dests = reallocate_array(dest->dests, dest->capacity, new_count,
-                                       sizeof dest->dests[0]);
-        dest->capacity = new_count;
-    }
-    memcpy(&dest->dests[dest->count], src->dests, src->count * sizeof src->dests[0]);
-    dest->count = new_count;
-}
-
-void copy_string_table(struct string_table *restrict dest,
-                       struct string_table *restrict src) {
-    size_t new_count = dest->count + src->count;
-    if (new_count > dest->capacity) {
-        dest->views = reallocate_array(dest->views, dest->capacity, new_count,
-                                       sizeof dest->views[0]);
-        dest->capacity = new_count;
-    }
-    memcpy(&dest->views[dest->count], src->views, src->count * sizeof src->views[0]);
-    dest->count = new_count;
-}
-
-void copy_metadata(struct ir_block *restrict dest, struct ir_block *restrict src) {
-    dest->filename = src->filename;
-    dest->max_for_loop_level = src->max_for_loop_level;
-    /* NOTE: jump info table is not copied since it relies on code indices,
-       which may change due to code insertion. */
-    copy_string_table(&dest->strings, &src->strings);
-    dest->static_memory = copy_region(src->static_memory);
 }
 
 static void grow_block(struct ir_block *block) {
@@ -342,15 +274,6 @@ static void grow_jump_info_table(struct jump_info_table *table) {
 
     table->dests = reallocate_array(table->dests, old_capacity, new_capacity,
                                     sizeof table->dests[0]);
-    table->capacity = new_capacity;
-}
-
-static void grow_string_table(struct string_table *table) {
-    size_t old_capacity = table->capacity;
-    size_t new_capacity = old_capacity + old_capacity/2;
-    assert(new_capacity > 0);
-    table->views = reallocate_array(table->views, old_capacity, new_capacity,
-                                      sizeof table->views[0]);
     table->capacity = new_capacity;
 }
 
@@ -591,25 +514,6 @@ int64_t read_s64(struct ir_block *block, int index) {
     return u64_to_s64(read_u64(block, index));
 }
 
-uint32_t write_string(struct ir_block *block, struct string_builder *builder) {
-    struct string_view view = build_string_in_region(builder, block->static_memory);
-    if (view.start == NULL) {
-        fprintf(stderr, "Failed to allocate string.\n");
-        exit(1);
-    }
-    struct string_table *table = &block->strings;
-    if (table->count + 1 > table->capacity) {
-        grow_string_table(table);
-    }
-    table->views[table->count++] = view;
-    return table->count - 1;
-}
-
-struct string_view *read_string(struct ir_block *block, uint32_t index) {
-    assert(index < block->strings.count);
-    return &block->strings.views[index];
-}
-
 static int binary_search(struct jump_info_table *jumps, int dest) {
     int hi = jumps->count - 1;
     int lo = 0;
@@ -652,15 +556,17 @@ int find_jump(struct ir_block *block, int dest) {
     // Binary search.
     struct jump_info_table *jumps = &block->jumps;
     int index = binary_search(jumps, dest);
-    return (index < jumps->count && jumps->dests[index] == dest) ? index : -1;  // -1: search failed.
+    // -1: search failed.
+    return (index < jumps->count && jumps->dests[index] == dest) ? index : -1;
 }
 
 bool is_jump_dest(struct ir_block *block, int dest) {
     return find_jump(block, dest) != -1;
 }
 
-void ir_error(struct ir_block *block, size_t index, const char *message) {
-    report_location(block->filename, &block->locations[index]);
+void ir_error(const char *restrict filename, struct ir_block *block,
+              size_t index, const char *restrict message) {
+    report_location(filename, &block->locations[index]);
     fprintf(stderr, message);
 }
 

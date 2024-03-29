@@ -2,13 +2,13 @@
 #define GENERATOR_H
 
 #include "asm.h"
-#include "ir.h"
+#include "module.h"
 
 enum generate_result {
     GENERATE_OK,
     GENERATE_ERROR,
 };
 
-enum generate_result generate(struct ir_block *block, struct asm_block *assembly);
+enum generate_result generate(struct module *module, struct asm_block *assembly);
 
 #endif

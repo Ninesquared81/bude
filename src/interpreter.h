@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "function.h"
+#include "module.h"
 #include "ir.h"
 #include "stack.h"
 
@@ -18,11 +18,11 @@ struct interpreter {
     struct stack *auxiliary_stack;
     struct stack *loop_stack;
     struct stack *call_stack;
-    struct function_table *functions;
+    struct module *module;
     int current_function;
 };
 
-bool init_interpreter(struct interpreter *interpreter, struct function_table *functions);
+bool init_interpreter(struct interpreter *interpreter, struct module *module);
 void free_interpreter(struct interpreter *interpreter);
 
 enum interpret_result interpret(struct interpreter *interpreter);

@@ -20,26 +20,23 @@
 
 struct compiler {
     struct lexer lexer;
-    struct ir_block *block;
     struct token current_token;
     struct token previous_token;
     struct symbol_dictionary symbols;
+    struct ir_block *block;
     size_t for_loop_level;
-    struct type_table *types;
-    struct function_table *functions;
+    struct module *module;
     struct region *temp;
 };
 
-static void init_compiler(struct compiler *compiler, const char *src, const char *filename,
-                          struct type_table *types, struct function_table *functions) {
+static void init_compiler(struct compiler *compiler, const char *src, struct module *module) {
     compiler->block = NULL;  // Will be set later.
-    init_lexer(&compiler->lexer, src, filename);
+    init_lexer(&compiler->lexer, src, module->filename);
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
     init_symbol_dictionary(&compiler->symbols);
     compiler->for_loop_level = 0;
-    compiler->types = types;
-    compiler->functions = functions;
+    compiler->module = module;
     compiler->temp = new_region(TEMP_REGION_SIZE);
     if (compiler->temp == NULL) {
         fprintf(stderr, "Failed to allocate temporary region in compiler.\n");
@@ -562,8 +559,8 @@ static void compile_for_loop(struct compiler *compiler) {
     compile_expr(compiler);  // Count.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `for` start.");
     ++compiler->for_loop_level;
-    if (compiler->for_loop_level > compiler->block->max_for_loop_level) {
-        compiler->block->max_for_loop_level = compiler->for_loop_level;
+    if (compiler->for_loop_level > compiler->module->max_for_loop_level) {
+        compiler->module->max_for_loop_level = compiler->for_loop_level;
     }
     
     int offset = start_jump(compiler, start_instruction);
@@ -650,7 +647,7 @@ static void compile_string(struct compiler *compiler) {
             ++current->view.length;
         }
     }
-    uint32_t index = write_string(compiler->block, &builder);
+    uint32_t index = write_string(compiler->module, &builder);
     emit_immediate_uv(compiler, T_OP_LOAD_STRING8, index);
     clear_region(compiler->temp);
 }
@@ -718,7 +715,7 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
 static void compile_pack(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_SYMBOL, "Expect pack name after `pack`.");
     struct string_view name = peek_previous(compiler).value;
-    type_index index = new_type(compiler->types, &name);
+    type_index index = new_type(&compiler->module->types, &name);
     struct symbol symbol = {
         .name = name,
         .type = SYM_PACK,
@@ -751,7 +748,7 @@ static void compile_pack(struct compiler *compiler) {
             parse_error(compiler, "unknown type.");
             exit(1);
         }
-        int field_size = type_size(compiler->types, field_type);
+        int field_size = type_size(&compiler->module->types, field_type);
         if (field_size > 8) {
             parse_error(compiler, "pack field too large.");
             exit(1);
@@ -766,13 +763,13 @@ static void compile_pack(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_END, "Expect `end` after pack definition.");
     info.pack.field_count = field_count;
     info.pack.size = size;
-    init_type(compiler->types, index, &info);
+    init_type(&compiler->module->types, index, &info);
 }
 
 static void compile_comp(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `comp`.");
     struct string_view name = peek_previous(compiler).value;
-    type_index index = new_type(compiler->types, &name);
+    type_index index = new_type(&compiler->module->types, &name);
     struct symbol symbol = {
         .name = name,
         .type = SYM_COMP,
@@ -807,9 +804,9 @@ static void compile_comp(struct compiler *compiler) {
         struct token field_token = advance(compiler);
         type_index type = parse_type(compiler, &field_token);
         int field_word_count = 1;
-        if (is_comp(compiler->types, type)) {
+        if (is_comp(&compiler->module->types, type)) {
             // NOTE: this includes strings.
-            const struct type_info *info = lookup_type(compiler->types, type);
+            const struct type_info *info = lookup_type(&compiler->module->types, type);
             assert(info != NULL);
             assert(info->kind == KIND_COMP);
             field_word_count = info->comp.word_count;
@@ -829,8 +826,10 @@ static void compile_comp(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_END, "Expect `end` after comp definition");
     info.comp.field_count = field_count;
     info.comp.word_count = word_count;
-    info.comp.fields = alloc_extra(compiler->types, field_count * sizeof *info.comp.fields);
-    info.comp.offsets = alloc_extra(compiler->types, field_count * sizeof *info.comp.offsets);
+    info.comp.fields = alloc_extra(&compiler->module->types,
+                                   field_count * sizeof *info.comp.fields);
+    info.comp.offsets = alloc_extra(&compiler->module->types,
+                                    field_count * sizeof *info.comp.offsets);
     struct type_node *current = head;
     for (int i = field_count - 1; i >= 0; --i) {
         assert(current != NULL);  // this should be true, but it doesn't hurt to assert.
@@ -838,7 +837,7 @@ static void compile_comp(struct compiler *compiler) {
         info.comp.offsets[i] = word_count - current->offset;
         current = current->next;
     }
-    init_type(compiler->types, index, &info);
+    init_type(&compiler->module->types, index, &info);
     clear_region(compiler->temp);
 }
 
@@ -924,7 +923,8 @@ static void compile_function(struct compiler *compiler) {
             ++ret_count;
         }
     }
-    type_index *params = region_calloc(compiler->functions->region, param_count, sizeof *params);
+    type_index *params = region_calloc(compiler->module->functions.region,
+                                       param_count, sizeof *params);
     if (params == NULL && param_count != 0) {
         fprintf(stderr, "Failed to allocate `params` array.");
         exit(1);
@@ -933,7 +933,8 @@ static void compile_function(struct compiler *compiler) {
         params[i] = param_list->type;
         param_list = param_list->next;  // This isn't a memory leak (because regions).
     }
-    type_index *rets = region_calloc(compiler->functions->region, ret_count, sizeof *rets);
+    type_index *rets = region_calloc(compiler->module->functions.region,
+                                     ret_count, sizeof *rets);
     if (rets == NULL && ret_count != 0) {
         fprintf(stderr, "Failed to allocate `rets` array.");
         exit(1);
@@ -943,7 +944,7 @@ static void compile_function(struct compiler *compiler) {
         ret_list = ret_list->next;  // Again, no memory leak because regions.
     }
     clear_region(compiler->temp);
-    int index = add_function(compiler->functions, param_count, ret_count, params, rets);
+    int index = add_function(&compiler->module->functions, param_count, ret_count, params, rets);
     struct symbol symbol = {
         .name = name,
         .type = SYM_FUNCTION,
@@ -952,7 +953,7 @@ static void compile_function(struct compiler *compiler) {
     insert_symbol(&compiler->symbols, &symbol);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after function signature.");
     struct ir_block *previous_block = compiler->block;
-    compiler->block = &get_function(compiler->functions, index)->t_code;
+    compiler->block = &get_function(&compiler->module->functions, index)->t_code;
     compile_expr(compiler);  // Body.
     emit_simple(compiler, T_OP_RET);  // Implicit return at end of function.
     compiler->block = previous_block;
@@ -1147,14 +1148,13 @@ static void compile_expr(struct compiler *compiler) {
     }
 }
 
-void compile(const char *src, const char *filename, struct type_table *types,
-             struct function_table *functions) {
+void compile(const char *src, struct module *module) {
     struct compiler compiler;
-    init_compiler(&compiler, src, filename, types, functions);
+    init_compiler(&compiler, src, module);
     init_builtins(&compiler.symbols);
-    assert(functions->count == 0);  // We assume that the function table is empty.
-    add_function(functions, 0, 0, NULL, NULL);  // Main/script function.
-    struct function *main_func =  get_function(functions, 0);
+    assert(module->functions.count == 0);  // We assume that the function table is empty.
+    add_function(&module->functions, 0, 0, NULL, NULL);  // Main/script function.
+    struct function *main_func =  get_function(&module->functions, 0);
     compiler.block = &main_func->t_code;
     compile_expr(&compiler);
     emit_simple(&compiler, T_OP_NOP);

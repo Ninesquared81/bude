@@ -301,25 +301,13 @@ struct jump_info_table {
     int *dests;
 };
 
-struct string_table {
-    size_t capacity;
-    size_t count;
-    struct string_view *views;
-};
-
-
 struct ir_block {
     int capacity;
     int count;
     uint8_t *code;
     struct location *locations;
     enum ir_instruction_set instruction_set;
-    const char *filename;
-    size_t max_for_loop_level;
     struct jump_info_table jumps;
-    struct string_table strings;
-    struct string_table symbols;
-    struct region *static_memory;
 };
 
 typedef int opcode;
@@ -342,19 +330,10 @@ bool is_w_jump(enum w_opcode instruction);
              enum w_opcode: is_w_jump   \
         )(instruction)
 
-
-void init_block(struct ir_block *block, enum ir_instruction_set instruction_set,
-                const char *filename);
+void init_block(struct ir_block *block, enum ir_instruction_set instruction_set);
 void free_block(struct ir_block *block);
 void init_jump_info_table(struct jump_info_table *table);
 void free_jump_info_table(struct jump_info_table *table);
-void init_string_table(struct string_table *table);
-void free_string_table(struct string_table *table);
-
-void copy_jump_info_table(struct jump_info_table *restrict dest,
-                          struct jump_info_table *restrict src);
-void copy_string_table(struct string_table *restrict dest,
-                       struct string_table *restrict src);
 
 void copy_metadata(struct ir_block *restrict dest, struct ir_block *restrict src);
 
@@ -407,13 +386,11 @@ int32_t read_s32(struct ir_block *block, int index);
 uint64_t read_u64(struct ir_block *block, int index);
 int64_t read_s64(struct ir_block *block, int index);
 
-uint32_t write_string(struct ir_block *block, struct string_builder *builder);
-struct string_view *read_string(struct ir_block *block, uint32_t index);
-
 int add_jump(struct ir_block *block, int dest);
 int find_jump(struct ir_block *block, int dest);
 bool is_jump_dest(struct ir_block *block, int dest);
 
-void ir_error(struct ir_block *block, size_t index, const char *message);
+void ir_error(const char *restrict filename, struct ir_block *block,
+              size_t index, const char *restrict message);
 
 #endif

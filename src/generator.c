@@ -3,6 +3,7 @@
 #include <inttypes.h>
 
 #include "asm.h"
+#include "function.h"
 #include "generator.h"
 #include "ir.h"
 #include "unicode.h"
@@ -204,24 +205,17 @@ static void generate_swap_comps(struct asm_block *assembly, int lhs_size, int rh
     }
 }
 
-void generate_code(struct asm_block *assembly, struct ir_block *block) {
+static void generate_function(struct asm_block *assembly, struct module *module,
+                              int func_index) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
         asm_write_inst1c(assembly, "pop", "rdx", "RHS.");               \
         asm_write_inst2c(assembly, OP, "[rsp]", "rdx", "LHS left on stack."); \
     } while (0)
 
-    asm_section(assembly, ".code", "code", "readable", "executable");
-    asm_write(assembly, "\n");
-    asm_label(assembly, "start");
-    asm_write(assembly, "\n");
-    asm_write(assembly, "  ;;\tInitialisation.\n");
-    // Global registers.
-    asm_write_inst2c(assembly, "lea", "rsi", "[aux]", "Loop stack pointer.");
-    asm_write_inst2cf(assembly, "lea", "rbx", "[rsi + %zu*8]",
-                      "Auxiliary stack pointer (space reserved for loop stack).",
-                      block->max_for_loop_level);
-    asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Loop counter.");
+    asm_label(assembly, "func_%d", func_index);
+    struct function *function = get_function(&module->functions, func_index);
+    struct ir_block *block = &function->w_code;
     // Instructions.
     for (int ip = 0; ip < block->count; ++ip) {
         if (is_jump_dest(block, ip)) {
@@ -314,7 +308,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             uint8_t index = read_u8(block, ip);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu8"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
+            asm_write_inst1f(assembly, "push", "%u", read_string(module, index)->length);
             break;
         }
         case W_OP_LOAD_STRING16: {
@@ -322,7 +316,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             uint16_t index = read_u16(block, ip - 1);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
+            asm_write_inst1f(assembly, "push", "%u", read_string(module, index)->length);
             break;
         }
         case W_OP_LOAD_STRING32: {
@@ -330,7 +324,7 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
             uint32_t index = read_u32(block, ip - 3);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", read_string(block, index)->length);
+            asm_write_inst1f(assembly, "push", "%u", read_string(module, index)->length);
             break;
         }
         case W_OP_POP:
@@ -949,13 +943,34 @@ void generate_code(struct asm_block *assembly, struct ir_block *block) {
         }
         }
     }
+
+#undef BIN_OP
+}
+
+void generate_code(struct asm_block *assembly, struct module *module) {
+    asm_section(assembly, ".code", "code", "readable", "executable");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "start");
+    asm_write(assembly, "\n");
+    asm_write(assembly, "  ;;\tInitialisation.\n");
+    // Global registers.
+    asm_write_inst2c(assembly, "lea", "rsi", "[aux]", "Loop stack pointer.");
+    asm_write_inst2cf(assembly, "lea", "rbx", "[rsi + %zu*8]",
+                      "Auxiliary stack pointer (space reserved for loop stack).",
+                      module->max_for_loop_level);
+    asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Loop counter.");
+    // Functions.
+    for (int i = 0; i < module->functions.count; ++i) {
+        generate_function(assembly, module, i);
+    }
+    // TODO: implement function 0 as entry point.
+    // End.
     asm_write(assembly, "  ;;\t=== END ===\n");
     asm_write_inst2c(assembly, "xor", "rcx", "rcx", "Successful exit.");
     asm_write_inst2(assembly, "and", "spl", "0F0h");
     asm_write_inst2(assembly, "sub", "rsp", "32");
     asm_write_inst1(assembly, "call", "[ExitProcess]");
     asm_write(assembly, "\n");
-#undef BIN_OP
 }
 
 void generate_imports(struct asm_block *assembly) {
@@ -973,7 +988,7 @@ void generate_imports(struct asm_block *assembly) {
     asm_write(assembly, "\n");
 }
 
-void generate_constants(struct asm_block *assembly, struct ir_block *block) {
+void generate_constants(struct asm_block *assembly, struct module *module) {
     asm_section(assembly, ".rdata", "data", "readable");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_s64");
@@ -989,10 +1004,10 @@ void generate_constants(struct asm_block *assembly, struct ir_block *block) {
     asm_label(assembly, "fmt_string");
     asm_write_inst2(assembly, "db", "'%%*s'", "0");
     asm_write(assembly, "\n");
-    for (size_t i = 0; i < block->strings.count; ++i) {
+    for (size_t i = 0; i < module->strings.count; ++i) {
         asm_label(assembly, "str%u", i);
         asm_write(assembly, "\tdb\t");
-        asm_write_string(assembly, block->strings.views[i].start);
+        asm_write_string(assembly, module->strings.views[i].start);
         asm_write(assembly, "\n\n");
     }
 }
@@ -1003,10 +1018,10 @@ void generate_bss(struct asm_block *assembly) {
     asm_write_inst1(assembly, "rq", "1024*1024");
 }
 
-enum generate_result generate(struct ir_block *block, struct asm_block *assembly) {
+enum generate_result generate(struct module *module, struct asm_block *assembly) {
     generate_header(assembly);
-    generate_code(assembly, block);
-    generate_constants(assembly, block);
+    generate_code(assembly, module);
+    generate_constants(assembly, module);
     generate_imports(assembly);
     generate_bss(assembly);
     return (!asm_had_error(assembly)) ? GENERATE_OK : GENERATE_ERROR;

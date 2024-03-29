@@ -4,8 +4,7 @@
 #include "function.h"
 #include "memory.h"
 
-void init_function_table(struct function_table *functions, const char *filename) {
-    functions->filename = filename;
+void init_function_table(struct function_table *functions) {
     functions->count = 0;
     functions->capacity = FUNCTION_TABLE_INIT_SIZE;
     functions->functions = allocate_array(FUNCTION_TABLE_INIT_SIZE, sizeof(struct function));
@@ -47,8 +46,8 @@ int add_function(struct function_table *table, int param_count, int ret_count,
     assert(param_count >= 0);
     assert(ret_count >= 0);
     struct function function = {.sig = {param_count, ret_count, params, rets}};
-    init_block(&function.t_code, IR_TYPED, table->filename);
-    init_block(&function.w_code, IR_WORD_ORIENTED, table->filename);
+    init_block(&function.t_code, IR_TYPED);
+    init_block(&function.w_code, IR_WORD_ORIENTED);
     return insert_function(table, &function);
 }
 
