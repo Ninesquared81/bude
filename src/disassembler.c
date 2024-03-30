@@ -547,6 +547,6 @@ void disassemble_wir(struct module *module) {
     for (int i = 0; i < module->functions.count; ++i) {
         struct function *function = get_function(&module->functions, i);
         printf("== func_%d ==\n", i);
-        disassemble_block(&function->t_code);
+        disassemble_block(&function->w_code);
     }
 }
