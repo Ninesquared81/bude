@@ -895,13 +895,11 @@ static void type_check_function(struct type_checker *checker, struct function *f
             type_index type = ts_pop(checker);
             const struct type_info *info = lookup_type(checker->types, type);
             assert(info != NULL && "Unknown type");
-            if (type == TYPE_STRING) {
-                emit_immediate_s8(checker, W_OP_POPN8, 2);
-            }
             if (info->kind != KIND_COMP) {
                 emit_simple(checker, W_OP_POP);
             }
             else {
+                // NOTE: This includes the builtin type `string`.
                 emit_immediate_sv(checker, W_OP_POPN8, info->comp.field_count);
             }
             break;
