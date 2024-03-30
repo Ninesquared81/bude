@@ -985,18 +985,16 @@ void generate_code(struct asm_block *assembly, struct module *module) {
     asm_write(assembly, "\n");
     asm_label(assembly, "start");
     asm_write(assembly, "\n");
-    asm_write(assembly, "  ;;\tInitialisation.\n");
+    asm_write(assembly, "  ;;\t=== INITIALISATION ===\n");
     // Global registers.
     asm_write_inst2c(assembly, "lea", "rsi", "[aux]", "Loop stack pointer.");
     asm_write_inst2cf(assembly, "lea", "rbx", "[rsi + %zu*8]",
                       "Auxiliary stack pointer (space reserved for loop stack).",
                       module->max_for_loop_level);
     asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Loop counter.");
-    // Functions.
-    for (int i = 0; i < module->functions.count; ++i) {
-        generate_function(assembly, module, i);
-    }
-    // TODO: implement function 0 as entry point.
+    // Entry point.
+    asm_write(assembly, "  ;;\t=== ENTRY POINT ===\n");
+    generate_function_call(assembly, 0);
     // End.
     asm_write(assembly, "  ;;\t=== END ===\n");
     asm_write_inst2c(assembly, "xor", "rcx", "rcx", "Successful exit.");
@@ -1004,6 +1002,10 @@ void generate_code(struct asm_block *assembly, struct module *module) {
     asm_write_inst2(assembly, "sub", "rsp", "32");
     asm_write_inst1(assembly, "call", "[ExitProcess]");
     asm_write(assembly, "\n");
+    // Functions.
+    for (int i = 0; i < module->functions.count; ++i) {
+        generate_function(assembly, module, i);
+    }
 }
 
 void generate_imports(struct asm_block *assembly) {
