@@ -211,7 +211,7 @@ static void generate_function_call(struct asm_block *assembly, int func_index) {
 
 static void generate_function_return(struct asm_block *assembly) {
     asm_write_inst2(assembly, "sub", "rbx", "8");
-    asm_write_inst1(assembly, "push", "[rbx]");
+    asm_write_inst1(assembly, "push", "qword [rbx]");
     asm_write_inst0(assembly, "ret");
 }
 
@@ -224,7 +224,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
     } while (0)
 
     asm_label(assembly, "func_%d", func_index);
-    asm_write_inst1c(assembly, "pop", "[rbx]", "Return address.");
+    asm_write_inst1c(assembly, "pop", "qword [rbx]", "Return address.");
     asm_write_inst2(assembly, "add", "rbx", "8");
     struct function *function = get_function(&module->functions, func_index);
     struct ir_block *block = &function->w_code;
