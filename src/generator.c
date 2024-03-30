@@ -232,7 +232,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
     for (int ip = 0; ip < block->count; ++ip) {
         if (is_jump_dest(block, ip)) {
             // We need a label.
-            asm_label(assembly, "addr_%d", ip);
+            asm_label(assembly, ".addr_%d", ip);
         }
         enum w_opcode instruction = block->code[ip];
         if (instruction == W_OP_NOP) continue;
@@ -453,7 +453,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int skip_jump_addr = ip - 1 + skip_jump;
             asm_write_inst1c(assembly, "pop", "rdi", "Load loop counter.");
             asm_write_inst2(assembly, "test", "rdi", "rdi");
-            asm_write_inst1f(assembly, "jz", "addr_%d", skip_jump_addr);
+            asm_write_inst1f(assembly, "jz", ".addr_%d", skip_jump_addr);
             asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
                              "Push old loop counter onto loop stack.");
             asm_write_inst2(assembly, "add", "rsi", "8");
@@ -465,7 +465,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int loop_jump_addr = ip - 1 + loop_jump;
             asm_write_inst1(assembly, "dec", "rdi");
             asm_write_inst2(assembly, "test", "rdi", "rdi");
-            asm_write_inst1f(assembly, "jnz", "addr_%d", loop_jump_addr);
+            asm_write_inst1f(assembly, "jnz", ".addr_%d", loop_jump_addr);
             asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
             asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
             break;
@@ -476,7 +476,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int skip_jump_addr = ip - 1 + skip_jump;
             asm_write_inst1c(assembly, "pop", "rax", "Load loop target.");
             asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst1f(assembly, "jz", "addr_%d", skip_jump_addr);
+            asm_write_inst1f(assembly, "jz", ".addr_%d", skip_jump_addr);
             asm_write_inst2c(assembly, "mov", "[rbx]", "rax", "Push loop target to aux.");
             asm_write_inst2(assembly, "add", "rbx", "8");
             asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
@@ -491,7 +491,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int loop_jump_addr = ip - 1 + loop_jump;
             asm_write_inst1(assembly, "inc", "rdi");
             asm_write_inst2(assembly, "cmp", "rdi", "[rbx-8]");
-            asm_write_inst1f(assembly, "jl", "addr_%d", loop_jump_addr);
+            asm_write_inst1f(assembly, "jl", ".addr_%d", loop_jump_addr);
             asm_write_inst2c(assembly, "sub", "rbx", "8", "Pop target.");
             asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
             asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
@@ -516,7 +516,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip - 1 + jump;  // -1 since jumps are calculated from the opcode.
-            asm_write_inst1f(assembly, "jmp", "addr_%d", jump_addr);
+            asm_write_inst1f(assembly, "jmp", ".addr_%d", jump_addr);
             break;
         }
         case W_OP_JUMP_COND: {
@@ -525,7 +525,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int jump_addr = ip - 1 + jump;
             asm_write_inst1c(assembly, "pop", "rax", "Condition.");
             asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst1f(assembly, "jnz", "addr_%d", jump_addr);
+            asm_write_inst1f(assembly, "jnz", ".addr_%d", jump_addr);
             break;
         }
         case W_OP_JUMP_NCOND: {
@@ -534,7 +534,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int jump_addr = ip -1 + jump;
             asm_write_inst1c(assembly, "pop", "rax", "Condition.");
             asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst1f(assembly, "jz", "addr_%d", jump_addr);
+            asm_write_inst1f(assembly, "jz", ".addr_%d", jump_addr);
             break;
         }
         case W_OP_MULT:
