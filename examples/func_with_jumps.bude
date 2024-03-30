@@ -1,0 +1,15 @@
+func f1 def
+    for 5 do
+        "f1 " print
+    end
+    "\n" print
+end
+
+func f2 def
+    for 2 do
+        "f2 " print
+    end
+    "\n" print
+end
+
+f1 f2
