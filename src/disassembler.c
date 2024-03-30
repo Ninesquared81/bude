@@ -534,3 +534,19 @@ void disassemble_block(struct ir_block *block) {
         offset = disassemble_instruction(block, offset);
     }
 }
+
+void disassemble_tir(struct module *module) {
+    for (int i = 0; i < module->functions.count; ++i) {
+        struct function *function = get_function(&module->functions, i);
+        printf("== func_%d ==\n", i);
+        disassemble_block(&function->t_code);
+    }
+}
+
+void disassemble_wir(struct module *module) {
+    for (int i = 0; i < module->functions.count; ++i) {
+        struct function *function = get_function(&module->functions, i);
+        printf("== func_%d ==\n", i);
+        disassemble_block(&function->t_code);
+    }
+}
