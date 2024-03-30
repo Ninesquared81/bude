@@ -791,7 +791,6 @@ static void start_function(struct type_checker *checker, struct function *functi
        happens at the start of the next function (or at the end of all functions). */
     checker->in_block = &function->t_code;
     checker->out_block = &function->w_code;
-    copy_metadata(checker->out_block, checker->in_block);
     reset_type_checker_states(&checker->states, &checker->in_block->jumps);
     type_index *params = function->sig.params;
     int param_count = function->sig.param_count;
