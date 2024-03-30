@@ -1408,7 +1408,6 @@ enum type_check_result type_check(struct type_checker *checker) {
         struct function *function = get_function(&checker->module->functions, i);
         type_check_function(checker, function);
     }
-    emit_simple(checker, W_OP_NOP);  // Emit final NOP.
     return (!checker->had_error) ? TYPE_CHECK_OK : TYPE_CHECK_ERROR;
 }
 

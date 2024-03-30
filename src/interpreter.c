@@ -39,6 +39,9 @@ bool init_interpreter(struct interpreter *interpreter, struct module *module) {
     init_stack(interpreter->auxiliary_stack);
     init_stack(interpreter->loop_stack);
     init_stack(interpreter->call_stack);
+    // Dummy return address to simulate entry point code.
+    struct pair32 dummy_retinfo = {0, main_func->w_code.count};
+    push(interpreter->call_stack, pair32_to_u64(dummy_retinfo));
     return true;
 }
 

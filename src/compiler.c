@@ -1157,7 +1157,7 @@ void compile(const char *src, struct module *module) {
     struct function *main_func =  get_function(&module->functions, 0);
     compiler.block = &main_func->t_code;
     compile_expr(&compiler);
-    emit_simple(&compiler, T_OP_NOP);
+    emit_simple(&compiler, T_OP_RET);  // Return from main function.
     free_compiler(&compiler);
 }
 
