@@ -53,14 +53,23 @@ interpreted for the differet instructions. Note that regardless of the size of t
 C type, these values always take up one full stack slot (64 bits). A C-like language is used
 for the result expressions of some operations.
 
+Data:
 * _w_ &ndash; arbitrary stack word
 * _i_ &ndash; signed integer value
 * _p_ &ndash; pointer value
-* _c_ &ndash; ~~UTF-8~~ ASCII codepoint (will be UTF-8 in the future)
+* _c_ &ndash; UTF-8 codepoint
 * `<literal>` &ndash; the literal value denoted
 * _pk_ &ndash; structural "pack" type
 * _cmp_ &ndash; structural "comp" type
 * _T_ &ndash; type variable "T"
+
+Syntax:
+* <_symbol_> &ndash; syntactically required symbol
+* _section_ &ndash; syntactical section
+* [ _optional-section_ ] &ndash; optional syntactic section
+* &hellip; &ndash; syntax can be repeated arbitrarily
+* ( _groups_ ) &ndash; group syntax sections
+* _choice1_|_choice2_ &ndash; syntax option
 
 ### Push instructions
 
