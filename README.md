@@ -153,6 +153,12 @@ times specified by _count_. The counting form (`for` <_loop-var_> `to` _count_ &
 specified, which can be accessed inside the loop. The value stored in the loop variable either
 starts at zero and counts up `to` _count_ or counts down to zero `from` _count_.
 
+_P1_ _P2_ _P3_ &hellip; <_func-name_> &rarr; _R1_ _R2_ _R3_ : Call the specified function which
+takes parameters with types _P1_, _P2_, _P3_, &hellip; and returns values with types _R1_, _R2_,
+_R3_.
+
+`ret` : Return from the current function.
+
 ### Definitions
 
 `pack` <_pack-name_> `def` [<_field-name_> `->` <_field-type_> &hellip;] `end`
