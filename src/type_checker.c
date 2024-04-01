@@ -286,7 +286,7 @@ static bool load_state_at(struct type_checker *checker, int ip) {
     if (state == NULL || states->ips[index] != ip) {
         return false;
     }
-    memcpy(checker->tstack->types, state->types, state->count);
+    memcpy(checker->tstack->types, state->types, sizeof state->types[0] * state->count);
     checker->tstack->top = &checker->tstack->types[state->count];
     return true;
 }
