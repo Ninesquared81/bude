@@ -161,7 +161,9 @@ _R3_.
 
 ### Definitions
 
-`pack` <_pack-name_> `def` [<_field-name_> `->` <_field-type_> &hellip;] `end`
+`pack` <_pack-name_> `def` (<_field-name_> `->` <_field-type_>) &hellip; `end`
 
-`comp` <_comp-name_> `def` [<_field-name_> `->` <_field-type_> &hellip;] `end`
+`comp` <_comp-name_> `def` (<_field-name_> `->` <_field-type_>) &hellip; `end`
+
+`func` <_param-type_> &hellip; <_func-name_> [`->` <_ret-type_> &hellip;] _func-body_ `end`
 
