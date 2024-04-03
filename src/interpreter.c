@@ -9,6 +9,7 @@
 #include "function.h"
 #include "interpreter.h"
 #include "ir.h"
+#include "memory.h"
 #include "module.h"
 #include "stack.h"
 #include "type_punning.h"
@@ -92,7 +93,9 @@ static void swap_comps(struct interpreter *interpreter, int lhs_size, int rhs_si
     assert(lhs_size > 0);
     assert(rhs_size > 0);
     stack_word *lhs = malloc(lhs_size * sizeof *lhs);
+    CHECK_ALLOCATION(lhs);
     stack_word *rhs = malloc(rhs_size * sizeof *rhs);
+    CHECK_ALLOCATION(rhs);
     pop_all(interpreter->main_stack, rhs_size, rhs);
     pop_all(interpreter->main_stack, lhs_size, lhs);
     push_all(interpreter->main_stack, rhs_size, rhs);
@@ -915,7 +918,9 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             int8_t word_count = read_s8(interpreter->block, ip + 2);
             ip += 2;
             stack_word *subcomp = malloc(word_count * sizeof *subcomp);
+            CHECK_ALLOCATION(subcomp);
             stack_word *words = malloc(offset * sizeof *words);
+            CHECK_ALLOCATION(words);
             pop_all(interpreter->main_stack, word_count, subcomp);
             pop_all(interpreter->main_stack, offset, words);
             memcpy(words, subcomp, word_count);
@@ -929,7 +934,9 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             int16_t word_count = read_s16(interpreter->block, ip + 3);
             ip += 4;
             stack_word *subcomp = malloc(word_count * sizeof *subcomp);
+            CHECK_ALLOCATION(subcomp);
             stack_word *words = malloc(offset * sizeof *words);
+            CHECK_ALLOCATION(words);
             pop_all(interpreter->main_stack, word_count, subcomp);
             pop_all(interpreter->main_stack, offset, words);
             memcpy(words, subcomp, word_count);
@@ -943,7 +950,9 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             int32_t word_count = read_s32(interpreter->block, ip + 5);
             ip += 8;
             stack_word *subcomp = malloc(word_count * sizeof *subcomp);
+            CHECK_ALLOCATION(subcomp);
             stack_word *words = malloc(offset * sizeof *words);
+            CHECK_ALLOCATION(words);
             pop_all(interpreter->main_stack, word_count, subcomp);
             pop_all(interpreter->main_stack, offset, words);
             memcpy(words, subcomp, word_count);

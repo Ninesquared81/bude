@@ -30,11 +30,7 @@ void init_module(struct module *module, const char *filename) {
     module->filename = filename;
     module->max_for_loop_level = 0;
     module->region = new_region(MODULE_REGION_SIZE);
-    if (module->region == NULL) {
-        // TODO: CHECK_ALLOCATION() macro.
-        fprintf(stderr, "Failed to allocate region for module.\n");
-        exit(1);
-    }
+    CHECK_ALLOCATION(module->region);
     init_function_table(&module->functions);
     init_string_table(&module->strings);
     init_type_table(&module->types);
@@ -59,10 +55,7 @@ static void grow_string_table(struct string_table *table) {
 
 int write_string(struct module *module, struct string_builder *builder) {
     struct string_view view = build_string_in_region(builder, module->region);
-    if (view.start == NULL) {
-        fprintf(stderr, "Failed to allocate string.\n");
-        exit(1);
-    }
+    CHECK_ALLOCATION(view.start);
     struct string_table *table = &module->strings;
     if (table->count + 1 > table->capacity) {
         grow_string_table(table);

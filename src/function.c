@@ -9,6 +9,7 @@ void init_function_table(struct function_table *functions) {
     functions->capacity = FUNCTION_TABLE_INIT_SIZE;
     functions->functions = allocate_array(FUNCTION_TABLE_INIT_SIZE, sizeof(struct function));
     functions->region = new_region(FUNCTION_TABLE_REGION_SIZE);
+    CHECK_ALLOCATION(functions->region);
 }
 
 void free_function_table(struct function_table *functions) {

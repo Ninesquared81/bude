@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "hash.h"
+#include "memory.h"
 #include "symbol.h"
 
 #define HASH2_P 113u  // Prime number < table size.
@@ -16,6 +17,7 @@ void init_symbol_dictionary(struct symbol_dictionary *dict) {
     dict->capacity = SYMDICT_INIT_SIZE;
     dict->count = 0;
     dict->slots = calloc(SYMDICT_INIT_SIZE, sizeof dict->slots[0]);
+    CHECK_ALLOCATION(dict->slots);
 }
 
 void free_symbol_dictionary(struct symbol_dictionary *dict) {

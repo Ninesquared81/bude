@@ -8,6 +8,7 @@
 
 #include "function.h"
 #include "location.h"
+#include "memory.h"
 #include "module.h"
 #include "type_checker.h"
 #include "type_punning.h"
@@ -69,21 +70,30 @@ void reset_type_stack(struct type_stack *tstack) {
 
 static void init_type_checker_states(struct type_checker_states *states) {
     states->region = new_region(TYPE_STACK_STATES_REGION_SIZE);
-    if (states->region == NULL) {
-        fprintf(stderr, "Failed to allocate region for type checker states");
-        exit(1);
-    }
+    CHECK_ALLOCATION(states->region);
 }
 
 static void reset_type_checker_states(struct type_checker_states *states,
                                       struct jump_info_table *jumps) {
     clear_region(states->region);
     states->size = jumps->count;
-    states->states    = region_calloc(states->region, states->size, sizeof *states->states);
-    states->ips       = region_calloc(states->region, states->size, sizeof *states->ips);
-    states->wir_dests = region_calloc(states->region, states->size, sizeof *states->wir_dests);
-    states->wir_srcs  = region_calloc(states->region, states->size, sizeof *states->wir_srcs);
-    memcpy(states->ips, jumps->dests, states->size * sizeof states->ips[0]);
+    if (states->size != 0) {
+        states->states    = region_calloc(states->region, states->size, sizeof *states->states);
+        CHECK_ALLOCATION(states->states);
+        states->ips       = region_calloc(states->region, states->size, sizeof *states->ips);
+        CHECK_ALLOCATION(states->ips);
+        states->wir_dests = region_calloc(states->region, states->size, sizeof *states->wir_dests);
+        CHECK_ALLOCATION(states->wir_dests);
+        states->wir_srcs  = region_calloc(states->region, states->size, sizeof *states->wir_srcs);
+        CHECK_ALLOCATION(states->wir_srcs);
+        memcpy(states->ips, jumps->dests, states->size * sizeof states->ips[0]);
+    }
+    else {
+        states->states = NULL;
+        states->ips = NULL;
+        states->wir_dests = NULL;
+        states->wir_srcs = NULL;
+    }
 }
 
 static void free_type_checker_states(struct type_checker_states *states) {
@@ -100,6 +110,7 @@ void init_type_checker(struct type_checker *checker, struct module *module) {
     checker->module = module;
     checker->types = &module->types;  // The type table is used a lot so it gets its own field.
     checker->tstack = malloc(sizeof *checker->tstack);
+    CHECK_ALLOCATION(checker->tstack);
     checker->ip = 0;
     checker->had_error = false;
     reset_type_stack(checker->tstack);
@@ -267,6 +278,7 @@ static bool save_state_with_index(struct type_checker *checker, size_t index) {
     size_t count = TSTACK_COUNT(checker->tstack);
     size_t tstack_size = count * sizeof(type_index);
     struct tstack_state *state = region_alloc(states->region, sizeof *state + tstack_size);
+    CHECK_ALLOCATION(state);
     state->count = count;
     memcpy(state->types, checker->tstack->types, tstack_size);
     states->states[index] = state;
@@ -328,7 +340,7 @@ static bool save_jump(struct type_checker *checker, int dest_offset) {
     size_t index = find_state(states, dest);
     assert(index < (size_t)checker->in_block->jumps.count);
     struct src_list *src_node = region_alloc(states->region, sizeof *src_node);
-    assert(src_node);
+    CHECK_ALLOCATION(src_node);
     src_node->next = states->wir_srcs[index];
     src_node->src = wir_src;
     states->wir_srcs[index] = src_node;

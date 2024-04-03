@@ -9,6 +9,7 @@
 #include "compiler.h"
 #include "ir.h"
 #include "lexer.h"
+#include "memory.h"
 #include "region.h"
 #include "string_builder.h"
 #include "symbol.h"
@@ -38,10 +39,7 @@ static void init_compiler(struct compiler *compiler, const char *src, struct mod
     compiler->for_loop_level = 0;
     compiler->module = module;
     compiler->temp = new_region(TEMP_REGION_SIZE);
-    if (compiler->temp == NULL) {
-        fprintf(stderr, "Failed to allocate temporary region in compiler.\n");
-        exit(1);
-    }
+    CHECK_ALLOCATION(compiler->temp);
 }
 
 static void free_compiler(struct compiler *compiler) {
@@ -817,6 +815,7 @@ static void compile_comp(struct compiler *compiler) {
         }
         struct type_node *next = head;
         head = region_alloc(compiler->temp, sizeof *head);
+        CHECK_ALLOCATION(head);
         head->next = next;
         head->type = type;
         head->offset = word_count;
@@ -889,10 +888,7 @@ static void compile_function(struct compiler *compiler) {
         }
         prev = advance(compiler);
         struct type_list *node = region_alloc(compiler->temp, sizeof *node);
-        if (node == NULL) {
-            fprintf(stderr, "Failed to allocate type_list node.\n");
-            exit(1);
-        }
+        CHECK_ALLOCATION(node);
         node->next = param_list;
         node->type = param;
         param_list = node;
@@ -913,10 +909,7 @@ static void compile_function(struct compiler *compiler) {
                 exit(1);
             }
             struct type_list *node = region_alloc(compiler->temp, sizeof *node);
-            if (node == NULL) {
-                fprintf(stderr, "Failed to allocate type_list node.\n");
-                exit(1);
-            }
+            CHECK_ALLOCATION(node);
             node->next = ret_list;
             node->type = ret;
             ret_list = node;
@@ -925,20 +918,14 @@ static void compile_function(struct compiler *compiler) {
     }
     type_index *params = region_calloc(compiler->module->functions.region,
                                        param_count, sizeof *params);
-    if (params == NULL && param_count != 0) {
-        fprintf(stderr, "Failed to allocate `params` array.");
-        exit(1);
-    }
+    if (param_count != 0) CHECK_ALLOCATION(params);
     for (int i = param_count - 1; i >= 0; --i) {
         params[i] = param_list->type;
         param_list = param_list->next;  // This isn't a memory leak (because regions).
     }
     type_index *rets = region_calloc(compiler->module->functions.region,
                                      ret_count, sizeof *rets);
-    if (rets == NULL && ret_count != 0) {
-        fprintf(stderr, "Failed to allocate `rets` array.");
-        exit(1);
-    }
+    if (ret_count != 0) CHECK_ALLOCATION(rets);
     for (int i = ret_count - 1; i >= 0; --i) {
         rets[i] = ret_list->type;
         ret_list = ret_list->next;  // Again, no memory leak because regions.

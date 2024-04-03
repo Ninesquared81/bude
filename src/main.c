@@ -11,6 +11,7 @@
 #include "generator.h"
 #include "interpreter.h"
 #include "ir.h"
+#include "memory.h"
 #include "optimiser.h"
 #include "stack.h"
 #include "type_checker.h"
@@ -235,10 +236,7 @@ void load_source(const char *restrict filename, char *restrict inbuf) {
 
 int main(int argc, char *argv[]) {
     char *inbuf = calloc(INPUT_BUFFER_SIZE, sizeof *inbuf);
-    if (inbuf == NULL) {
-        perror("calloc() failed");
-        exit(1);
-    }
+    CHECK_ALLOCATION(inbuf);
     struct cmdopts opts;
     parse_args(argc, argv, &opts);
     load_source(opts.filename, inbuf);
@@ -276,6 +274,7 @@ int main(int argc, char *argv[]) {
     }
     if (opts.generate_asm) {
         struct asm_block *assembly = malloc(sizeof *assembly);
+        CHECK_ALLOCATION(assembly);
         init_assembly(assembly);
         if (generate(&module, assembly) != GENERATE_OK) {
             fprintf(stderr, "Failed to write assembly code.\n");

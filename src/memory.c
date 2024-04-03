@@ -7,10 +7,7 @@
 
 void *allocate_array(size_t count, size_t size) {
     void *array = calloc(count, size);
-    if (array == NULL) {
-        fprintf(stderr, "Could not allocate array.\n");
-        exit(1);
-    }
+    CHECK_ALLOCATION(array);
     return array;
 }
 
@@ -23,10 +20,7 @@ void *reallocate_array(void *array, size_t old_count, size_t new_count, size_t s
         return array;
     }
     void *new = allocate_array(new_count, size);
-    if (new == NULL) {
-        fprintf(stderr, "Could not reallocate array.\n");
-        exit(1);
-    }
+    CHECK_ALLOCATION(new);
     if (array != NULL) {
         memcpy(new, array, size * old_count);
         free_array(array, old_count, size);
