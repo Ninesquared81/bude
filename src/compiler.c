@@ -223,6 +223,11 @@ static void emit_comp_field(struct compiler *compiler, enum t_opcode instruction
     }
 }
 
+static bool check_last_instruction(struct compiler *compiler, enum t_opcode instruction) {
+    int count = compiler->block->count;
+    return count > 0 && compiler->block->code[count - 1] == instruction;
+}
+
 static void compile_expr(struct compiler *compiler);
 static void compile_symbol(struct compiler *compiler);
 
@@ -942,7 +947,11 @@ static void compile_function(struct compiler *compiler) {
     struct ir_block *previous_block = compiler->block;
     compiler->block = &get_function(&compiler->module->functions, index)->t_code;
     compile_expr(compiler);  // Body.
-    emit_simple(compiler, T_OP_RET);  // Implicit return at end of function.
+    if (!check_last_instruction(compiler, T_OP_RET)
+        || is_jump_dest(compiler->block, compiler->block->count)) {
+        // Implicit return at end of function. Only emit if we need it.
+        emit_simple(compiler, T_OP_RET);
+    }
     compiler->block = previous_block;
     expect_consume(compiler, TOKEN_END, "Expect `end` after function body.");
 }
