@@ -37,6 +37,17 @@ struct string_builder *store_char(struct string_builder *builder, char ch, struc
     return builder;
 }
 
+struct string_builder *store_view(struct string_builder *builder, const struct string_view *view,
+                                  struct region *region) {
+    if (!SB_IS_FREE(builder)) {
+        builder = append_builder(builder, region);
+        if (builder == NULL) return NULL;
+    }
+    builder->owned_count = -1;
+    builder->view = *view;
+    return builder;
+}
+
 void build_string(struct string_builder *builder, char *buffer) {
     // This function assumes the buffer is large enough.
     for (; builder != NULL; builder = builder->next) {
