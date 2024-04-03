@@ -698,9 +698,8 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
     case TOKEN_SYMBOL: {
         struct symbol *symbol = lookup_symbol(&compiler->symbols, &token->value);
         if (symbol == NULL) {
-            assert(token->value.length <= (size_t)INT_MAX);
-            compile_error(compiler, "Unknown symbol '%.*s'",
-                          token->value.length, token->value.start);
+            const char *name = view_to_string(&token->value, compiler->temp);
+            compile_error(compiler, "Unknown symbol '%s'", name);
             exit(1);
         }
         switch (symbol->type) {
@@ -959,10 +958,9 @@ static void compile_function(struct compiler *compiler) {
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
     size_t level = symbol->loop_var.level;
     if (level > compiler->for_loop_level) {
-        // TODO: protect against too-long symbol names.
-        assert(symbol->name.length <= INT_MAX);
-        compile_error(compiler, "loop variable '%.*s' referenced outside defining loop.\n",
-                      (int)symbol->name.length, symbol->name.start);
+        const char *name = view_to_string(&symbol->name, compiler->temp);
+        compile_error(compiler, "loop variable '%s' referenced outside defining loop.\n",
+                      name);
         exit(1);
     }
     uint16_t offset = compiler->for_loop_level - level;  // Offset from top of aux.
@@ -998,9 +996,8 @@ static void compile_symbol(struct compiler *compiler) {
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
     if (symbol == NULL) {
         // TODO: protect against really long symbol names.
-        assert(symbol_text.length <= INT_MAX);
-        compile_error(compiler, "unknown symbol '%.*s'.\n",
-                      (int)symbol_text.length, symbol_text.start);
+        const char *name = view_to_string(&symbol_text, compiler->temp);
+        compile_error(compiler, "unknown symbol '%s'.\n", name);
         exit(1);
     }
     switch (symbol->type) {
