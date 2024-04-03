@@ -45,6 +45,7 @@ struct type_checker {
     struct type_table *types;
     struct module *module;
     int ip;
+    int current_function;
     bool had_error;
 };
 

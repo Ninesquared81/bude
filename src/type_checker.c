@@ -112,6 +112,7 @@ void init_type_checker(struct type_checker *checker, struct module *module) {
     checker->tstack = malloc(sizeof *checker->tstack);
     CHECK_ALLOCATION(checker->tstack);
     checker->ip = 0;
+    checker->current_function = 0;
     checker->had_error = false;
     reset_type_stack(checker->tstack);
 }
@@ -666,17 +667,19 @@ static void check_unreachable(struct type_checker *checker) {
     }
     if (!is_forward_jump_dest(checker, checker->ip + 1)) {
         checker->had_error = true;
-        int start_ip = checker->ip + 1;
-        int ip = start_ip;
-        while (ip + 1 < checker->in_block->count && !is_forward_jump_dest(checker, ip + 1)) {
-            ++ip;
+        ++checker->ip;
+        int start_ip = checker->ip;
+        while (checker->ip + 1 < checker->in_block->count
+               && !is_forward_jump_dest(checker, checker->ip + 1)) {
+            ++checker->ip;
         }
-        if (ip + 1 >= checker->in_block->count) {
-            type_error(checker, "code from index %d to end is unreachable", start_ip);
+        if (checker->ip + 1 >= checker->in_block->count) {
+            type_error(checker, "code from index %d to end of func_%d is unreachable",
+                       start_ip, checker->current_function);
             return;
         }
-        type_error(checker, "code from index %d to %d is unreachable", start_ip, ip);
-        checker->ip = ip;
+        type_error(checker, "code from index %d to %d in func_%d is unreachable",
+                   start_ip, checker->ip + 1, checker->current_function);
     }
     // Load previous state.
     bool success = load_state_at(checker, checker->ip + 1);
@@ -798,9 +801,10 @@ static void check_function_return(struct type_checker *checker, struct function 
     }
 }
 
-static void start_function(struct type_checker *checker, struct function *function) {
+static struct function *start_function(struct type_checker *checker, int func_index) {
     /* NOTE: there is no corresponding `end_function()` function since all the cleanup
        happens at the start of the next function (or at the end of all functions). */
+    struct function *function = get_function(&checker->module->functions, func_index);
     checker->in_block = &function->t_code;
     checker->out_block = &function->w_code;
     reset_type_checker_states(&checker->states, &checker->in_block->jumps);
@@ -813,10 +817,12 @@ static void start_function(struct type_checker *checker, struct function *functi
     }
     checker->tstack->top = checker->tstack->types + param_count;
     checker->ip = 0;
+    checker->current_function = func_index;
+    return function;
 }
 
-static void type_check_function(struct type_checker *checker, struct function *function) {
-    start_function(checker, function);
+static void type_check_function(struct type_checker *checker, int func_index) {
+    struct function *function = start_function(checker, func_index);
     for (; checker->ip < checker->in_block->count; ++checker->ip) {
         if (is_jump_dest(checker->in_block, checker->ip)) {
             size_t index = find_state(&checker->states, checker->ip);
@@ -1415,8 +1421,7 @@ static void type_check_function(struct type_checker *checker, struct function *f
 
 enum type_check_result type_check(struct type_checker *checker) {
     for (int i = 0; i < checker->module->functions.count; ++i) {
-        struct function *function = get_function(&checker->module->functions, i);
-        type_check_function(checker, function);
+        type_check_function(checker, i);
     }
     return (!checker->had_error) ? TYPE_CHECK_OK : TYPE_CHECK_ERROR;
 }
