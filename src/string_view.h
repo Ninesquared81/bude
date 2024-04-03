@@ -15,7 +15,7 @@ struct string_view {
 #define SV_LIT_INIT(str_lit) \
     {.start = str_lit, .length = sizeof str_lit - 1}
 #define SV_LIT(str_lit) ((struct string_view) SV_LIT_INIT(str_lit))
-#define SV_FMT(sv) (((sv).length < INT_MAX) ? (sv).length : INT_MAX), (sv).start
+#define SV_FMT(sv) (((sv).length < (size_t)INT_MAX) ? (int)(sv).length : INT_MAX), (sv).start
 #define PRI_SV ".*s"
 
 char *view_to_string(struct string_view *view, struct region *region);
