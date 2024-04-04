@@ -13,6 +13,8 @@
 #include "type_checker.h"
 #include "type_punning.h"
 
+#define TEMP_REGION_SIZE (512 * 1024)
+
 struct arithm_conv {
     type_index result_type;
     enum w_opcode lhs_conv;
@@ -20,7 +22,26 @@ struct arithm_conv {
     enum w_opcode result_conv;
 };
 
+static struct string_view type_array_to_sv(struct type_checker *checker,
+                                           int count, type_index types[count]) {
+    struct string_builder builder = {0};
+    struct string_builder *bp = &builder;
+    bp = store_char(bp, '[', checker->temp);
+    if (count > 0) {
+        struct string_view name = type_name(checker->types, types[0]);
+        bp = store_view(bp, &name, checker->temp);
+        for (int i = 1; i < count; ++i) {
+            bp = store_char(bp, ' ', checker->temp);
+            name = type_name(checker->types, types[i]);
+            bp = store_view(bp, &name, checker->temp);
+        }
+    }
+    bp = store_char(bp, ']', checker->temp);
+    return build_string_in_region(&builder, checker->temp);
+}
+
 static void type_error(struct type_checker *checker, const char *restrict message, ...) {
+    checker->had_error = true;
     ir_error(checker->module->filename, checker->in_block, checker->ip, "Type error: ");
     va_list args;
     va_start(args, message);
@@ -47,9 +68,10 @@ static const struct type_info *expect_kind(struct type_checker *checker, enum ty
 static void expect_type(struct type_checker *checker, type_index expected_type) {
     type_index actual_type = ts_pop(checker);
     if (actual_type != expected_type) {
-        type_error(checker, "expected type '%s' but got type '%s'",
-                   type_name(checker->types, expected_type),
-                   type_name(checker->types, actual_type));
+        struct string_view expected_sv = type_name(checker->types, expected_type);
+        struct string_view actual_sv = type_name(checker->types, actual_type);
+        type_error(checker, "expected type %"PRI_SV" but got type %"PRI_SV,
+                   SV_FMT(expected_sv), SV_FMT(actual_sv));
         exit(1);
     }
 }
@@ -57,10 +79,37 @@ static void expect_type(struct type_checker *checker, type_index expected_type) 
 static void expect_keep_type(struct type_checker *checker, type_index expected_type) {
     type_index actual_type = ts_peek(checker);
     if (actual_type != expected_type) {
-        type_error(checker, "expected type '%s' but got type '%s'",
-                   type_name(checker->types, expected_type),
-                   type_name(checker->types, actual_type));
+        struct string_view expected_sv = type_name(checker->types, expected_type);
+        struct string_view actual_sv = type_name(checker->types, actual_type);
+        type_error(checker, "expected type %"PRI_SV" but got type %"PRI_SV,
+                   SV_FMT(expected_sv),
+                   SV_FMT(actual_sv));
         exit(1);
+    }
+}
+
+static void expect_types(struct type_checker *checker,
+                         int count, type_index expected_types[count]) {
+    if (TSTACK_COUNT(checker->tstack) < count) {
+        struct string_view expected_sv = type_array_to_sv(checker, count, expected_types);
+        struct string_view actual_sv = type_array_to_sv(checker, TSTACK_COUNT(checker->tstack),
+                                                        checker->tstack->types);
+        type_error(checker, "expected types %"PRI_SV", but got types %"PRI_SV,
+                   SV_FMT(expected_sv),
+                   SV_FMT(actual_sv));
+        checker->tstack->top = checker->tstack->types;
+    }
+    else {
+        if (!array_eq(count, &checker->tstack->top[-count],
+                      count, expected_types, sizeof(type_index))) {
+            struct string_view expected_sv = type_array_to_sv(checker, count, expected_types);
+            struct string_view actual_sv = type_array_to_sv(checker, count,
+                                                            checker->tstack->types);
+            type_error(checker, "expected types %"PRI_SV", but got types %"PRI_SV,
+                       SV_FMT(expected_sv),
+                       SV_FMT(actual_sv));
+        }
+        checker->tstack->top -= count;
     }
 }
 
@@ -115,6 +164,8 @@ void init_type_checker(struct type_checker *checker, struct module *module) {
     checker->current_function = 0;
     checker->had_error = false;
     reset_type_stack(checker->tstack);
+    checker->temp = new_region(TEMP_REGION_SIZE);
+    CHECK_ALLOCATION(checker->temp);
 }
 
 void free_type_checker(struct type_checker *checker) {
@@ -639,12 +690,15 @@ static void emit_swap_comps(struct type_checker *checker, int lhs_size, int rhs_
     emit_comp_subcomp(checker, W_OP_SWAP_COMPS8, lhs_size, rhs_size);
 }
 
+static struct string_view type_stack_to_sv(struct type_checker *checker) {
+    return type_array_to_sv(checker, TSTACK_COUNT(checker->tstack), checker->tstack->types);
+}
+
 static bool check_pointer_addition(struct type_checker *checker,
                                    type_index lhs_type, type_index rhs_type) {
     enum w_opcode conversion = W_OP_NOP;
     if (lhs_type == TYPE_PTR) {
         if (rhs_type == TYPE_PTR) {
-            checker->had_error = true;
             type_error(checker, "cannot add two pointers");
         }
         conversion = promote(rhs_type);
@@ -666,7 +720,6 @@ static void check_unreachable(struct type_checker *checker) {
         if (checker->ip >= checker->in_block->count) return;
     }
     if (!is_forward_jump_dest(checker, checker->ip + 1)) {
-        checker->had_error = true;
         ++checker->ip;
         int start_ip = checker->ip;
         while (checker->ip + 1 < checker->in_block->count
@@ -689,7 +742,6 @@ static void check_unreachable(struct type_checker *checker) {
 static void check_jump_instruction(struct type_checker *checker) {
     int offset = read_s16(checker->in_block, checker->ip + 1);
     if (!save_jump(checker, offset)) {
-        checker->had_error = true;
         type_error(checker, "inconsistent stack after jump instruction",
                    checker->ip);
     }
@@ -783,9 +835,7 @@ static void check_function_call(struct type_checker *checker, int index) {
     assert(function != NULL);
     int param_count = function->sig.param_count;
     type_index *params = function->sig.params;
-    for (int i = param_count - 1; i >= 0; --i) {
-        expect_type(checker, params[i]);
-    }
+    expect_types(checker, param_count, params);
     int ret_count = function->sig.ret_count;
     type_index *rets = function->sig.rets;
     for (int i = 0; i < ret_count; ++i) {
@@ -797,7 +847,12 @@ static void check_function_return(struct type_checker *checker, struct function 
     int ret_count = function->sig.ret_count;
     type_index *rets = function->sig.rets;
     if (!check_type_array(checker, ret_count, rets)) {
-        type_error(checker, "Return types do not match function signature");
+        struct string_view expected_sv = type_array_to_sv(checker, ret_count, rets);
+        struct string_view actual_sv = type_stack_to_sv(checker);
+        type_error(checker, "expected return types %"PRI_SV", but got %"PRI_SV,
+                   SV_FMT(expected_sv),
+                   SV_FMT(actual_sv));
+        clear_region(checker->temp);
     }
 }
 
@@ -833,7 +888,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             if (!save_state_with_index(checker, index)) {
                 // Previous state was saved here.
                 if (!check_state_with_index(checker, index)) {
-                    checker->had_error = true;
                     type_error(checker, "inconsistent stack after jump instruction");
                 }
                 struct src_list *wir_src_node = checker->states.wir_srcs[index];
@@ -930,7 +984,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
                 result_type = conversion.result_type;
                 if (result_type == TYPE_ERROR) {
-                    checker->had_error = true;
                     type_error(checker, "invalid types for `+`");
                     result_type = TYPE_WORD;  // Continue with a word.
                 }
@@ -949,7 +1002,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
-                checker->had_error = true;
                 type_error(checker, "mismatched types for `and`");
                 lhs_type = TYPE_WORD;
             }
@@ -959,7 +1011,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         }
         case T_OP_DEREF:
             if (ts_pop(checker) != TYPE_PTR) {
-                checker->had_error = true;
                 type_error(checker, "expected pointer");
             }
             ts_push(checker, TYPE_BYTE);
@@ -970,7 +1021,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
-                checker->had_error = true;
                 type_error(checker, "invalid types for `divmod`");
                 conversion.result_type = TYPE_WORD;
             }
@@ -994,7 +1044,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
-                checker->had_error = true;
                 type_error(checker, "invalid types for `idivmod`");
                 conversion.result_type = TYPE_WORD;
             }
@@ -1012,7 +1061,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
-                checker->had_error = true;
                 type_error(checker, "invalid types for `edivmod`");
                 conversion.result_type = TYPE_WORD;
             }
@@ -1053,7 +1101,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
             if (conversion.result_type == TYPE_ERROR) {
-                checker->had_error = true;
                 type_error(checker, "invalid types for `*`");
                 conversion.result_type = TYPE_WORD;
             }
@@ -1073,7 +1120,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             if (lhs_type != rhs_type) {
-                checker->had_error = true;
                 type_error(checker, "mismatched tyes for `or`:");
                 lhs_type = TYPE_WORD;  // In case of an error, recover by using a word.
             }
@@ -1089,7 +1135,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_PRINT_CHAR: {
             type_index type = ts_pop(checker);
             if (type != TYPE_CHAR && type != TYPE_BYTE) {
-                checker->had_error = true;
                 type_error(checker, "expected char or byte for `print-char`");
             }
             emit_simple(checker, W_OP_PRINT_CHAR);
@@ -1102,7 +1147,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 emit_simple_nnop(checker, conv_instruction);
             }
             else {
-                checker->had_error = true;
                 type_error(checker, "invalid type for `OP_PRINT_INT`");
             }
             emit_simple(checker, W_OP_PRINT_INT);
@@ -1124,13 +1168,11 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                     emit_simple_nnop(checker, promote(rhs_type));
                 }
                 else {
-                    checker->had_error = true;
                     type_error(checker, "invalid types for `-`");
                     conversion.result_type = TYPE_WORD;
                 }
             }
             else {
-                checker->had_error = true;
                 type_error(checker, "invalid types for `-`");
                 conversion.result_type = TYPE_WORD;
             }
@@ -1203,7 +1245,6 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_EXIT: {
             type_index type = ts_pop(checker);
             if (!is_integral(type)) {
-                checker->had_error = true;
                 type_error(checker, "expected integral type for `exit`");
             }
             check_unreachable(checker);
@@ -1429,7 +1470,6 @@ enum type_check_result type_check(struct type_checker *checker) {
 void ts_push(struct type_checker *checker, type_index type) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top >= &tstack->types[TYPE_STACK_SIZE]) {
-        checker->had_error = true;
         type_error(checker, "insufficient stack space");
         return;
     }
@@ -1439,7 +1479,6 @@ void ts_push(struct type_checker *checker, type_index type) {
 type_index ts_pop(struct type_checker *checker) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top == tstack->types) {
-        checker->had_error = true;
         type_error(checker, "insufficient stack space");
         return TYPE_ERROR;
     }
@@ -1449,7 +1488,6 @@ type_index ts_pop(struct type_checker *checker) {
 type_index ts_peek(struct type_checker *checker) {
     struct type_stack *tstack = checker->tstack;
     if (tstack->top == tstack->types) {
-        checker->had_error = true;
         type_error(checker, "insufficient stack space");
         return TYPE_ERROR;
     }

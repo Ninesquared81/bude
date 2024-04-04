@@ -44,6 +44,7 @@ struct type_checker {
     struct type_stack *tstack;
     struct type_table *types;
     struct module *module;
+    struct region *temp;
     int ip;
     int current_function;
     bool had_error;
