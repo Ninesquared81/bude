@@ -760,11 +760,13 @@ static void check_pack_instruction(struct type_checker *checker, type_index inde
     for (int i = info->pack.field_count - 1; i >= 0 && info->pack.fields[i] != TYPE_ERROR; ) {
         type_index field_type = info->pack.fields[i];
         type_index arg_type = ts_pop(checker);
+        struct string_view pack_name = type_name(checker->types, index);
         if (arg_type != field_type) {
-            type_error(checker, "invalid type for '%s'[%d]: expected '%s' but got '%s'.",
-                       type_name(checker->types, index), i,
-                       type_name(checker->types, field_type),
-                       type_name(checker->types, arg_type));
+            struct string_view field_name = type_name(checker->types, field_type);
+            struct string_view arg_name = type_name(checker->types, arg_type);
+            type_error(checker, "invalid type for field %d of '%"PRI_SV"':"
+                       " expected %"PRI_SV" but got %"PRI_SV,
+                       i, SV_FMT(pack_name), SV_FMT(field_name), SV_FMT(arg_name));
         }
         int size = type_size(checker->types, field_type);
         i += (size > 0) ? size : 0;
@@ -784,9 +786,7 @@ static void check_comp_instruction(struct type_checker *checker, type_index inde
     const struct type_info *info = lookup_type(checker->types, index);
     assert(info != NULL && "Invalid state");
     assert(info->kind == KIND_COMP && "Invalid IR code generated");
-    for (int i = info->comp.field_count - 1; i >= 0; --i) {
-        expect_type(checker, info->comp.fields[i]);
-    }
+    expect_types(checker, info->comp.field_count, info->comp.fields);
     ts_push(checker, index);
 }
 
