@@ -6,7 +6,7 @@
 #include "string_view.h"
 #include "region.h"
 
-#define SB_OWNED_SIZE sizeof(struct string_view)
+#define SB_OWNED_SIZE (int)sizeof(struct string_view)
 #define SB_IS_VIEW(builder) ((builder)->owned_count == -1)
 #define SB_IS_OWNED(builder) (1 <= (builder)->owned_count && \
                               (builder)->owned_count <= SB_OWNED_SIZE)
