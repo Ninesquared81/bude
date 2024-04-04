@@ -19,22 +19,22 @@ const char *kind_name(enum type_kind kind) {
     return "<Invalid kind>";
 }
 
-const char *type_name(struct type_table *table, type_index type) {
+struct string_view type_name(struct type_table *table, type_index type) {
     switch (type) {
-    case TYPE_ERROR: return "<TYPE_ERROR>";
-    case TYPE_WORD:  return "word";
-    case TYPE_BYTE:  return "byte";
-    case TYPE_PTR:   return "ptr";
-    case TYPE_INT:   return "int";
-    case TYPE_U8:    return "u8";
-    case TYPE_U16:   return "u16";
-    case TYPE_U32:   return "u32";
-    case TYPE_S8:    return "s8";
-    case TYPE_S16:   return "s16";
-    case TYPE_S32:   return "s32";
+    case TYPE_ERROR: return SV_LIT("<TYPE_ERROR>");
+    case TYPE_WORD:  return SV_LIT("word");
+    case TYPE_BYTE:  return SV_LIT("byte");
+    case TYPE_PTR:   return SV_LIT("ptr");
+    case TYPE_INT:   return SV_LIT("int");
+    case TYPE_U8:    return SV_LIT("u8");
+    case TYPE_U16:   return SV_LIT("u16");
+    case TYPE_U32:   return SV_LIT("u32");
+    case TYPE_S8:    return SV_LIT("s8");
+    case TYPE_S16:   return SV_LIT("s16");
+    case TYPE_S32:   return SV_LIT("s32");
     }
     const struct type_info *info = lookup_type(table, type);
-    if (info == NULL) return "<Undefined type>";
+    if (info == NULL) return SV_LIT("<Undefined type>");
     return info->name;
 }
 
@@ -158,7 +158,7 @@ type_index new_type(struct type_table *types, struct string_view *name) {
     int index = types->count++;
     struct type_info *info = &types->infos[index];
     info->kind = KIND_UNINIT;
-    info->name = view_to_string(name, types->extra_info);
+    info->name = copy_view_in_region(name, types->extra_info);
     // Offset to get valid index again (see below).
     return index + SIMPLE_TYPE_COUNT;
 }
