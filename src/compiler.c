@@ -1039,25 +1039,25 @@ static bool compile_simple(struct compiler *compiler) {
         emit_simple(compiler, T_OP_EDIVMOD);
         break;
     case TOKEN_EQUALS:
-        assert(0 && "'=' not implemented yet.");
+        emit_simple(compiler, T_OP_EQUALS);
         break;
     case TOKEN_EXIT:
         emit_simple(compiler, T_OP_EXIT);
         break;
     case TOKEN_GREATER_EQUALS:
-        assert(0 && "'>=' not implemented yet.");
+        emit_simple(compiler, T_OP_GREATER_EQUALS);
         break;
     case TOKEN_GREATER_THAN:
-        assert(0 && "'>' not implemented yet.");
+        emit_simple(compiler, T_OP_GREATER_THAN);
         break;
     case TOKEN_IDIVMOD:
         emit_simple(compiler, T_OP_IDIVMOD);
         break;
     case TOKEN_LESS_EQUALS:
-        assert(0 && "'<=' not implemented yet.");
+        emit_simple(compiler, T_OP_LESS_EQUALS);
         break;
     case TOKEN_LESS_THAN:
-        assert(0 && "'<' not implemented yet.");
+        emit_simple(compiler, T_OP_LESS_THAN);
         break;
     case TOKEN_MINUS:
         emit_simple(compiler, T_OP_SUB);
@@ -1093,7 +1093,7 @@ static bool compile_simple(struct compiler *compiler) {
         emit_simple(compiler, T_OP_POP);
         break;
     case TOKEN_SLASH_EQUALS:
-        assert(0 && "'/=' not implemented yet.");
+        emit_simple(compiler, T_OP_NOT_EQUALS);
         break;
     case TOKEN_STAR:
         emit_simple(compiler, T_OP_MULT);

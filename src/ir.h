@@ -56,6 +56,8 @@ enum t_opcode {
     T_OP_EDIVMOD,
     /* DUPE -- Duplicate top stack element. */
     T_OP_DUPE,
+    /* EQUALS -- Pop top two stack elements and push 1 if they're equal or 0 if not. */
+    T_OP_EQUALS,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     T_OP_EXIT,
     /* FOR_DEC_START Off_s16 -- Initialise a for loop counter to the top element. */
@@ -70,16 +72,30 @@ enum t_opcode {
     T_OP_FOR_INC,
     /* GET_LOOP_VAR Idx_u16 -- Get the loop variable a given distance from the current loop. */
     T_OP_GET_LOOP_VAR,
+    /* GREATER_EQUALS -- Pop top two stack elements and push 1 if next element is greater than
+       or equal to the top element, or 0 if not. */
+    T_OP_GREATER_EQUALS,
+    /* GREATER_THAN -- Pop top two stack elements and push 1 if next element is greater than
+     the top element, or 0 if not. */
+    T_OP_GREATER_THAN,
     /* JUMP Off_s16 -- Jump a given distance. */
     T_OP_JUMP,
     /* JUMP_COND Off_s16 -- Jump the given distance if the top element is non-zero (true). */
     T_OP_JUMP_COND,
     /* JUMP_NCOND Off_s16 -- Jump the given distance if the top element is zero (false). */
     T_OP_JUMP_NCOND,
+    /* LESS_EQUALS -- Pop top two stack elements and push 1 if next element is less than
+     or equal to the top element, or 0 if not. */
+    T_OP_LESS_EQUALS,
+    /* LESS_THAN -- Pop top two stack elements and push 1 if next element is less than the
+       top element, or 0 if not. */
+    T_OP_LESS_THAN,
     /* MULT -- Multiply the top two stack elements. */
     T_OP_MULT,
-    /* NOT -- Logical not operation of the top two stack elements. */
+    /* NOT -- Logical not operation of the top stack element. */
     T_OP_NOT,
+    /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */
+    T_OP_NOT_EQUALS,
     /* OR -- Logical (value-preserving) or operation of top two stack elements. */
     T_OP_OR,
     /* (T)PRINT -- Print the top element of the stack in a format surmised from its type. */

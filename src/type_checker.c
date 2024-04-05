@@ -1092,9 +1092,24 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             break;
         }
+        case T_OP_EQUALS:
+            assert(0 && "'=' not implemented yet.");
+            break;
         case T_OP_GET_LOOP_VAR:
             ts_push(checker, TYPE_INT);  // Loop variable is always an integer.
             copy_immediate_u16(checker, W_OP_GET_LOOP_VAR);
+            break;
+        case T_OP_GREATER_EQUALS:
+            assert(0 && "'>=' not implemented yet.");
+            break;
+        case T_OP_GREATER_THAN:
+            assert(0 && "'>' not implemented yet.");
+            break;
+        case T_OP_LESS_EQUALS:
+            assert(0 && "'<=' not implemented yet.");
+            break;
+        case T_OP_LESS_THAN:
+            assert(0 && "'<' not implemented yet.");
             break;
         case T_OP_MULT: {
             type_index rhs_type = ts_pop(checker);
@@ -1116,6 +1131,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_simple(checker, W_OP_NOT);
             break;
         }
+        case T_OP_NOT_EQUALS:
+            assert(0 && "'/=' not implemented yet.");
+            break;
         case T_OP_OR: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
