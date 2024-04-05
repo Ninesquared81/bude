@@ -213,6 +213,8 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
         return simple_instruction("T_OP_EDIVMOD", offset);
     case T_OP_DUPE:
         return simple_instruction("T_OP_DUPE", offset);
+    case T_OP_EQUALS:
+        return simple_instruction("T_OP_EQUALS", offset);
     case T_OP_EXIT:
         return simple_instruction("T_OP_EXIT", offset);
     case T_OP_FOR_DEC_START:
@@ -225,16 +227,26 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
         return jump_instruction("T_OP_FOR_INC", block, offset);
     case T_OP_GET_LOOP_VAR:
         return immediate_u16_instruction("T_OP_GET_LOOP_VAR", block, offset);
+    case T_OP_GREATER_EQUALS:
+        return simple_instruction("T_OP_GREATER_EQUALS", offset);
+    case T_OP_GREATER_THAN:
+        return simple_instruction("T_OP_GREATER_THAN", offset);
     case T_OP_JUMP:
         return jump_instruction("T_OP_JUMP", block, offset);
     case T_OP_JUMP_COND:
         return jump_instruction("T_OP_JUMP_COND", block, offset);
     case T_OP_JUMP_NCOND:
         return jump_instruction("T_OP_JUMP_NCOND", block, offset);
+    case T_OP_LESS_EQUALS:
+        return simple_instruction("T_OP_LESS_EQUALS", offset);
+    case T_OP_LESS_THAN:
+        return simple_instruction("T_OP_LESS_THAN", offset);
     case T_OP_MULT:
         return simple_instruction("T_OP_MULT", offset);
     case T_OP_NOT:
         return simple_instruction("T_OP_NOT", offset);
+    case T_OP_NOT_EQUALS:
+        return simple_instruction("T_OP_NOT_EQUALS", offset);
     case T_OP_OR:
         return simple_instruction("T_OP_OR", offset);
     case T_OP_PRINT:
@@ -377,6 +389,8 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return immediate_s16_instruction("W_OP_DUPEN16", block, offset);
     case W_OP_DUPEN32:
         return immediate_s32_instruction("W_OP_DUPEN32", block, offset);
+    case W_OP_EQUALS:
+        return simple_instruction("W_OP_EQUALS", offset);
     case W_OP_EXIT:
         return simple_instruction("W_OP_EXIT", offset);
     case W_OP_FOR_DEC_START:
@@ -389,16 +403,26 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return jump_instruction("W_OP_FOR_INC", block, offset);
     case W_OP_GET_LOOP_VAR:
         return immediate_u16_instruction("W_OP_GET_LOOP_VAR", block, offset);
+    case W_OP_GREATER_EQUALS:
+        return simple_instruction("W_OP_GREATER_EQUALS", offset);
+    case W_OP_GREATER_THAN:
+        return simple_instruction("W_OP_GREATER_THAN", offset);
     case W_OP_JUMP:
         return jump_instruction("W_OP_JUMP", block, offset);
     case W_OP_JUMP_COND:
         return jump_instruction("W_OP_JUMP_COND", block, offset);
     case W_OP_JUMP_NCOND:
         return jump_instruction("W_OP_JUMP_NCOND", block, offset);
+    case W_OP_LESS_EQUALS:
+        return simple_instruction("W_OP_LESS_EQUALS", offset);
+    case W_OP_LESS_THAN:
+        return simple_instruction("W_OP_LESS_THAN", offset);
     case W_OP_MULT:
         return simple_instruction("W_OP_MULT", offset);
     case W_OP_NOT:
         return simple_instruction("W_OP_NOT", offset);
+    case W_OP_NOT_EQUALS:
+        return simple_instruction("W_OP_NOT_EQUALS", offset);
     case W_OP_OR:
         return simple_instruction("W_OP_OR", offset);
     case W_OP_PRINT:
