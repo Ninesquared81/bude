@@ -84,7 +84,7 @@ void asm_write_string(struct asm_block *assembly, const char *restrict string) {
                 asm_write(assembly, ", %d", c);
                 if (c == '\0') return;  // Stop string after null terminator.
             } while (!can_be_in_fasm_string(c = *++string));
-            asm_write(assembly, "%c", opener);
+            asm_write(assembly, ", %c%c", opener, c);
         }
     }
     asm_write(assembly, "%c, 0", opener);  // Null terminate string.
