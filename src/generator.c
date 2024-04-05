@@ -443,6 +443,14 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2f(assembly, "sub", "rsp", "%d", n * 8);
             break;
         }
+        case W_OP_EQUALS:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "sete", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_EXIT:
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
@@ -512,6 +520,22 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             }
             break;
         }
+        case W_OP_GREATER_EQUALS:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setge", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_GREATER_THAN:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setg", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_JUMP: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
@@ -537,6 +561,22 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1f(assembly, "jz", ".addr_%d", jump_addr);
             break;
         }
+        case W_OP_LESS_EQUALS:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setle", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_LESS_THAN:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setl", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_MULT:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2c(assembly, "imul", "rax", "[rsp]", "Multiplication is commutative.");
@@ -548,6 +588,14 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2(assembly, "test", "rax", "rax");
             asm_write_inst1(assembly, "setz", "dl");
             asm_write_inst1(assembly, "push", "rdx");
+            break;
+        case W_OP_NOT_EQUALS:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setne", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_OR:
             asm_write_inst1c(assembly, "pop", "rdx", "'Else' value.");
