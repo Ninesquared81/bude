@@ -1079,12 +1079,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             ts_push(checker, type);
             const struct type_info *info = lookup_type(checker->types, type);
             assert(info != NULL && "Unknown type");
-            if (type == TYPE_STRING) {
-                // Strings are a special case: they count as simple types, but behave like a comp.
-                // However, since they are built in, we aready know their field types (ptr, int).
-                emit_immediate_s8(checker, W_OP_DUPEN8, 2);
-            }
-            else if (info->kind != KIND_COMP) {
+            if (info->kind != KIND_COMP) {
                 emit_simple(checker, W_OP_DUPE);
             }
             else {
