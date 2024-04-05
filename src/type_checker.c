@@ -1110,6 +1110,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             copy_immediate_u16(checker, W_OP_GET_LOOP_VAR);
             break;
         case T_OP_GREATER_EQUALS: {
+            // TODO: use separate instructions for signed and unsigned args.
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
@@ -1123,6 +1124,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             break;
         }
         case T_OP_GREATER_THAN: {
+            // TODO: use separate instructions for signed and unsigned args.
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
@@ -1136,6 +1138,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             break;
         }
         case T_OP_LESS_EQUALS: {
+            // TODO: use separate instructions for signed and unsigned args.
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
@@ -1149,6 +1152,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             break;
         }
         case T_OP_LESS_THAN: {
+            // TODO: use separate instructions for signed and unsigned args.
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
