@@ -22,6 +22,11 @@
         push(stack, a op b);       \
     } while (0)
 
+#define IBIN_OP(op, stack) do {                 \
+        sstack_word b = u64_to_s64(pop(stack)); \
+        sstack_word a = u64_to_s64(pop(stack)); \
+        push(stack, s64_to_u64(a op b));        \
+    } while (0);
 
 bool init_interpreter(struct interpreter *interpreter, struct module *module) {
     interpreter->module = module;
@@ -381,10 +386,10 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, loop_var);
             break;
         }
-        case W_OP_GREATER_EQUALS: BIN_OP(>=, interpreter->main_stack); break;
-        case W_OP_GREATER_THAN: BIN_OP(>, interpreter->main_stack); break;
-        case W_OP_LESS_EQUALS: BIN_OP(<=, interpreter->main_stack); break;
-        case W_OP_LESS_THAN: BIN_OP(<, interpreter->main_stack); break;
+        case W_OP_GREATER_EQUALS: IBIN_OP(>=, interpreter->main_stack); break;
+        case W_OP_GREATER_THAN: IBIN_OP(>, interpreter->main_stack); break;
+        case W_OP_LESS_EQUALS: IBIN_OP(<=, interpreter->main_stack); break;
+        case W_OP_LESS_THAN: IBIN_OP(<, interpreter->main_stack); break;
         case W_OP_MULT: BIN_OP(*, interpreter->main_stack); break;
         case W_OP_NOT: {
             bool condition = pop(interpreter->main_stack);

@@ -10,6 +10,7 @@
 #define PRIssw PRId64
 
 typedef uint64_t stack_word;
+typedef int64_t sstack_word;
 
 struct stack {
     stack_word *top;
