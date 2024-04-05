@@ -1092,25 +1092,75 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             break;
         }
-        case T_OP_EQUALS:
-            assert(0 && "'=' not implemented yet.");
+        case T_OP_EQUALS: {
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                type_error(checker, "invalid types for `=`");
+            }
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_EQUALS);
+            ts_push(checker, TYPE_INT);
             break;
+        }
         case T_OP_GET_LOOP_VAR:
             ts_push(checker, TYPE_INT);  // Loop variable is always an integer.
             copy_immediate_u16(checker, W_OP_GET_LOOP_VAR);
             break;
-        case T_OP_GREATER_EQUALS:
-            assert(0 && "'>=' not implemented yet.");
+        case T_OP_GREATER_EQUALS: {
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                type_error(checker, "invalid types for `>=`");
+            }
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_GREATER_EQUALS);
+            ts_push(checker, TYPE_INT);
             break;
-        case T_OP_GREATER_THAN:
-            assert(0 && "'>' not implemented yet.");
+        }
+        case T_OP_GREATER_THAN: {
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                type_error(checker, "invalid types for `>`");
+            }
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_GREATER_THAN);
+            ts_push(checker, TYPE_INT);
             break;
-        case T_OP_LESS_EQUALS:
-            assert(0 && "'<=' not implemented yet.");
+        }
+        case T_OP_LESS_EQUALS: {
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                type_error(checker, "invalid types for `<=`");
+            }
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_LESS_EQUALS);
+            ts_push(checker, TYPE_INT);
             break;
-        case T_OP_LESS_THAN:
-            assert(0 && "'<' not implemented yet.");
+        }
+        case T_OP_LESS_THAN: {
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                type_error(checker, "invalid types for `<`");
+            }
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_LESS_THAN);
+            ts_push(checker, TYPE_INT);
             break;
+        }
         case T_OP_MULT: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
@@ -1131,9 +1181,19 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_simple(checker, W_OP_NOT);
             break;
         }
-        case T_OP_NOT_EQUALS:
-            assert(0 && "'/=' not implemented yet.");
+        case T_OP_NOT_EQUALS: {
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            if (conversion.result_type == TYPE_ERROR) {
+                type_error(checker, "invalid types for `/=`");
+            }
+            emit_simple_nnop(checker, conversion.lhs_conv);
+            emit_simple_nnop(checker, conversion.rhs_conv);
+            emit_simple(checker, W_OP_NOT_EQUALS);
+            ts_push(checker, TYPE_INT);
             break;
+        }
         case T_OP_OR: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);

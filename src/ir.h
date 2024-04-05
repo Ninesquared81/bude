@@ -197,6 +197,8 @@ enum w_opcode {
     W_OP_DUPEN8,
     W_OP_DUPEN16,
     W_OP_DUPEN32,
+    /* EQUALS -- Pop top two stack elements and push 1 if they're equal or 0 if not. */
+    W_OP_EQUALS,
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */
     W_OP_EXIT,
     /* FOR_DEC_START Off_s16 -- Initialise a for loop counter to the top element. */
@@ -211,16 +213,30 @@ enum w_opcode {
     W_OP_FOR_INC,
     /* GET_LOOP_VAR Idx_u16 -- Get the loop variable a given distance from the current loop. */
     W_OP_GET_LOOP_VAR,
+    /* GREATER_EQUALS -- Pop top two stack elements and push 1 if next element is greater than
+       or equal to the top element, or 0 if not. */
+    W_OP_GREATER_EQUALS,
+    /* GREATER_THAN -- Pop top two stack elements and push 1 if next element is greater than
+     the top element, or 0 if not. */
+    W_OP_GREATER_THAN,
     /* JUMP Off_s16 -- Jump a given distance. */
     W_OP_JUMP,
     /* JUMP_COND Off_s16 -- Jump the given distance if the top element is non-zero (true). */
     W_OP_JUMP_COND,
     /* JUMP_NCOND Off_s16 -- Jump the given distance if the top element is zero (false). */
     W_OP_JUMP_NCOND,
+    /* LESS_EQUALS -- Pop top two stack elements and push 1 if next element is less than
+     or equal to the top element, or 0 if not. */
+    W_OP_LESS_EQUALS,
+    /* LESS_THAN -- Pop top two stack elements and push 1 if next element is less than the
+       top element, or 0 if not. */
+    W_OP_LESS_THAN,
     /* MULT -- Multiply the top two stack elements. */
     W_OP_MULT,
     /* NOT -- Logical not operation of the top two stack elements. */
     W_OP_NOT,
+    /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */
+    W_OP_NOT_EQUALS,
     /* OR -- Logical (value-preserving) or operation of top two stack elements. */
     W_OP_OR,
     /* (W)PRINT -- Print the top element of the stack as a word. */

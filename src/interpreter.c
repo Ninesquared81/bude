@@ -275,6 +275,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push_all(interpreter->main_stack, n, words);
             break;
         }
+        case W_OP_EQUALS: BIN_OP(==, interpreter->main_stack); break;
         case W_OP_EXIT: {
             int64_t exit_code = u64_to_s64(pop(interpreter->main_stack));
             if (exit_code < INT_MIN) exit_code = INT_MIN;
@@ -380,12 +381,17 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, loop_var);
             break;
         }
+        case W_OP_GREATER_EQUALS: BIN_OP(>=, interpreter->main_stack); break;
+        case W_OP_GREATER_THAN: BIN_OP(>, interpreter->main_stack); break;
+        case W_OP_LESS_EQUALS: BIN_OP(<=, interpreter->main_stack); break;
+        case W_OP_LESS_THAN: BIN_OP(<, interpreter->main_stack); break;
         case W_OP_MULT: BIN_OP(*, interpreter->main_stack); break;
         case W_OP_NOT: {
             bool condition = pop(interpreter->main_stack);
             push(interpreter->main_stack, !condition);
             break;
         }
+        case W_OP_NOT_EQUALS: BIN_OP(!=, interpreter->main_stack); break;
         case W_OP_SUB: BIN_OP(-, interpreter->main_stack); break;
         case W_OP_DIVMOD: {
             stack_word b = pop(interpreter->main_stack);
