@@ -213,24 +213,36 @@ enum w_opcode {
     W_OP_FOR_INC,
     /* GET_LOOP_VAR Idx_u16 -- Get the loop variable a given distance from the current loop. */
     W_OP_GET_LOOP_VAR,
-    /* GREATER_EQUALS -- Pop top two stack elements and push 1 if next element is greater than
-       or equal to the top element, or 0 if not. */
+    /* GREATER_EQUALS -- Pop top two (signed) stack elements and push 1 if next element is greater
+       than or equal to the top element, or 0 if not. */
     W_OP_GREATER_EQUALS,
-    /* GREATER_THAN -- Pop top two stack elements and push 1 if next element is greater than
-     the top element, or 0 if not. */
+    /* GREATER_THAN -- Pop top two (signed) stack elements and push 1 if next element is greater
+       than the top element, or 0 if not. */
     W_OP_GREATER_THAN,
+    /* HIGHER_SAME -- Pop top two (unsigned) stack elements and push 1 if next element is higher
+       or the same as the top element, or 0 if not. */
+    W_OP_HIGHER_SAME,
+    /* HIGHER_THAN -- Pop top two (unsigned) stack elements and push 1 if next element is higher
+       than the top element, or 0 if not. */
+    W_OP_HIGHER_THAN,
     /* JUMP Off_s16 -- Jump a given distance. */
     W_OP_JUMP,
     /* JUMP_COND Off_s16 -- Jump the given distance if the top element is non-zero (true). */
     W_OP_JUMP_COND,
     /* JUMP_NCOND Off_s16 -- Jump the given distance if the top element is zero (false). */
     W_OP_JUMP_NCOND,
-    /* LESS_EQUALS -- Pop top two stack elements and push 1 if next element is less than
-     or equal to the top element, or 0 if not. */
+    /* LESS_EQUALS -- Pop top two (signed) stack elements and push 1 if next element is less than
+       or equal to the top element, or 0 if not. */
     W_OP_LESS_EQUALS,
-    /* LESS_THAN -- Pop top two stack elements and push 1 if next element is less than the
+    /* LESS_THAN -- Pop top two (signed) stack elements and push 1 if next element is less than the
        top element, or 0 if not. */
     W_OP_LESS_THAN,
+    /* LOWER_SAME -- Pop top two (unsigned) stack elements and push 1 if next element is lower or the
+       same as the top element, or 0 if not. */
+    W_OP_LOWER_SAME,
+    /* LOWER_THAN -- Pop top two (unsigned) stack elements and push 1 if next element is lower than the
+       top element, or 0 if not. */
+    W_OP_LOWER_THAN,
     /* MULT -- Multiply the top two stack elements. */
     W_OP_MULT,
     /* NOT -- Logical not operation of the top two stack elements. */

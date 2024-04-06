@@ -536,6 +536,22 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_HIGHER_SAME:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setae", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_HIGHER_THAN:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "seta", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_JUMP: {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
@@ -574,6 +590,22 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setl", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_LOWER_SAME:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setbe", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_LOWER_THAN:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setb", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;

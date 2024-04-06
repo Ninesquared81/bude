@@ -1114,7 +1114,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             emit_simple_nnop(checker, conversion.lhs_conv);
             emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, W_OP_GREATER_EQUALS);
+            enum w_opcode comparison = (is_signed(conversion.result_type))
+                ? W_OP_GREATER_EQUALS
+                : W_OP_HIGHER_SAME;
+            emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
         }
@@ -1128,7 +1131,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             emit_simple_nnop(checker, conversion.lhs_conv);
             emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, W_OP_GREATER_THAN);
+            enum w_opcode comparison = (is_signed(conversion.result_type))
+                ? W_OP_GREATER_THAN
+                : W_OP_HIGHER_SAME;
+            emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
         }
@@ -1142,7 +1148,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             emit_simple_nnop(checker, conversion.lhs_conv);
             emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, W_OP_LESS_EQUALS);
+            enum w_opcode comparison = (is_signed(conversion.result_type))
+                ? W_OP_LESS_EQUALS
+                : W_OP_LOWER_SAME;
+            emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
         }
@@ -1156,7 +1165,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             emit_simple_nnop(checker, conversion.lhs_conv);
             emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, W_OP_LESS_THAN);
+            enum w_opcode comparison = (is_signed(conversion.result_type))
+                ? W_OP_LESS_THAN
+                : W_OP_LOWER_THAN;
+            emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
         }

@@ -388,8 +388,12 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_GREATER_EQUALS: IBIN_OP(>=, interpreter->main_stack); break;
         case W_OP_GREATER_THAN: IBIN_OP(>, interpreter->main_stack); break;
+        case W_OP_HIGHER_SAME: BIN_OP(>=, interpreter->main_stack); break;
+        case W_OP_HIGHER_THAN: BIN_OP(>, interpreter->main_stack); break;
         case W_OP_LESS_EQUALS: IBIN_OP(<=, interpreter->main_stack); break;
         case W_OP_LESS_THAN: IBIN_OP(<, interpreter->main_stack); break;
+        case W_OP_LOWER_SAME: BIN_OP(<=, interpreter->main_stack); break;
+        case W_OP_LOWER_THAN: BIN_OP(<, interpreter->main_stack); break;
         case W_OP_MULT: BIN_OP(*, interpreter->main_stack); break;
         case W_OP_NOT: {
             bool condition = pop(interpreter->main_stack);
