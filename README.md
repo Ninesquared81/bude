@@ -113,11 +113,13 @@ _i1_ _i2_ `divmod` &rarr; (_i1_ / _i2_) (_i1_ \% _i2_) : Pop the top two element
 quotient and remainder from their division. The remainder is always non-negative
 (Euclidean division).
 
-_i1_ _i2_ `idivmod` &rarr; (_i1_ trunc/ _i2_) (_i1_ trunc\% _i2_) : Pop the top two elements
+_i1_ _i2_ `idivmod` &rarr; (_i1_ /<sub>trunc</sub> _i2_) (_i1_ \%<sub>trunc</sub> _i2_) :
+Pop the top two elements
 and push the quotient and remainder of their truncated divison. The quotient is rounded
 towards zero and the remainder can be negative.
 
-_i1_ _i2_ `edivmod` &rarr; (_i1_ euc/ _i2_) (_i1_ euc\% _i2_) : Pop the top two elements and
+_i1_ _i2_ `edivmod` &rarr; (_i1_ /<sub>euclid</sub> _i2_) (_i1_ \%<sub>euclid</sub> _i2_) :
+Pop the top two elements and
 push the quotient and remainer of their Euclidean division. The quotient is rounded towards
 negative infinity and the remainer is always non-negative.
 
