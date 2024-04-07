@@ -407,6 +407,10 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return simple_instruction("W_OP_GREATER_EQUALS", offset);
     case W_OP_GREATER_THAN:
         return simple_instruction("W_OP_GREATER_THAN", offset);
+    case W_OP_HIGHER_SAME:
+        return simple_instruction("W_OP_HIGHER_SAME", offset);
+    case W_OP_HIGHER_THAN:
+        return simple_instruction("W_OP_HIGHER_THAN", offset);
     case W_OP_JUMP:
         return jump_instruction("W_OP_JUMP", block, offset);
     case W_OP_JUMP_COND:
@@ -417,6 +421,10 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
         return simple_instruction("W_OP_LESS_EQUALS", offset);
     case W_OP_LESS_THAN:
         return simple_instruction("W_OP_LESS_THAN", offset);
+    case W_OP_LOWER_SAME:
+        return simple_instruction("W_OP_LOWER_SAME", offset);
+    case W_OP_LOWER_THAN:
+        return simple_instruction("W_OP_LOWER_THAN", offset);
     case W_OP_MULT:
         return simple_instruction("W_OP_MULT", offset);
     case W_OP_NOT:
