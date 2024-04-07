@@ -120,8 +120,8 @@ towards zero and the remainder can be negative.
 
 _i1_ _i2_ `edivmod` &rarr; (_i1_ /<sub>euclid</sub> _i2_) (_i1_ \%<sub>euclid</sub> _i2_) :
 Pop the top two elements and
-push the quotient and remainer of their Euclidean division. The quotient is rounded towards
-negative infinity and the remainer is always non-negative.
+push the quotient and remainder of their Euclidean division. The quotient is rounded towards
+negative infinity and the remainder is always non-negative.
 
 _i1_ _i2_ `/` &rarr; (_i1_ / _i2_) : Pop the top two stack elements and push the quotient from
 their division. Acts like `divmod pop` to pop the remainder.
