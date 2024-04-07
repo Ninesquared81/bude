@@ -127,6 +127,26 @@ their division. Acts like `divmod pop` to pop the remainder.
 _i1_ _i2_ `%` &rarr; (_i1_ / _i2_) : Pop the top two stack elements and push the remainder from
 their division. Acts like `divmod swap pop` to pop the quotient.
 
+### Comparison operations
+
+_i1_ _i2_ `<` &rarr; (_i1_ < _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ < _i2_
+or 0 if not.
+
+_i1_ _i2_ `<=` &rarr; (_i1_ <= _i2_) : Pop _i2_ and _i1_ and push back 1 if  _i1_ &le; _i2_
+or 0 if not.
+
+_i1_ _i2_ `=` &rarr; (_i1_ == _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ = _i2_
+or 0 if not.
+
+_i1_ _i2_ `>=` &rarr; (_i1_ >= _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ &ge; _i2_
+or 0 if not.
+
+_i1_ _i2_ `>` &rarr; (_i1_ > _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ > _i2_
+or 0 if not.
+
+_i1_ _i2_ `/=` &rarr; (_i1_ != _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ &ne; _i2_
+or 0 if not.
+
 ### Logical operations
 
 _w_ `not` &rarr; !_w_ : Replace the top element with its logical inverse (i.e. non-zero &rarr; 0,
