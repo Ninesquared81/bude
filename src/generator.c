@@ -386,10 +386,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
         case W_OP_IDIVMOD:
             asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
             asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
-            asm_write_inst2(assembly, "xor", "rdx", "rdx");
-            asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst1(assembly, "sets", "dl");
-            asm_write_inst1(assembly, "neg", "rdx");
+            asm_write_inst0(assembly, "cqo");
             asm_write_inst1(assembly, "idiv", "rcx");
             asm_write_inst1c(assembly, "push", "rax", "Quotient.");
             asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
@@ -400,10 +397,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2c(assembly, "mov", "r8", "rcx", "Save divisor.");
             asm_write_inst1(assembly, "neg", "r8");
             asm_write_inst2c(assembly, "cmovs", "r8", "rcx", "r8 = abs(b)");
-            asm_write_inst2(assembly, "xor", "rdx", "rdx");
-            asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst1(assembly, "sets", "dl");
-            asm_write_inst1(assembly, "neg", "rdx");
+            asm_write_inst0(assembly, "cqo");
             asm_write_inst2(assembly, "xor", "r9", "r9");
             asm_write_inst2(assembly, "xor", "r10", "r10");
             asm_write_inst2(assembly, "test", "rcx", "rcx");
