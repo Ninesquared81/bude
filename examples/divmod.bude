@@ -1,20 +1,33 @@
-0b110111 54 /% swap print print
+42 -5 divmod
+"42 -5 divmod:\n" print
+" r = " print
+print
+" q = " print
+print
 
-# -42 5 /% # swap print print
+"\n" print
 
-# 10 -17 /% # swap print print
+-42 5 divmod
+"-42 5 divmod:\n" print
+" r = " print
+print
+" q = " print
+print
 
--23 -108 /%
+"\n" print
 
-for
-    swap -108 * +
-    if -23 - not then
-        ":>\n"
-    else
-        ":(\n"
-    end
-do
-    dupe deref print-char
-    1 +
-end
+42 5 divmod
+"42 5 divmod:\n" print
+" r = " print
+print
+" q = " print
+print
 
+"\n" print
+
+-42 -5 divmod
+"-42 -5 divmod:\n" print
+" r = " print
+print
+" q = " print
+print
