@@ -387,6 +387,9 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
             asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
             asm_write_inst2(assembly, "xor", "rdx", "rdx");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst1(assembly, "sets", "dl");
+            asm_write_inst1(assembly, "neg", "rdx");
             asm_write_inst1(assembly, "idiv", "rcx");
             asm_write_inst1c(assembly, "push", "rax", "Quotient.");
             asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
@@ -400,6 +403,9 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2(assembly, "mov", "r9", "rcx");
             asm_write_inst2c(assembly, "sal", "r9", "63", "r9 = sign(rcx).");
             asm_write_inst2(assembly, "xor", "rdx", "rdx");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst1(assembly, "sets", "dl");
+            asm_write_inst1(assembly, "neg", "rdx");
             asm_write_inst1(assembly, "idiv", "rcx");
             asm_write_inst2c(assembly, "add", "r8", "rax", "q - sign(b)");
             asm_write_inst2c(assembly, "add", "r9", "rdx", "r + abs(b)");
