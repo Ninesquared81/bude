@@ -8,59 +8,94 @@
 
 #define OPCODE_FORMAT "-21s"
 
+static void print_bytes(struct ir_block *block, int offset, int length) {
+#define MAX_INSTRUCTION_LENGTH 9  // Maximum number of bytes in an instruction.
+#define WIDTH_LIMIT (3 * MAX_INSTRUCTION_LENGTH + 3)
+    int count = 0;
+    count += printf("[ ");
+    for (int i = 0; i < length; ++i) {
+        int byte = block->code[offset + i];
+        if (count + 3 < WIDTH_LIMIT - 1) {
+            count += printf("%02x ", byte);
+        }
+        else {
+            // Truncate overlong instructions.
+            count += printf(".. ");
+            break;
+        }
+    }
+    for (int i = length; i < MAX_INSTRUCTION_LENGTH; ++i) {
+        count += printf("-- ");
+    }
+    count += printf("%*s:\t", WIDTH_LIMIT - count, "]");
+#undef MAX_INSTRUCTION_LENGTH
+#undef WIDTH_LIMIT
+}
+
 static int immediate_u8_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 2);
     printf("%"OPCODE_FORMAT" %"PRIu8"\n", name, read_u8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_u16_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 3);
     printf("%"OPCODE_FORMAT" %"PRIu16"\n", name, read_u16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_u32_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 5);
     printf("%"OPCODE_FORMAT" %"PRIu32"\n", name, read_u32(block, offset + 1));
     return offset + 5;
 }
 
 static int immediate_u64_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 9);
     printf("%"OPCODE_FORMAT" %"PRIu64"\n", name, read_u64(block, offset + 1));
     return offset + 9;
 }
 
 static int immediate_s8_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 2);
     printf("%"OPCODE_FORMAT" %"PRId8"\n", name, read_s8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_s16_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 3);
     printf("%"OPCODE_FORMAT" %"PRId16"\n", name, read_s16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_s32_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 5);
     printf("%"OPCODE_FORMAT" %"PRId32"\n", name, read_s32(block, offset + 1));
     return offset + 5;
 }
 
 static int immediate_s64_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 9);
     printf("%"OPCODE_FORMAT" %"PRId64"\n", name, read_s64(block, offset + 1));
     return offset + 9;
 }
 
 static int jump_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 3);
     int jump = read_s16(block, offset + 1);
     printf("%"OPCODE_FORMAT" %-6d (%d -> %d)\n", name, jump, offset, offset + jump + 1);
     return offset + 3;
 }
 
-static int simple_instruction(const char *name, int offset) {
+static int simple_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1);
     printf("%s\n", name);
     return offset + 1;
 }
 
 static int w_pack_instruction(const char *name, struct ir_block *block, int offset,
                               int field_count) {
+    print_bytes(block, offset, 1 + field_count);
     printf("%"OPCODE_FORMAT, name);
     printf(" %u", read_u8(block, offset + 1));
     for (int i = 1; i < field_count; ++i) {
@@ -71,6 +106,7 @@ static int w_pack_instruction(const char *name, struct ir_block *block, int offs
 }
 
 static int t_pack_field8_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 1 + 1);
     type_index pack = read_s8(block, offset + 1);
     int field = read_u8(block, offset + 2);
     // TODO: print name of pack here.
@@ -79,6 +115,7 @@ static int t_pack_field8_instruction(const char *name, struct ir_block *block, i
 }
 
 static int t_pack_field16_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 2 + 1);
     type_index pack = read_s16(block, offset + 1);
     int field = read_u8(block, offset + 3);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
@@ -86,6 +123,7 @@ static int t_pack_field16_instruction(const char *name, struct ir_block *block, 
 }
 
 static int t_pack_field32_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 4 + 1);
     type_index pack = read_s32(block, offset + 1);
     int field = read_u8(block, offset + 5);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
@@ -93,6 +131,7 @@ static int t_pack_field32_instruction(const char *name, struct ir_block *block, 
 }
 
 static int t_comp_field8_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 1 + 1);
     type_index comp = read_s8(block, offset + 1);
     int field = read_u8(block, offset + 2);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
@@ -100,6 +139,7 @@ static int t_comp_field8_instruction(const char *name, struct ir_block *block, i
 }
 
 static int t_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 2 + 2);
     type_index comp = read_s16(block, offset + 1);
     int field = read_u16(block, offset + 3);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
@@ -107,6 +147,7 @@ static int t_comp_field16_instruction(const char *name, struct ir_block *block, 
 }
 
 static int t_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 4 + 4);
     type_index comp = read_s32(block, offset + 1);
     int field = read_u32(block, offset + 5);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
@@ -114,6 +155,7 @@ static int t_comp_field32_instruction(const char *name, struct ir_block *block, 
 }
 
 static int w_pack_field_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 1 + 1);
     int field = read_u8(block, offset + 1);
     int size = read_u8(block, offset + 2);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, field, size);
@@ -121,24 +163,28 @@ static int w_pack_field_instruction(const char *name, struct ir_block *block, in
 }
 
 static int w_comp_field8_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 1);
     int field = read_s8(block, offset + 1);
     printf("%"OPCODE_FORMAT" %d\n", name, field);
     return offset + 2;
 }
 
 static int w_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 2);
     int field = read_s16(block, offset + 1);
     printf("%"OPCODE_FORMAT" %d\n", name, field);
     return offset + 3;
 }
 
 static int w_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 4);
     int field = read_s32(block, offset + 1);
     printf("%"OPCODE_FORMAT" %d\n", name, field);
     return offset + 5;
 }
 
 static int w_comp_subcomp8_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 1 + 1);
     int subcomp = read_s8(block, offset + 1);
     int length = read_s8(block, offset + 2);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
@@ -146,6 +192,7 @@ static int w_comp_subcomp8_instruction(const char *name, struct ir_block *block,
 }
 
 static int w_comp_subcomp16_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 2 + 2);
     int subcomp = read_s16(block, offset + 1);
     int length = read_s16(block, offset + 3);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
@@ -153,6 +200,7 @@ static int w_comp_subcomp16_instruction(const char *name, struct ir_block *block
 }
 
 static int w_comp_subcomp32_instruction(const char *name, struct ir_block *block, int offset) {
+    print_bytes(block, offset, 1 + 4 + 4);
     int subcomp = read_s32(block, offset + 1);
     int length = read_s32(block, offset + 5);
     printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
@@ -161,12 +209,11 @@ static int w_comp_subcomp32_instruction(const char *name, struct ir_block *block
 
 static int disassemble_t_instruction(struct ir_block *block, int offset) {
     enum t_opcode instruction = block->code[offset];
-    printf("%c %04d [%03d] ",
-           (is_jump_dest(block, offset)) ? '*': ' ', offset, instruction);
+    printf("%c %04d ", (is_jump_dest(block, offset)) ? '*': ' ', offset);
 
     switch (instruction) {
     case T_OP_NOP:
-        return simple_instruction("T_OP_NOP", offset);
+        return simple_instruction("T_OP_NOP", block, offset);
     case T_OP_PUSH8:
         return immediate_u8_instruction("T_OP_PUSH8", block, offset);
     case T_OP_PUSH16:
@@ -196,27 +243,27 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     case T_OP_LOAD_STRING32:
         return immediate_u32_instruction("T_OP_LOAD_STRING32", block, offset);
     case T_OP_POP:
-        return simple_instruction("T_OP_POP", offset);
+        return simple_instruction("T_OP_POP", block, offset);
     case T_OP_ADD:
-        return simple_instruction("T_OP_ADD", offset);
+        return simple_instruction("T_OP_ADD", block, offset);
     case T_OP_AND:
-        return simple_instruction("T_OP_AND", offset);
+        return simple_instruction("T_OP_AND", block, offset);
     case T_OP_DECOMP:
-        return simple_instruction("T_OP_DECOMP", offset);
+        return simple_instruction("T_OP_DECOMP", block, offset);
     case T_OP_DEREF:
-        return simple_instruction("T_OP_DEREF", offset);
+        return simple_instruction("T_OP_DEREF", block, offset);
     case T_OP_DIVMOD:
-        return simple_instruction("T_OP_DIVMOD", offset);
+        return simple_instruction("T_OP_DIVMOD", block, offset);
     case T_OP_IDIVMOD:
-        return simple_instruction("T_OP_IDIVMOD", offset);
+        return simple_instruction("T_OP_IDIVMOD", block, offset);
     case T_OP_EDIVMOD:
-        return simple_instruction("T_OP_EDIVMOD", offset);
+        return simple_instruction("T_OP_EDIVMOD", block, offset);
     case T_OP_DUPE:
-        return simple_instruction("T_OP_DUPE", offset);
+        return simple_instruction("T_OP_DUPE", block, offset);
     case T_OP_EQUALS:
-        return simple_instruction("T_OP_EQUALS", offset);
+        return simple_instruction("T_OP_EQUALS", block, offset);
     case T_OP_EXIT:
-        return simple_instruction("T_OP_EXIT", offset);
+        return simple_instruction("T_OP_EXIT", block, offset);
     case T_OP_FOR_DEC_START:
         return jump_instruction("T_OP_FOR_DEC_START", block, offset);
     case T_OP_FOR_DEC:
@@ -228,9 +275,9 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     case T_OP_GET_LOOP_VAR:
         return immediate_u16_instruction("T_OP_GET_LOOP_VAR", block, offset);
     case T_OP_GREATER_EQUALS:
-        return simple_instruction("T_OP_GREATER_EQUALS", offset);
+        return simple_instruction("T_OP_GREATER_EQUALS", block, offset);
     case T_OP_GREATER_THAN:
-        return simple_instruction("T_OP_GREATER_THAN", offset);
+        return simple_instruction("T_OP_GREATER_THAN", block, offset);
     case T_OP_JUMP:
         return jump_instruction("T_OP_JUMP", block, offset);
     case T_OP_JUMP_COND:
@@ -238,41 +285,41 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     case T_OP_JUMP_NCOND:
         return jump_instruction("T_OP_JUMP_NCOND", block, offset);
     case T_OP_LESS_EQUALS:
-        return simple_instruction("T_OP_LESS_EQUALS", offset);
+        return simple_instruction("T_OP_LESS_EQUALS", block, offset);
     case T_OP_LESS_THAN:
-        return simple_instruction("T_OP_LESS_THAN", offset);
+        return simple_instruction("T_OP_LESS_THAN", block, offset);
     case T_OP_MULT:
-        return simple_instruction("T_OP_MULT", offset);
+        return simple_instruction("T_OP_MULT", block, offset);
     case T_OP_NOT:
-        return simple_instruction("T_OP_NOT", offset);
+        return simple_instruction("T_OP_NOT", block, offset);
     case T_OP_NOT_EQUALS:
-        return simple_instruction("T_OP_NOT_EQUALS", offset);
+        return simple_instruction("T_OP_NOT_EQUALS", block, offset);
     case T_OP_OR:
-        return simple_instruction("T_OP_OR", offset);
+        return simple_instruction("T_OP_OR", block, offset);
     case T_OP_PRINT:
-        return simple_instruction("T_OP_PRINT", offset);
+        return simple_instruction("T_OP_PRINT", block, offset);
     case T_OP_PRINT_CHAR:
-        return simple_instruction("T_OP_PRINT_CHAR", offset);
+        return simple_instruction("T_OP_PRINT_CHAR", block, offset);
     case T_OP_PRINT_INT:
-        return simple_instruction("T_OP_PRINT_INT", offset);
+        return simple_instruction("T_OP_PRINT_INT", block, offset);
     case T_OP_SUB:
-        return simple_instruction("T_OP_SUB", offset);
+        return simple_instruction("T_OP_SUB", block, offset);
     case T_OP_SWAP:
-        return simple_instruction("T_OP_SWAP", offset);
+        return simple_instruction("T_OP_SWAP", block, offset);
     case T_OP_AS_BYTE:
-        return simple_instruction("T_OP_AS_BYTE", offset);
+        return simple_instruction("T_OP_AS_BYTE", block, offset);
     case T_OP_AS_U8:
-        return simple_instruction("T_OP_AS_U8", offset);
+        return simple_instruction("T_OP_AS_U8", block, offset);
     case T_OP_AS_U16:
-        return simple_instruction("T_OP_AS_U16", offset);
+        return simple_instruction("T_OP_AS_U16", block, offset);
     case T_OP_AS_U32:
-        return simple_instruction("T_OP_AS_U32", offset);
+        return simple_instruction("T_OP_AS_U32", block, offset);
     case T_OP_AS_S8:
-        return simple_instruction("T_OP_AS_S8", offset);
+        return simple_instruction("T_OP_AS_S8", block, offset);
     case T_OP_AS_S16:
-        return simple_instruction("T_OP_AS_S16", offset);
+        return simple_instruction("T_OP_AS_S16", block, offset);
     case T_OP_AS_S32:
-        return simple_instruction("T_OP_AS_S32", offset);
+        return simple_instruction("T_OP_AS_S32", block, offset);
     case T_OP_PACK8:
         return immediate_u8_instruction("T_OP_PACK8", block, offset);
     case T_OP_PACK16:
@@ -286,7 +333,7 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     case T_OP_COMP32:
         return immediate_u32_instruction("T_OP_COMP32", block, offset);
     case T_OP_UNPACK:
-        return simple_instruction("T_OP_UNPACK", offset);
+        return simple_instruction("T_OP_UNPACK", block, offset);
     case T_OP_PACK_FIELD_GET8:
         return t_pack_field8_instruction("T_OP_PACK_FIELD_GET8", block, offset);
     case T_OP_PACK_FIELD_GET16:
@@ -318,7 +365,7 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     case T_OP_CALL32:
         return immediate_u32_instruction("T_OP_CALL32", block, offset);
     case T_OP_RET:
-        return simple_instruction("T_OP_RET", offset);
+        return simple_instruction("T_OP_RET", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
@@ -327,12 +374,11 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
 
 static int disassemble_w_instruction(struct ir_block *block, int offset) {
     enum w_opcode instruction = block->code[offset];
-    printf("%c %04d [%03d] ",
-           (is_jump_dest(block, offset)) ? '*': ' ', offset, instruction);
+    printf("%c %04d ", (is_jump_dest(block, offset)) ? '*': ' ', offset);
 
     switch (instruction) {
     case W_OP_NOP:
-        return simple_instruction("W_OP_NOP", offset);
+        return simple_instruction("W_OP_NOP", block, offset);
     case W_OP_PUSH8:
         return immediate_u8_instruction("W_OP_PUSH8", block, offset);
     case W_OP_PUSH16:
@@ -362,7 +408,7 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     case W_OP_LOAD_STRING32:
         return immediate_u32_instruction("W_OP_LOAD_STRING32", block, offset);
     case W_OP_POP:
-        return simple_instruction("W_OP_POP", offset);
+        return simple_instruction("W_OP_POP", block, offset);
     case W_OP_POPN8:
         return immediate_s8_instruction("W_OP_POPN8", block, offset);
     case W_OP_POPN16:
@@ -370,19 +416,19 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     case W_OP_POPN32:
         return immediate_s32_instruction("W_OP_POPN32", block, offset);
     case W_OP_ADD:
-        return simple_instruction("W_OP_ADD", offset);
+        return simple_instruction("W_OP_ADD", block, offset);
     case W_OP_AND:
-        return simple_instruction("W_OP_AND", offset);
+        return simple_instruction("W_OP_AND", block, offset);
     case W_OP_DEREF:
-        return simple_instruction("W_OP_DEREF", offset);
+        return simple_instruction("W_OP_DEREF", block, offset);
     case W_OP_DIVMOD:
-        return simple_instruction("W_OP_DIVMOD", offset);
+        return simple_instruction("W_OP_DIVMOD", block, offset);
     case W_OP_IDIVMOD:
-        return simple_instruction("W_OP_IDIVMOD", offset);
+        return simple_instruction("W_OP_IDIVMOD", block, offset);
     case W_OP_EDIVMOD:
-        return simple_instruction("W_OP_EDIVMOD", offset);
+        return simple_instruction("W_OP_EDIVMOD", block, offset);
     case W_OP_DUPE:
-        return simple_instruction("W_OP_DUPE", offset);
+        return simple_instruction("W_OP_DUPE", block, offset);
     case W_OP_DUPEN8:
         return immediate_s8_instruction("W_OP_DUPEN8", block, offset);
     case W_OP_DUPEN16:
@@ -390,9 +436,9 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     case W_OP_DUPEN32:
         return immediate_s32_instruction("W_OP_DUPEN32", block, offset);
     case W_OP_EQUALS:
-        return simple_instruction("W_OP_EQUALS", offset);
+        return simple_instruction("W_OP_EQUALS", block, offset);
     case W_OP_EXIT:
-        return simple_instruction("W_OP_EXIT", offset);
+        return simple_instruction("W_OP_EXIT", block, offset);
     case W_OP_FOR_DEC_START:
         return jump_instruction("W_OP_FOR_DEC_START", block, offset);
     case W_OP_FOR_DEC:
@@ -404,13 +450,13 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     case W_OP_GET_LOOP_VAR:
         return immediate_u16_instruction("W_OP_GET_LOOP_VAR", block, offset);
     case W_OP_GREATER_EQUALS:
-        return simple_instruction("W_OP_GREATER_EQUALS", offset);
+        return simple_instruction("W_OP_GREATER_EQUALS", block, offset);
     case W_OP_GREATER_THAN:
-        return simple_instruction("W_OP_GREATER_THAN", offset);
+        return simple_instruction("W_OP_GREATER_THAN", block, offset);
     case W_OP_HIGHER_SAME:
-        return simple_instruction("W_OP_HIGHER_SAME", offset);
+        return simple_instruction("W_OP_HIGHER_SAME", block, offset);
     case W_OP_HIGHER_THAN:
-        return simple_instruction("W_OP_HIGHER_THAN", offset);
+        return simple_instruction("W_OP_HIGHER_THAN", block, offset);
     case W_OP_JUMP:
         return jump_instruction("W_OP_JUMP", block, offset);
     case W_OP_JUMP_COND:
@@ -418,33 +464,33 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     case W_OP_JUMP_NCOND:
         return jump_instruction("W_OP_JUMP_NCOND", block, offset);
     case W_OP_LESS_EQUALS:
-        return simple_instruction("W_OP_LESS_EQUALS", offset);
+        return simple_instruction("W_OP_LESS_EQUALS", block, offset);
     case W_OP_LESS_THAN:
-        return simple_instruction("W_OP_LESS_THAN", offset);
+        return simple_instruction("W_OP_LESS_THAN", block, offset);
     case W_OP_LOWER_SAME:
-        return simple_instruction("W_OP_LOWER_SAME", offset);
+        return simple_instruction("W_OP_LOWER_SAME", block, offset);
     case W_OP_LOWER_THAN:
-        return simple_instruction("W_OP_LOWER_THAN", offset);
+        return simple_instruction("W_OP_LOWER_THAN", block, offset);
     case W_OP_MULT:
-        return simple_instruction("W_OP_MULT", offset);
+        return simple_instruction("W_OP_MULT", block, offset);
     case W_OP_NOT:
-        return simple_instruction("W_OP_NOT", offset);
+        return simple_instruction("W_OP_NOT", block, offset);
     case W_OP_NOT_EQUALS:
-        return simple_instruction("W_OP_NOT_EQUALS", offset);
+        return simple_instruction("W_OP_NOT_EQUALS", block, offset);
     case W_OP_OR:
-        return simple_instruction("W_OP_OR", offset);
+        return simple_instruction("W_OP_OR", block, offset);
     case W_OP_PRINT:
-        return simple_instruction("W_OP_PRINT", offset);
+        return simple_instruction("W_OP_PRINT", block, offset);
     case W_OP_PRINT_CHAR:
-        return simple_instruction("W_OP_PRINT_CHAR", offset);
+        return simple_instruction("W_OP_PRINT_CHAR", block, offset);
     case W_OP_PRINT_INT:
-        return simple_instruction("W_OP_PRINT_INT", offset);
+        return simple_instruction("W_OP_PRINT_INT", block, offset);
     case W_OP_PRINT_STRING:
-        return simple_instruction("W_OP_PRINT_STRING", offset);
+        return simple_instruction("W_OP_PRINT_STRING", block, offset);
     case W_OP_SUB:
-        return simple_instruction("W_OP_SUB", offset);
+        return simple_instruction("W_OP_SUB", block, offset);
     case W_OP_SWAP:
-        return simple_instruction("W_OP_SWAP", offset);
+        return simple_instruction("W_OP_SWAP", block, offset);
     case W_OP_SWAP_COMPS8:
         return w_comp_subcomp8_instruction("W_OP_SWAP_COMPS8", block, offset);
     case W_OP_SWAP_COMPS16:
@@ -452,29 +498,29 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     case W_OP_SWAP_COMPS32:
         return w_comp_subcomp32_instruction("W_OP_SWAP_COMPS32", block, offset);
     case W_OP_SX8:
-        return simple_instruction("W_OP_SX8", offset);
+        return simple_instruction("W_OP_SX8", block, offset);
     case W_OP_SX8L:
-        return simple_instruction("W_OP_SX8L", offset);
+        return simple_instruction("W_OP_SX8L", block, offset);
     case W_OP_SX16:
-        return simple_instruction("W_OP_SX16", offset);
+        return simple_instruction("W_OP_SX16", block, offset);
     case W_OP_SX16L:
-        return simple_instruction("W_OP_SX16L", offset);
+        return simple_instruction("W_OP_SX16L", block, offset);
     case W_OP_SX32:
-        return simple_instruction("W_OP_SX32", offset);
+        return simple_instruction("W_OP_SX32", block, offset);
     case W_OP_SX32L:
-        return simple_instruction("W_OP_SX32L", offset);
+        return simple_instruction("W_OP_SX32L", block, offset);
     case W_OP_ZX8:
-        return simple_instruction("W_OP_ZX8", offset);
+        return simple_instruction("W_OP_ZX8", block, offset);
     case W_OP_ZX8L:
-        return simple_instruction("W_OP_ZX8L", offset);
+        return simple_instruction("W_OP_ZX8L", block, offset);
     case W_OP_ZX16:
-        return simple_instruction("W_OP_ZX16", offset);
+        return simple_instruction("W_OP_ZX16", block, offset);
     case W_OP_ZX16L:
-        return simple_instruction("W_OP_ZX16L", offset);
+        return simple_instruction("W_OP_ZX16L", block, offset);
     case W_OP_ZX32:
-        return simple_instruction("W_OP_ZX32", offset);
+        return simple_instruction("W_OP_ZX32", block, offset);
     case W_OP_ZX32L:
-        return simple_instruction("W_OP_ZX32L", offset);
+        return simple_instruction("W_OP_ZX32L", block, offset);
     case W_OP_PACK1:
         return w_pack_instruction("W_OP_PACK1", block, offset, 1);
     case W_OP_PACK2:
@@ -542,7 +588,7 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     case W_OP_CALL32:
         return immediate_u32_instruction("W_OP_CALL32", block, offset);
     case W_OP_RET:
-        return simple_instruction("W_OP_RET", offset);
+        return simple_instruction("W_OP_RET", block, offset);
     }
     // Not in switch so that the compiler can ensure all cases are handled.
     printf("<Unknown opcode>\n");
