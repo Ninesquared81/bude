@@ -95,7 +95,7 @@ static int jump_instruction(const char *name, struct ir_block *block, int offset
 
 static int simple_instruction(const char *name, struct ir_block *block, int offset) {
     print_instruction(name, block, offset, 1);
-    printf("%s\n", name);
+    printf("\n");
     return offset + 1;
 }
 
