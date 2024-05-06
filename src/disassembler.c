@@ -27,75 +27,81 @@ static void print_bytes(struct ir_block *block, int offset, int length) {
     for (int i = length; i < MAX_INSTRUCTION_LENGTH; ++i) {
         count += printf("-- ");
     }
-    count += printf("%*s:\t", WIDTH_LIMIT - count, "]");
+    count += printf("%*s: ", WIDTH_LIMIT - count, "]");
 #undef MAX_INSTRUCTION_LENGTH
 #undef WIDTH_LIMIT
 }
 
+static void print_instruction(const char *name, struct ir_block *block, int offset, int length) {
+    printf("%04d ", offset);
+    print_bytes(block, offset, length);
+    printf("%c %"OPCODE_FORMAT" ", ((is_jump_dest(block, offset)) ? '*': ' '), name);
+}
+
 static int immediate_u8_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 2);
-    printf("%"OPCODE_FORMAT" %"PRIu8"\n", name, read_u8(block, offset + 1));
+    print_instruction(name, block, offset, 2);
+    printf("%"PRIu8"\n", read_u8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_u16_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 3);
-    printf("%"OPCODE_FORMAT" %"PRIu16"\n", name, read_u16(block, offset + 1));
+    print_instruction(name, block, offset, 3);
+    printf("%"PRIu16"\n", read_u16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_u32_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 5);
-    printf("%"OPCODE_FORMAT" %"PRIu32"\n", name, read_u32(block, offset + 1));
+    print_instruction(name, block, offset, 5);
+    printf("%"PRIu32"\n", read_u32(block, offset + 1));
     return offset + 5;
 }
 
 static int immediate_u64_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 9);
-    printf("%"OPCODE_FORMAT" %"PRIu64"\n", name, read_u64(block, offset + 1));
+    print_instruction(name, block, offset, 9);
+    printf("%"PRIu64"\n", read_u64(block, offset + 1));
     return offset + 9;
 }
 
 static int immediate_s8_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 2);
-    printf("%"OPCODE_FORMAT" %"PRId8"\n", name, read_s8(block, offset + 1));
+    print_instruction(name, block, offset, 2);
+    printf("%"PRId8"\n", read_s8(block, offset + 1));
     return offset + 2;
 }
 
 static int immediate_s16_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 3);
-    printf("%"OPCODE_FORMAT" %"PRId16"\n", name, read_s16(block, offset + 1));
+    print_instruction(name, block, offset, 3);
+    printf("%"PRId16"\n", read_s16(block, offset + 1));
     return offset + 3;
 }
 
 static int immediate_s32_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 5);
-    printf("%"OPCODE_FORMAT" %"PRId32"\n", name, read_s32(block, offset + 1));
+    print_instruction(name, block, offset, 5);
+    printf("%"PRId32"\n", read_s32(block, offset + 1));
     return offset + 5;
 }
 
 static int immediate_s64_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 9);
-    printf("%"OPCODE_FORMAT" %"PRId64"\n", name, read_s64(block, offset + 1));
+    print_instruction(name, block, offset, 9);
+    printf("%"PRId64"\n", read_s64(block, offset + 1));
     return offset + 9;
 }
 
 static int jump_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 3);
+    print_instruction(name, block, offset, 3);
     int jump = read_s16(block, offset + 1);
-    printf("%"OPCODE_FORMAT" %-6d (%d -> %d)\n", name, jump, offset, offset + jump + 1);
+    printf("%-6d (%d -> %d)\n", jump, offset, offset + jump + 1);
     return offset + 3;
 }
 
 static int simple_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1);
+    print_instruction(name, block, offset, 1);
     printf("%s\n", name);
     return offset + 1;
 }
 
 static int w_pack_instruction(const char *name, struct ir_block *block, int offset,
                               int field_count) {
-    print_bytes(block, offset, 1 + field_count);
+    print_instruction(name, block, offset, 1 + field_count);
     printf("%"OPCODE_FORMAT, name);
     printf(" %u", read_u8(block, offset + 1));
     for (int i = 1; i < field_count; ++i) {
@@ -106,110 +112,109 @@ static int w_pack_instruction(const char *name, struct ir_block *block, int offs
 }
 
 static int t_pack_field8_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 1 + 1);
+    print_instruction(name, block, offset, 1 + 1 + 1);
     type_index pack = read_s8(block, offset + 1);
     int field = read_u8(block, offset + 2);
     // TODO: print name of pack here.
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
+    printf("%d, %d\n", pack, field);
     return offset + 3;
 }
 
 static int t_pack_field16_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 2 + 1);
+    print_instruction(name, block, offset, 1 + 2 + 1);
     type_index pack = read_s16(block, offset + 1);
     int field = read_u8(block, offset + 3);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
+    printf("%d, %d\n", pack, field);
     return offset + 4;
 }
 
 static int t_pack_field32_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 4 + 1);
+    print_instruction(name, block, offset, 1 + 4 + 1);
     type_index pack = read_s32(block, offset + 1);
     int field = read_u8(block, offset + 5);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, pack, field);
+    printf("%d, %d\n", pack, field);
     return offset + 6;
 }
 
 static int t_comp_field8_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 1 + 1);
+    print_instruction(name, block, offset, 1 + 1 + 1);
     type_index comp = read_s8(block, offset + 1);
     int field = read_u8(block, offset + 2);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
+    printf("%d, %d\n", comp, field);
     return offset + 3;
 }
 
 static int t_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 2 + 2);
+    print_instruction(name, block, offset, 1 + 2 + 2);
     type_index comp = read_s16(block, offset + 1);
     int field = read_u16(block, offset + 3);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
+    printf("%d, %d\n", comp, field);
     return offset + 5;
 }
 
 static int t_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 4 + 4);
+    print_instruction(name, block, offset, 1 + 4 + 4);
     type_index comp = read_s32(block, offset + 1);
     int field = read_u32(block, offset + 5);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, comp, field);
+    printf("%d, %d\n", comp, field);
     return offset + 9;
 }
 
 static int w_pack_field_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 1 + 1);
+    print_instruction(name, block, offset, 1 + 1 + 1);
     int field = read_u8(block, offset + 1);
     int size = read_u8(block, offset + 2);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, field, size);
+    printf("%d, %d\n", field, size);
     return offset + 3;
 }
 
 static int w_comp_field8_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 1);
+    print_instruction(name, block, offset, 1 + 1);
     int field = read_s8(block, offset + 1);
-    printf("%"OPCODE_FORMAT" %d\n", name, field);
+    printf("%d\n", field);
     return offset + 2;
 }
 
 static int w_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 2);
+    print_instruction(name, block, offset, 1 + 2);
     int field = read_s16(block, offset + 1);
-    printf("%"OPCODE_FORMAT" %d\n", name, field);
+    printf("%d\n", field);
     return offset + 3;
 }
 
 static int w_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 4);
+    print_instruction(name, block, offset, 1 + 4);
     int field = read_s32(block, offset + 1);
-    printf("%"OPCODE_FORMAT" %d\n", name, field);
+    printf("%d\n", field);
     return offset + 5;
 }
 
 static int w_comp_subcomp8_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 1 + 1);
+    print_instruction(name, block, offset, 1 + 1 + 1);
     int subcomp = read_s8(block, offset + 1);
     int length = read_s8(block, offset + 2);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
+    printf("%d, %d\n", subcomp, length);
     return offset + 3;
 }
 
 static int w_comp_subcomp16_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 2 + 2);
+    print_instruction(name, block, offset, 1 + 2 + 2);
     int subcomp = read_s16(block, offset + 1);
     int length = read_s16(block, offset + 3);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
+    printf("%d, %d\n", subcomp, length);
     return offset + 5;
 }
 
 static int w_comp_subcomp32_instruction(const char *name, struct ir_block *block, int offset) {
-    print_bytes(block, offset, 1 + 4 + 4);
+    print_instruction(name, block, offset, 1 + 4 + 4);
     int subcomp = read_s32(block, offset + 1);
     int length = read_s32(block, offset + 5);
-    printf("%"OPCODE_FORMAT" %d, %d\n", name, subcomp, length);
+    printf("%d, %d\n", subcomp, length);
     return offset + 9;
 }
 
 static int disassemble_t_instruction(struct ir_block *block, int offset) {
     enum t_opcode instruction = block->code[offset];
-    printf("%c %04d ", (is_jump_dest(block, offset)) ? '*': ' ', offset);
 
     switch (instruction) {
     case T_OP_NOP:
@@ -374,7 +379,6 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
 
 static int disassemble_w_instruction(struct ir_block *block, int offset) {
     enum w_opcode instruction = block->code[offset];
-    printf("%c %04d ", (is_jump_dest(block, offset)) ? '*': ' ', offset);
 
     switch (instruction) {
     case W_OP_NOP:
