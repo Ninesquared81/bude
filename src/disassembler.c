@@ -33,7 +33,7 @@ static void print_bytes(struct ir_block *block, int offset, int length) {
 }
 
 static void print_instruction(const char *name, struct ir_block *block, int offset, int length) {
-    printf("%04d ", offset);
+    printf("%06d ", offset);
     print_bytes(block, offset, length);
     printf("%c %"OPCODE_FORMAT" ", ((is_jump_dest(block, offset)) ? '*': ' '), name);
 }
