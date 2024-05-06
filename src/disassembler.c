@@ -15,12 +15,12 @@ static void print_bytes(struct ir_block *block, int offset, int length) {
     count += printf("[ ");
     for (int i = 0; i < length; ++i) {
         int byte = block->code[offset + i];
-        if (count + 3 < WIDTH_LIMIT - 1) {
+        if (count + 3 < WIDTH_LIMIT) {
             count += printf("%02x ", byte);
         }
         else {
             // Truncate overlong instructions.
-            count += printf(".. ");
+            printf("\b\b\b.. ");  // Count not updated since we aren't adding any characters.
             break;
         }
     }
