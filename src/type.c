@@ -121,7 +121,8 @@ static void init_builtin_types(struct type_table *types) {
             .word_count = 2,
             .fields = string_fields,
             .offsets = string_offsets,
-        }
+        },
+        .name = SV_LIT("string"),
     };
     assert(types->count == BUILTIN_TYPE_COUNT);
 }
