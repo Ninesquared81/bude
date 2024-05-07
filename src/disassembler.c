@@ -291,8 +291,6 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_ADD", block, offset);
     case T_OP_AND:
         return simple_instruction("T_OP_AND", block, offset);
-    case T_OP_DECOMP:
-        return simple_instruction("T_OP_DECOMP", block, offset);
     case T_OP_DEREF:
         return simple_instruction("T_OP_DEREF", block, offset);
     case T_OP_DIVMOD:
@@ -377,6 +375,8 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return t_packcomp32_instruction("T_OP_COMP32", block, module, offset);
     case T_OP_UNPACK:
         return simple_instruction("T_OP_UNPACK", block, offset);
+    case T_OP_DECOMP:
+        return simple_instruction("T_OP_DECOMP", block, offset);
     case T_OP_PACK_FIELD_GET8:
         return t_pack_field8_instruction("T_OP_PACK_FIELD_GET8", block, module, offset);
     case T_OP_PACK_FIELD_GET16:
