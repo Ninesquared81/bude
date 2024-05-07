@@ -757,7 +757,7 @@ static void check_pack_instruction(struct type_checker *checker, type_index inde
         type_error(checker, "type index %d is not of kind 'KIND_PACK'", index);
         assert(0 && "Invalid IR code generated");
     }
-    for (int i = info->pack.field_count - 1; i >= 0 && info->pack.fields[i] != TYPE_ERROR; ) {
+    for (int i = info->pack.field_count - 1; i >= 0; --i) {
         type_index field_type = info->pack.fields[i];
         type_index arg_type = ts_pop(checker);
         struct string_view pack_name = type_name(checker->types, index);
@@ -768,8 +768,6 @@ static void check_pack_instruction(struct type_checker *checker, type_index inde
                        " expected %"PRI_SV" but got %"PRI_SV,
                        i, SV_FMT(pack_name), SV_FMT(field_name), SV_FMT(arg_name));
         }
-        int size = type_size(checker->types, field_type);
-        i += (size > 0) ? size : 0;
     }
     ts_push(checker, index);
 }
