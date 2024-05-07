@@ -100,6 +100,33 @@ static int simple_instruction(const char *name, struct ir_block *block, int offs
     return offset + 1;
 }
 
+static int t_packcomp8_instruction(const char *name, struct ir_block *block,
+                               struct module *module, int offset) {
+    print_instruction(name, block, offset, 2);
+    int packcomp = read_s8(block, offset + 1);
+    struct string_view packcomp_name = type_name(&module->types, packcomp);
+    printf("%d '%"PRI_SV"'\n", packcomp, SV_FMT(packcomp_name));
+    return offset + 2;
+}
+
+static int t_packcomp16_instruction(const char *name, struct ir_block *block,
+                                struct module *module, int offset) {
+    print_instruction(name, block, offset, 2);
+    int packcomp = read_s16(block, offset + 1);
+    struct string_view packcomp_name = type_name(&module->types, packcomp);
+    printf("%d '%"PRI_SV"'\n", packcomp, SV_FMT(packcomp_name));
+    return offset + 3;
+}
+
+static int t_packcomp32_instruction(const char *name, struct ir_block *block,
+                                struct module *module, int offset) {
+    print_instruction(name, block, offset, 2);
+    int packcomp = read_s32(block, offset + 1);
+    struct string_view packcomp_name = type_name(&module->types, packcomp);
+    printf("%d '%"PRI_SV"'\n", packcomp, SV_FMT(packcomp_name));
+    return offset + 5;
+}
+
 static int w_pack_instruction(const char *name, struct ir_block *block, int offset,
                               int field_count) {
     print_instruction(name, block, offset, 1 + field_count);
@@ -337,17 +364,17 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
     case T_OP_AS_S32:
         return simple_instruction("T_OP_AS_S32", block, offset);
     case T_OP_PACK8:
-        return immediate_u8_instruction("T_OP_PACK8", block, offset);
+        return t_packcomp8_instruction("T_OP_PACK8", block, module, offset);
     case T_OP_PACK16:
-        return immediate_u16_instruction("T_OP_PACK16", block, offset);
+        return t_packcomp16_instruction("T_OP_PACK16", block, module, offset);
     case T_OP_PACK32:
-        return immediate_u32_instruction("T_OP_PACK32", block, offset);
+        return t_packcomp32_instruction("T_OP_PACK32", block, module, offset);
     case T_OP_COMP8:
-        return immediate_u8_instruction("T_OP_COMP8", block, offset);
+        return t_packcomp8_instruction("T_OP_COMP8", block, module, offset);
     case T_OP_COMP16:
-        return immediate_u16_instruction("T_OP_COMP16", block, offset);
+        return t_packcomp16_instruction("T_OP_COMP16", block, module, offset);
     case T_OP_COMP32:
-        return immediate_u32_instruction("T_OP_COMP32", block, offset);
+        return t_packcomp32_instruction("T_OP_COMP32", block, module, offset);
     case T_OP_UNPACK:
         return simple_instruction("T_OP_UNPACK", block, offset);
     case T_OP_PACK_FIELD_GET8:
