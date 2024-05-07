@@ -167,7 +167,9 @@ void init_type(struct type_table *types, type_index type, const struct type_info
     assert(info != NULL);
     assert(!IS_SIMPLE_TYPE(type));
     int index = type - SIMPLE_TYPE_COUNT;
+    struct string_view name = types->infos[index].name;
     types->infos[index] = *info;
+    types->infos[index].name = name;
 }
 
 const struct type_info *lookup_type(const struct type_table *types, type_index type) {
