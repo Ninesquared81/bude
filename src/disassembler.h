@@ -4,7 +4,7 @@
 #include "ir.h"
 #include "module.h"
 
-void disassemble_block(struct ir_block *block);
+void disassemble_block(struct ir_block *block, struct module *module);
 void disassemble_tir(struct module *module);
 void disassemble_wir(struct module *module);
 

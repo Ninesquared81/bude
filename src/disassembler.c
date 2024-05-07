@@ -4,6 +4,7 @@
 
 #include "disassembler.h"
 #include "ir.h"
+#include "string_view.h"
 #include "type.h"
 
 #define OPCODE_FORMAT "-21s"
@@ -110,52 +111,63 @@ static int w_pack_instruction(const char *name, struct ir_block *block, int offs
     return offset + field_count + 1;
 }
 
-static int t_pack_field8_instruction(const char *name, struct ir_block *block, int offset) {
+static int t_pack_field8_instruction(const char *name, struct ir_block *block,
+                                     struct module *module, int offset) {
     print_instruction(name, block, offset, 1 + 1 + 1);
     type_index pack = read_s8(block, offset + 1);
     int field = read_u8(block, offset + 2);
-    // TODO: print name of pack here.
-    printf("%d, %d\n", pack, field);
+    struct string_view pack_name = type_name(&module->types, pack);
+    printf("%d '%"PRI_SV"', %d\n", pack, SV_FMT(pack_name), field);
     return offset + 3;
 }
 
-static int t_pack_field16_instruction(const char *name, struct ir_block *block, int offset) {
+static int t_pack_field16_instruction(const char *name, struct ir_block *block,
+                                      struct module *module, int offset) {
     print_instruction(name, block, offset, 1 + 2 + 1);
     type_index pack = read_s16(block, offset + 1);
     int field = read_u8(block, offset + 3);
-    printf("%d, %d\n", pack, field);
+    struct string_view pack_name = type_name(&module->types, pack);
+    printf("%d '%"PRI_SV"', %d\n", pack, SV_FMT(pack_name), field);
     return offset + 4;
 }
 
-static int t_pack_field32_instruction(const char *name, struct ir_block *block, int offset) {
+static int t_pack_field32_instruction(const char *name, struct ir_block *block,
+                                      struct module *module, int offset) {
     print_instruction(name, block, offset, 1 + 4 + 1);
     type_index pack = read_s32(block, offset + 1);
     int field = read_u8(block, offset + 5);
-    printf("%d, %d\n", pack, field);
+    struct string_view pack_name = type_name(&module->types, pack);
+    printf("%d '%"PRI_SV"', %d\n", pack, SV_FMT(pack_name), field);
     return offset + 6;
 }
 
-static int t_comp_field8_instruction(const char *name, struct ir_block *block, int offset) {
+static int t_comp_field8_instruction(const char *name, struct ir_block *block,
+                                     struct module *module, int offset) {
     print_instruction(name, block, offset, 1 + 1 + 1);
     type_index comp = read_s8(block, offset + 1);
     int field = read_u8(block, offset + 2);
-    printf("%d, %d\n", comp, field);
+    struct string_view comp_name = type_name(&module->types, comp);
+    printf("%d '%"PRI_SV"', %d\n", comp, SV_FMT(comp_name), field);
     return offset + 3;
 }
 
-static int t_comp_field16_instruction(const char *name, struct ir_block *block, int offset) {
+static int t_comp_field16_instruction(const char *name, struct ir_block *block,
+                                      struct module *module, int offset) {
     print_instruction(name, block, offset, 1 + 2 + 2);
     type_index comp = read_s16(block, offset + 1);
     int field = read_u16(block, offset + 3);
-    printf("%d, %d\n", comp, field);
+    struct string_view comp_name = type_name(&module->types, comp);
+    printf("%d '%"PRI_SV"', %d\n", comp, SV_FMT(comp_name), field);
     return offset + 5;
 }
 
-static int t_comp_field32_instruction(const char *name, struct ir_block *block, int offset) {
+static int t_comp_field32_instruction(const char *name, struct ir_block *block,
+                                      struct module *module, int offset) {
     print_instruction(name, block, offset, 1 + 4 + 4);
     type_index comp = read_s32(block, offset + 1);
     int field = read_u32(block, offset + 5);
-    printf("%d, %d\n", comp, field);
+    struct string_view comp_name = type_name(&module->types, comp);
+    printf("%d '%"PRI_SV"', %d\n", comp, SV_FMT(comp_name), field);
     return offset + 9;
 }
 
@@ -212,7 +224,7 @@ static int w_comp_subcomp32_instruction(const char *name, struct ir_block *block
     return offset + 9;
 }
 
-static int disassemble_t_instruction(struct ir_block *block, int offset) {
+static int disassemble_t_instruction(struct ir_block *block, struct module *module, int offset) {
     enum t_opcode instruction = block->code[offset];
 
     switch (instruction) {
@@ -339,29 +351,29 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     case T_OP_UNPACK:
         return simple_instruction("T_OP_UNPACK", block, offset);
     case T_OP_PACK_FIELD_GET8:
-        return t_pack_field8_instruction("T_OP_PACK_FIELD_GET8", block, offset);
+        return t_pack_field8_instruction("T_OP_PACK_FIELD_GET8", block, module, offset);
     case T_OP_PACK_FIELD_GET16:
-        return t_pack_field16_instruction("T_OP_PACK_FIELD_GET16", block, offset);
+        return t_pack_field16_instruction("T_OP_PACK_FIELD_GET16", block, module, offset);
     case T_OP_PACK_FIELD_GET32:
-        return t_pack_field32_instruction("T_OP_PACK_FIELD_GET32", block, offset);
+        return t_pack_field32_instruction("T_OP_PACK_FIELD_GET32", block, module, offset);
     case T_OP_COMP_FIELD_GET8:
-        return t_comp_field8_instruction("T_OP_COMP_FIELD_GET8", block, offset);
+        return t_comp_field8_instruction("T_OP_COMP_FIELD_GET8", block, module, offset);
     case T_OP_COMP_FIELD_GET16:
-        return t_comp_field16_instruction("T_OP_COMP_FIELD_GET16", block, offset);
+        return t_comp_field16_instruction("T_OP_COMP_FIELD_GET16", block, module, offset);
     case T_OP_COMP_FIELD_GET32:
-        return t_comp_field32_instruction("T_OP_COMP_FIELD_GET32", block, offset);
+        return t_comp_field32_instruction("T_OP_COMP_FIELD_GET32", block, module, offset);
     case T_OP_PACK_FIELD_SET8:
-        return t_pack_field8_instruction("T_OP_PACK_FIELD_SET8", block, offset);
+        return t_pack_field8_instruction("T_OP_PACK_FIELD_SET8", block, module, offset);
     case T_OP_PACK_FIELD_SET16:
-        return t_pack_field16_instruction("T_OP_PACK_FIELD_SET16", block, offset);
+        return t_pack_field16_instruction("T_OP_PACK_FIELD_SET16", block, module, offset);
     case T_OP_PACK_FIELD_SET32:
-        return t_pack_field32_instruction("T_OP_PACK_FIELD_SET32", block, offset);
+        return t_pack_field32_instruction("T_OP_PACK_FIELD_SET32", block, module, offset);
     case T_OP_COMP_FIELD_SET8:
-        return t_comp_field8_instruction("T_OP_COMP_FIELD_SET8", block, offset);
+        return t_comp_field8_instruction("T_OP_COMP_FIELD_SET8", block, module, offset);
     case T_OP_COMP_FIELD_SET16:
-        return t_comp_field16_instruction("T_OP_COMP_FIELD_SET16", block, offset);
+        return t_comp_field16_instruction("T_OP_COMP_FIELD_SET16", block, module, offset);
     case T_OP_COMP_FIELD_SET32:
-        return t_comp_field32_instruction("T_OP_COMP_FIELD_SET32", block, offset);
+        return t_comp_field32_instruction("T_OP_COMP_FIELD_SET32", block, module, offset);
     case T_OP_CALL8:
         return immediate_u8_instruction("T_OP_CALL8", block, offset);
     case T_OP_CALL16:
@@ -376,7 +388,8 @@ static int disassemble_t_instruction(struct ir_block *block, int offset) {
     return block->count;
 }
 
-static int disassemble_w_instruction(struct ir_block *block, int offset) {
+static int disassemble_w_instruction(struct ir_block *block, struct module *module, int offset) {
+    (void)module;
     enum w_opcode instruction = block->code[offset];
 
     switch (instruction) {
@@ -598,7 +611,7 @@ static int disassemble_w_instruction(struct ir_block *block, int offset) {
     return block->count;
 }
 
-typedef int (*instr_disasm)(struct ir_block *block, int offset);
+typedef int (*instr_disasm)(struct ir_block *block, struct module *module, int offset);
 
 static instr_disasm get_disassembler(struct ir_block *block) {
     switch (block->instruction_set) {
@@ -609,10 +622,10 @@ static instr_disasm get_disassembler(struct ir_block *block) {
     __builtin_unreachable();
 }
 
-void disassemble_block(struct ir_block *block) {
+void disassemble_block(struct ir_block *block, struct module *module) {
     instr_disasm disassemble_instruction = get_disassembler(block);
     for (int offset = 0; offset < block->count; ) {
-        offset = disassemble_instruction(block, offset);
+        offset = disassemble_instruction(block, module, offset);
     }
 }
 
@@ -620,7 +633,7 @@ void disassemble_tir(struct module *module) {
     for (int i = 0; i < module->functions.count; ++i) {
         struct function *function = get_function(&module->functions, i);
         printf("== func_%d ==\n", i);
-        disassemble_block(&function->t_code);
+        disassemble_block(&function->t_code, module);
     }
 }
 
@@ -628,6 +641,6 @@ void disassemble_wir(struct module *module) {
     for (int i = 0; i < module->functions.count; ++i) {
         struct function *function = get_function(&module->functions, i);
         printf("== func_%d ==\n", i);
-        disassemble_block(&function->w_code);
+        disassemble_block(&function->w_code, module);
     }
 }
