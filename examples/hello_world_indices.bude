@@ -1,6 +1,7 @@
-"Hello, World!"
+"Hello, World!" decomp
 for i to do
     dupe i +
     deref print-char
 end
 '\n' print-char
+pop
