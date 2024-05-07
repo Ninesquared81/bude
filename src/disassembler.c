@@ -102,8 +102,7 @@ static int simple_instruction(const char *name, struct ir_block *block, int offs
 static int w_pack_instruction(const char *name, struct ir_block *block, int offset,
                               int field_count) {
     print_instruction(name, block, offset, 1 + field_count);
-    printf("%"OPCODE_FORMAT, name);
-    printf(" %u", read_u8(block, offset + 1));
+    printf("%u", read_u8(block, offset + 1));
     for (int i = 1; i < field_count; ++i) {
         printf(", %u", read_u8(block, offset + 1 + i));
     }
