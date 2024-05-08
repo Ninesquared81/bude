@@ -15,6 +15,7 @@
 #include "optimiser.h"
 #include "stack.h"
 #include "type_checker.h"
+#include "writer.h"
 
 
 #define INPUT_BUFFER_SIZE 4 * 1024 * 1024
@@ -312,55 +313,9 @@ int main(int argc, char *argv[]) {
         assert(!opts.generate_asm);
         if (opts.output_filename != NULL) {
             fprintf(stderr, "Outputting bytecode to file not supported yet.\n");
+        } else {
+            display_bytecode(&module, stdout);
         }
-        for (int i = 0; i < (int)module.strings.count; ++i) {
-            struct string_view *sv = &module.strings.views[i];
-            printf("str_%d:\n\t\"", i);
-            for (const char *p = sv->start; p < SV_END(*sv); ++p) {
-                char c = *p;
-                switch (c) {
-                case '"':
-                    printf("\\\"");
-                    break;
-                case '\n':
-                    printf("\\n");
-                    break;
-                case '\t':
-                    printf("\\t");
-                    break;
-                case '\r':
-                    printf("\\r");
-                    break;
-                case '\\':
-                    printf("\\\\");
-                    break;
-                default:
-                    printf("%c", *p);
-                }
-            }
-            printf("\"\n");
-        }
-#define BYTECODE_COLUMN_COUNT 16
-        for (int i = 0; i < module.functions.count; ++i) {
-            struct function *function = &module.functions.functions[i];
-            struct ir_block *block = &function->w_code;
-            printf("func_%d:\n\t", i);
-            int line_count = block->count / BYTECODE_COLUMN_COUNT;
-            int leftover_count = block->count % BYTECODE_COLUMN_COUNT;
-            for (int j = 0; j < line_count; ++j) {
-                for (int k = 0; k < BYTECODE_COLUMN_COUNT; ++k) {
-                    printf("%.2x ", block->code[j*BYTECODE_COLUMN_COUNT + k]);
-                }
-                printf("\n\t");
-            }
-            for (int k = 0; k < leftover_count; ++k) {
-                printf("%.2x ", block->code[line_count*BYTECODE_COLUMN_COUNT + k]);
-            }
-            if (leftover_count > 0) {
-                printf("\n");
-            }
-        }
-#undef BYTECODE_COLUMN_COUNT
     }
     free_module(&module);
     return 0;
