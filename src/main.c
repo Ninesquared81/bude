@@ -27,6 +27,7 @@ struct cmdopts {
     bool optimise;
     bool interpret;
     bool generate_asm;
+    bool generate_bytecode;
     // Parameterised options.
     const char *output_filename;
     // Positional Args
@@ -44,7 +45,8 @@ static void print_help(FILE *file, const char *name) {
             "  file              name of the source code file\n"
             "Options:\n"
             "  -a                generate assembly code\n"
-            "  -d, --dump        dump the generated ir code and exit, "
+            "  -b                generate bytecode only\n"
+            "  -d, --dump        dump the generated ir code and exit "
                                        "unless -i or -a are specified\n"
             "  -o <file>         write the output to the specified file\n"
             "  -h, -?, --help    display this help message and exit\n"
@@ -66,6 +68,7 @@ static void init_cmdopts(struct cmdopts *opts) {
     opts->optimise = false;
     opts->interpret = true;
     opts->generate_asm = false;
+    opts->generate_bytecode = false;
 }
 
 static void handle_positional_arg(const char *restrict name, struct cmdopts *opts,
@@ -91,7 +94,13 @@ static void parse_short_opt(const char *name, const char *arg,
         case 'a':
             opts->generate_asm = true;
             opts->interpret = false;
+            opts->generate_bytecode = false;
             *had_a = true;
+            break;
+        case 'b':
+            opts->generate_bytecode = true;
+            opts->interpret = false;
+            opts->generate_asm = false;
             break;
         case 'd':
             opts->dump_ir = true;
@@ -131,6 +140,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             // Options.
             switch (arg[1]) {
             case 'a':
+            case 'b':
             case 'd':
             case 'h': case '?':
             case 'i':
@@ -273,6 +283,7 @@ int main(int argc, char *argv[]) {
         free_interpreter(&interpreter);
     }
     if (opts.generate_asm) {
+        assert(!opts.generate_bytecode);
         struct asm_block *assembly = malloc(sizeof *assembly);
         CHECK_ALLOCATION(assembly);
         init_assembly(assembly);
@@ -296,6 +307,33 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
         free(assembly);
+    }
+    if (opts.generate_bytecode) {
+        assert(!opts.generate_asm);
+        if (opts.output_filename != NULL) {
+            fprintf(stderr, "Outputting bytecode to file not supported yet.\n");
+        }
+#define BYTECODE_COLUMN_COUNT 16
+        for (int i = 0; i < module.functions.count; ++i) {
+            struct function *function = &module.functions.functions[i];
+            struct ir_block *block = &function->w_code;
+            printf("func_%d:\n\t", i);
+            int line_count = block->count / BYTECODE_COLUMN_COUNT;
+            int leftover_count = block->count % BYTECODE_COLUMN_COUNT;
+            for (int j = 0; j < line_count; ++j) {
+                for (int k = 0; k < BYTECODE_COLUMN_COUNT; ++k) {
+                    printf("%.2x ", block->code[j*BYTECODE_COLUMN_COUNT + k]);
+                }
+                printf("\n\t");
+            }
+            for (int k = 0; k < leftover_count; ++k) {
+                printf("%.2x ", block->code[line_count*BYTECODE_COLUMN_COUNT + k]);
+            }
+            if (leftover_count > 0) {
+                printf("\n");
+            }
+        }
+#undef BYTECODE_COLUMN_COUNT
     }
     free_module(&module);
     return 0;
