@@ -12,6 +12,8 @@ struct string_view {
     size_t length;
 };
 
+#define SV_END(sv) \
+    ((sv).start + (sv).length)
 #define SV_LIT_INIT(str_lit) \
     {.start = str_lit, .length = sizeof str_lit - 1}
 #define SV_LIT(str_lit) ((struct string_view) SV_LIT_INIT(str_lit))
