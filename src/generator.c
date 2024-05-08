@@ -1124,7 +1124,7 @@ void generate_constants(struct asm_block *assembly, struct module *module) {
     asm_label(assembly, "fmt_string");
     asm_write_inst2(assembly, "db", "'%%*s'", "0");
     asm_write(assembly, "\n");
-    for (size_t i = 0; i < module->strings.count; ++i) {
+    for (int i = 0; i < module->strings.count; ++i) {
         asm_label(assembly, "str%u", i);
         asm_write(assembly, "\tdb\t");
         asm_write_string(assembly, module->strings.views[i].start);

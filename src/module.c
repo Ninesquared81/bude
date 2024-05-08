@@ -66,7 +66,7 @@ int write_string(struct module *module, struct string_builder *builder) {
 
 struct string_view *read_string(struct module *module, int index) {
     assert(index >= 0);
-    assert((size_t)index < module->strings.count);
+    assert(index < module->strings.count);
     return &module->strings.views[index];
 }
 

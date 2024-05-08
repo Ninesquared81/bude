@@ -10,8 +10,8 @@
 #include "type.h"
 
 struct string_table {
-    size_t capacity;
-    size_t count;
+    int capacity;
+    int count;
     struct string_view *views;
 };
 
