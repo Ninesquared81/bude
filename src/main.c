@@ -313,6 +313,33 @@ int main(int argc, char *argv[]) {
         if (opts.output_filename != NULL) {
             fprintf(stderr, "Outputting bytecode to file not supported yet.\n");
         }
+        for (int i = 0; i < (int)module.strings.count; ++i) {
+            struct string_view *sv = &module.strings.views[i];
+            printf("str_%d:\n\t\"", i);
+            for (const char *p = sv->start; p < SV_END(*sv); ++p) {
+                char c = *p;
+                switch (c) {
+                case '"':
+                    printf("\\\"");
+                    break;
+                case '\n':
+                    printf("\\n");
+                    break;
+                case '\t':
+                    printf("\\t");
+                    break;
+                case '\r':
+                    printf("\\r");
+                    break;
+                case '\\':
+                    printf("\\\\");
+                    break;
+                default:
+                    printf("%c", *p);
+                }
+            }
+            printf("\"\n");
+        }
 #define BYTECODE_COLUMN_COUNT 16
         for (int i = 0; i < module.functions.count; ++i) {
             struct function *function = &module.functions.functions[i];
