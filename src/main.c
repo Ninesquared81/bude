@@ -312,7 +312,19 @@ int main(int argc, char *argv[]) {
     if (opts.generate_bytecode) {
         assert(!opts.generate_asm);
         if (opts.output_filename != NULL) {
-            fprintf(stderr, "Outputting bytecode to file not supported yet.\n");
+            FILE *outfile = fopen(opts.output_filename, "wb");
+            if (outfile == NULL) {
+                fprintf(stderr, "Failed to open output file '%s': '%s.\n",
+                        opts.output_filename, strerror(errno));
+                exit(1);
+            }
+            int error = write_bytecode(&module, outfile);
+            fclose(outfile);
+            if (error != 0) {
+                fprintf(stderr, "Failed to write to file '%s': '%s'.\n",
+                        opts.output_filename, strerror(error));
+                exit(error);
+            }
         } else {
             display_bytecode(&module, stdout);
         }

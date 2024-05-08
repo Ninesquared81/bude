@@ -3,8 +3,10 @@
 #include "module.h"
 #include "writer.h"
 
+#define BWF_version_number 1
+
 void display_bytecode(struct module *module, FILE *f) {
-    for (int i = 0; i < (int)module->strings.count; ++i) {
+    for (int i = 0; i < module->strings.count; ++i) {
         struct string_view *sv = &module->strings.views[i];
         fprintf(f, "str_%d:\n\t\"", i);
         for (const char *p = sv->start; p < SV_END(*sv); ++p) {
@@ -55,7 +57,42 @@ void display_bytecode(struct module *module, FILE *f) {
 }
 
 int write_bytecode(struct module *module, FILE *f) {
-    (void)module, (void)f;
-    return 1;
+    /* Structure: 
+     * HEADER
+     *   magic-number:`BudeBWF` version-number:char[] `\n`
+     * DATA-INFO
+     *   string-count:s32
+     *   function-count:s32
+     * DATA
+     *   STRING-TABLE
+     *     size:u32 contents:byte[]
+     *     ...
+     *   FUNCTION-TABLE
+     *     size:s32 contents:byte[]
+     *     ...
+     */
+    /* HEADER */
+    fprintf(f, "BudeBWFv%d\n", BWF_version_number);
+    /* DATA-INFO */
+    int32_t string_count = module->strings.count;
+    int32_t function_count = module->functions.count;
+    if (fwrite(&string_count, sizeof string_count, 1, f) != 1) return errno;
+    if (fwrite(&function_count, sizeof function_count, 1, f) != 1) return errno;
+    /* DATA */
+    /* STRING-TABLE */
+    for (int i = 0; i < module->strings.count; ++i) {
+        struct string_view *sv = &module->strings.views[i];
+        uint32_t length = sv->length;
+        if (fwrite(&length, sizeof length, 1, f) != 1) return errno;
+        if (fprintf(f, "%"PRI_SV, SV_FMT(*sv)) != (int)sv->length) return errno;
+    }
+    /* FUNCTION-TABLE */
+    for (int i = 0; i < module->functions.count; ++i) {
+        struct function *function = &module->functions.functions[i];
+        struct ir_block *block = &function->w_code;
+        if (fwrite(&block->count, sizeof block->count, 1, f) != 1) return errno;
+        if (fwrite(block->code, 1, block->count, f) != (size_t)block->count) return errno;
+    }
+    return 0;
 }
 
