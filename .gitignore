@@ -42,6 +42,9 @@
 *.idb
 *.pdb
 
+# Python
+__pychache__/
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
