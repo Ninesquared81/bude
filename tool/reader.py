@@ -20,6 +20,8 @@ def read_bytecode(filename: str) -> tuple[list[str], list[bytes]]:
         version_number = version_number.rstrip()
         if not version_number.isdigit():
             raise ParseError("Invalid version number")
+        if int(version_number) > 1:
+            raise ParseError(f"Unsupported BudeBWF version: {version_number}")
         string_count = int.from_bytes(f.read(4), "little", signed=True)
         function_count = int.from_bytes(f.read(4), "little", signed=True)
         strings = []
