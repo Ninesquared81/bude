@@ -42,9 +42,9 @@ def display_bytecode(strings: list[str], functions: list[bytes], *, file=sys.std
 
 
 def main() -> None:
-    arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument("filename", help="input filename")
-    arg_parser.add_argument("-o", help="output filename")
+    arg_parser = argparse.ArgumentParser(description="Display the contents of a BudeBWF file.")
+    arg_parser.add_argument("filename", help="the file to be read")
+    arg_parser.add_argument("-o", help="the file to write the output to (defaut: stdout)")
     args = arg_parser.parse_args()
     if args.o is None or args.o == "-":
         args.o = sys.stdout
