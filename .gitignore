@@ -43,7 +43,7 @@
 *.pdb
 
 # Python
-__pychache__/
+__pycache__/
 
 # Kernel Module Compile Results
 *.mod*
