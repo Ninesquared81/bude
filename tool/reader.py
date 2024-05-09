@@ -40,7 +40,7 @@ def display_bytecode(strings: list[str], functions: list[bytes], *, file=sys.std
     for i, string in enumerate(strings):
         print(f"str_{i}:\n\t{string!r}", file=file)
     for i, func in enumerate(functions):
-        print(f"func_{i}:\n\t", " ".join(f'{b:02x}' for b in func), file=file)
+        print(f"func_{i}:\n\t{' '.join(f'{b:02x}' for b in func)}", file=file)
 
 
 def main() -> None:
