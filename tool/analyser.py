@@ -14,9 +14,6 @@ def main() -> None:
     except reader.ParseError as e:
         print(e)
         exit(1)
-    except IOError as e:
-        print(e)
-        exit(1)
     reader.display_bytecode(strings, functions)
 
 
