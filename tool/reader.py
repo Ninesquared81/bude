@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 """A module for reading Bude Binary Word-oriented Format (BudeBWF) files."""
 
 from __future__ import annotations
+import argparse
+import sys
 
 
 class ParseError(Exception):
@@ -30,9 +33,24 @@ def read_bytecode(filename: str) -> tuple[list[str], list[bytes]]:
     return strings, functions
 
 
-def display_bytecode(strings: list[str], functions: list[bytes]) -> None:
+def display_bytecode(strings: list[str], functions: list[bytes], *, file=sys.stdout) -> None:
     """Display the strings and functions in a human-readable format."""
     for i, string in enumerate(strings):
-        print(f"str_{i}:\n\t{string!r}")
+        print(f"str_{i}:\n\t{string!r}", file=file)
     for i, func in enumerate(functions):
-        print(f"func_{i}:\n\t", " ".join(f'{b:02x}' for b in func))
+        print(f"func_{i}:\n\t", " ".join(f'{b:02x}' for b in func), file=file)
+
+
+def main() -> None:
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("filename", help="input filename")
+    arg_parser.add_argument("-o", help="output filename")
+    args = arg_parser.parse_args()
+    if args.o is None or args.o == "-":
+        args.o = sys.stdout
+    strings, functions = read_bytecode(args.filename)
+    display_bytecode(strings, functions, file=args.o)
+
+
+if __name__ == "__main__":
+    main()
