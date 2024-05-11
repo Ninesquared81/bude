@@ -2,6 +2,7 @@
 
 import argparse
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 import ir
@@ -23,8 +24,13 @@ def main() -> None:
         print(f"func_{i}:", *ir.Block(func), sep="\n\t")
         for instruction in ir.Block(func):
             counts[instruction.op] += 1
-    print(*(f"{opcode}: {count}" for opcode, count in zip(opcode_names, counts)), sep="\n")
-
+    # print(*(f"{opcode}: {count}" for opcode, count in zip(opcode_names, counts)), sep="\n")
+    BAR_THICKNESS = 10.
+    plt.figure(figsize=(16., 6.4))
+    plt.xticks(rotation=90, fontsize="xx-small")
+    bar_xs = [op * (BAR_THICKNESS + 1) for op in ir.Opcode]
+    plt.bar(bar_xs, counts, width=BAR_THICKNESS, tick_label=opcode_names)
+    plt.show()
 
 if __name__ == "__main__":
     main()
