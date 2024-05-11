@@ -30,6 +30,11 @@ def main() -> None:
     plt.xticks(rotation=90, fontsize="xx-small")
     bar_xs = [op * (BAR_THICKNESS + 1) for op in ir.Opcode]
     plt.bar(bar_xs, counts, width=BAR_THICKNESS, tick_label=opcode_names)
+    pie_xs, pie_labels = zip(
+        *((count, name) for count, name
+          in zip(counts, opcode_names) if count > 0)
+    )
+    plt.pie(pie_xs, labels=pie_labels)
     plt.show()
 
 if __name__ == "__main__":
