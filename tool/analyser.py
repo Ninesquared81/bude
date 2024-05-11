@@ -24,7 +24,6 @@ def main() -> None:
         print(f"func_{i}:", *ir.Block(func), sep="\n\t")
         for instruction in ir.Block(func):
             counts[instruction.op] += 1
-    # print(*(f"{opcode}: {count}" for opcode, count in zip(opcode_names, counts)), sep="\n")
     BAR_THICKNESS = 10.
     plt.figure(figsize=(16., 6.4))
     plt.xticks(rotation=90, fontsize="xx-small")
