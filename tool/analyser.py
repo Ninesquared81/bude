@@ -45,6 +45,7 @@ def analyse_bytecode(functions: list[bytes]) -> None:
 
 
 def main() -> None:
+    """Analyse the BudeBWF file passed on the command line."""
     arg_parser = argparse.ArgumentParser(description="Analyse a BudeBWF file")
     arg_parser.add_argument("filename", help="the file to analyse")
     args = arg_parser.parse_args()
