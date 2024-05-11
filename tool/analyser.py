@@ -1,7 +1,8 @@
 """This module analyses the bytecode produced by the Bude compiler."""
 
 import argparse
-import collections
+
+import numpy as np
 
 import ir
 import reader
@@ -16,12 +17,13 @@ def main() -> None:
     except reader.ParseError as e:
         print(e)
         exit(1)
-    weights: dict[Opcode, int] = collections.defaultdict(int)
+    counts = np.zeros(len(ir.Opcode), dtype=int)
+    opcode_names = [op.name for op in ir.Opcode]
     for i, func in enumerate(functions):
         print(f"func_{i}:", *ir.Block(func), sep="\n\t")
         for instruction in ir.Block(func):
-            weights[instruction.op] += 1
-    print(weights)
+            counts[instruction.op] += 1
+    print(*(f"{opcode}: {count}" for opcode, count in zip(opcode_names, counts)), sep="\n")
 
 
 if __name__ == "__main__":
