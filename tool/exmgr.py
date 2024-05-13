@@ -14,7 +14,7 @@ for filename in bude_sources:
     proc = subprocess.run([str(bude_exe), str(filename), "-d"],
                           capture_output=True)
     exit_status = proc.returncode
-    error_level += exit_status
+    error_level += abs(exit_status)
     if exit_status == 0:
         print(f"File {filename.name!r} compiled successfully:")
         # print(proc.stdout.decode())
