@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import enum
-from typing import Iterator, Callable
+from typing import Callable, Iterator
+
+import reader
 
 
 class Opcode(enum.IntEnum):
@@ -142,6 +144,7 @@ class Block:
     pointer and return the updated instruction pointer along with the
     value of the operand.
     """
+
     def __init__(self, code: bytes) -> None:
         self.code = code
 
@@ -307,3 +310,17 @@ class Block:
         Opcode.CALL32:             (read_u32,),
         Opcode.RET:                (),
     }
+
+
+class Module:
+    """A Bude 'Module' object which contains a list of strings and functions."""
+
+    def __init__(self, strings: list[str], functions: list[Block]) -> None:
+        self.strings = strings
+        self.functions = functions
+
+    @classmethod
+    def from_file(cls, filename: str) -> Self:
+        """Construct a Module directly from a BudeBWF file."""
+        strings, function_bytes = reader.read_bytecode(filename)
+        return cls(strings, [Block(func) for func in function_bytes])

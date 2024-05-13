@@ -30,13 +30,13 @@ def plot_pie(fig: plt.Figure, counts: np.ndarray, opcode_names: list[str]) -> No
     ax.pie(pie_xs, labels=pie_labels)
 
 
-def analyse_bytecode(functions: list[bytes]) -> None:
+def analyse_bytecode(module: ir.Module) -> None:
     """Analyse the frequency of each IR instruction."""
     counts = np.zeros(len(ir.Opcode), dtype=int)
     opcode_names = [op.name for op in ir.Opcode]
-    for i, func in enumerate(functions):
-        print(f"func_{i}:", *ir.Block(func), sep="\n\t")
-        for instruction in ir.Block(func):
+    for i, func in enumerate(module.functions):
+        print(f"func_{i}:", *func, sep="\n\t")
+        for instruction in func:
             counts[instruction.op] += 1
     fig = plt.figure(figsize=(16., 10.))
     plot_bar(fig, counts, opcode_names)
@@ -50,11 +50,11 @@ def main() -> None:
     arg_parser.add_argument("filename", help="the file to analyse")
     args = arg_parser.parse_args()
     try:
-        strings, functions = reader.read_bytecode(args.filename)
+        module = ir.Module.from_file(args.filename)
     except reader.ParseError as e:
         print(e)
         exit(1)
-    analyse_bytecode(functions)
+    analyse_bytecode(module)
 
 
 if __name__ == "__main__":
