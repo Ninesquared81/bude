@@ -39,6 +39,7 @@ def analyse_bytecode(module: ir.Module, output_path="./output/figure.png") -> No
         for instruction in func:
             counts[instruction.op] += 1
     fig = plt.figure(figsize=(16., 10.))
+    fig.tight_layout()
     plot_bar(fig, counts, opcode_names)
     plot_pie(fig, counts, opcode_names)
     fig.savefig(output_path)
