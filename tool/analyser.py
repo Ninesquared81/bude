@@ -27,7 +27,7 @@ def plot_pie(fig: plt.Figure, counts: np.ndarray, opcode_names: list[str]) -> No
         *((count, name) for count, name
           in zip(counts, opcode_names) if count > 0)
     )
-    ax.pie(pie_xs, labels=pie_labels)
+    ax.pie(pie_xs, labels=pie_labels, textprops={"fontsize": "x-small"})
 
 
 def analyse_bytecode(module: ir.Module, output_path="./output/figure.png") -> None:
