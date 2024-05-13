@@ -14,3 +14,4 @@ swap <- x  # Set x to old value of y.
 
 x print  # 42
 y print  # -5
+pop

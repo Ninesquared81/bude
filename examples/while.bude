@@ -3,3 +3,4 @@ while dupe do
     dupe print
     1 -
 end
+pop

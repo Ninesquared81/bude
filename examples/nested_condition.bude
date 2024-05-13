@@ -11,3 +11,4 @@
 do
   42 print
 end
+pop
