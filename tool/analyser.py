@@ -48,10 +48,10 @@ def analyse_bytecode(module: ir.Module, output_path="./output/figure.png") -> No
 def main() -> None:
     """Analyse the BudeBWF file passed on the command line."""
     arg_parser = argparse.ArgumentParser(description="Analyse a BudeBWF file")
-    arg_parser.add_argument("filename", help="the file to analyse")
+    arg_parser.add_argument("filename", nargs="+", help="the file(s) to analyse")
     args = arg_parser.parse_args()
     try:
-        module = ir.Module.from_file(args.filename)
+        module = ir.Module.from_file(args.filename[0])
     except reader.ParseError as e:
         print(e)
         exit(1)
