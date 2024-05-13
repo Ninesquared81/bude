@@ -1,4 +1,4 @@
-"Hello, World!\n" pop
+"Hello, World!\n" decomp pop
 
 0b00101101t print-char
 # dupe print

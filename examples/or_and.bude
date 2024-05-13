@@ -2,7 +2,7 @@
 42 36 and print
 
 
-"Or is " pop
+"Or is " decomp pop
 while dupe deref do
     dupe deref print-char
     1 +
@@ -20,19 +20,22 @@ while dupe deref do
 end
 
 
-"And is " pop
+"And is " decomp pop
 while dupe deref do
     dupe deref print-char
     1 +
 end
 
 if 0 1 and then
-    "true\n" pop
+    "true\n" decomp pop
 else
-    "false\n" pop
+    "false\n" decomp pop
 end
 
 while dupe deref do
     dupe deref print-char
     1 +
 end
+pop
+pop
+pop

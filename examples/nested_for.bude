@@ -1,4 +1,4 @@
-"\n" pop
+"\n" decomp pop
 
 for i from 5 do
     for j from 3 do
@@ -7,3 +7,4 @@ for i from 5 do
         dupe deref print-char
     end
 end
+pop
