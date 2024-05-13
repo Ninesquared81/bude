@@ -30,7 +30,7 @@ def plot_pie(fig: plt.Figure, counts: np.ndarray, opcode_names: list[str]) -> No
     ax.pie(pie_xs, labels=pie_labels)
 
 
-def analyse_bytecode(module: ir.Module) -> None:
+def analyse_bytecode(module: ir.Module, output_path="./output/figure.png") -> None:
     """Analyse the frequency of each IR instruction."""
     counts = np.zeros(len(ir.Opcode), dtype=int)
     opcode_names = [op.name for op in ir.Opcode]
@@ -41,7 +41,7 @@ def analyse_bytecode(module: ir.Module) -> None:
     fig = plt.figure(figsize=(16., 10.))
     plot_bar(fig, counts, opcode_names)
     plot_pie(fig, counts, opcode_names)
-    plt.show()
+    fig.savefig(output_path)
 
 
 def main() -> None:
