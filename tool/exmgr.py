@@ -52,7 +52,34 @@ def compile_handler(args: argparse.Namespace) -> None:
 
 
 def asm_handler(args: argparse.Namespace) -> None:
-    pass
+    error_level = 0
+    for filename in BUDE_SOURCES:
+        bude_args = ["-a"]
+        name, _, ext = filename.name.rpartition(".")
+        if name and ext != "bude":
+            continue  # Skip non-Bude files.
+        if not args.no_write:
+            new_name = ".".join((name, "asm"))
+            output_path = OUTPUT_DIR / new_name
+            bude_args.extend(["-o", str(output_path)])
+        proc = subprocess.run([str(BUDE_EXE), str(filename), *bude_args],
+                              capture_output=True)
+        log_with_level(2, *proc.args)
+        exit_status = proc.returncode
+        error_level += abs(exit_status)
+        if exit_status == 0:
+            log_with_level(-1, f"File {filename.name!r}" \
+                           f" produced assembly successfully ({exit_status}):")
+            log_with_level(1, proc.stdout.decode())
+        else:
+            log_with_level(-1, f"File {filename.name!r}" \
+                           f" failed to produce assembly ({exit_status}):")
+            log_with_level(0, proc.stderr.decode())
+    if error_level == 0:
+        log_with_level(-2, "Whole suite successfully produced assembly!")
+    else:
+        log_with_level(-2, "Suite produced assembly with errors.")
+        exit(1)
 
 
 def main() -> None:
@@ -81,6 +108,10 @@ def main() -> None:
         "asm",
         description=f"Asm subcommand -- {asm_help}.",
         help=asm_help
+    )
+    asm_parser.add_argument(
+        "-n", "--no-write", action="store_true",
+        help="produce assembly code but don't save to BudeBWF file"
     )
     asm_parser.set_defaults(handler=asm_handler)
     args = arg_parser.parse_args()
