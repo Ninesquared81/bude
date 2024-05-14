@@ -714,6 +714,7 @@ static bool check_pointer_addition(struct type_checker *checker,
 }
 
 static void check_unreachable(struct type_checker *checker) {
+    bool is_ret = checker->in_block->code[checker->ip] == T_OP_RET;
     while (checker->in_block->code[checker->ip + 1] == W_OP_NOP
            && !is_jump_dest(checker->in_block, checker->ip + 1)) {
         ++checker->ip;
@@ -721,7 +722,8 @@ static void check_unreachable(struct type_checker *checker) {
     }
     if (!is_forward_jump_dest(checker, checker->ip + 1)) {
         ++checker->ip;
-        if (checker->in_block->code[checker->ip] == T_OP_RET
+        if (!is_ret
+            && checker->in_block->code[checker->ip] == T_OP_RET
             && checker->ip + 1 >= checker->in_block->count) {
             // Final RET, okay to be unreachable.
             return;
