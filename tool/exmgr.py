@@ -57,8 +57,11 @@ def main():
                             type=int, choices=range(-2, 3), default=0,
                             help="level of diagnostic messages to emit (lower -> fewer messages)")
     subparsers = arg_parser.add_subparsers(title="subcommands", required=True)
+    compile_help = "compile files to word-oriented IR code"
     compile_parser = subparsers.add_parser(
-        "compile", help="compile files to word-oriented IR code"
+        "compile",
+        description=f"Compile subcommand -- {compile_help}.",
+        help=compile_help
     )
     compile_parser.add_argument(
         "-d", "--dump", action="store_true",
