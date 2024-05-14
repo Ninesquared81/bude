@@ -82,6 +82,10 @@ def asm_handler(args: argparse.Namespace) -> None:
         exit(1)
 
 
+def build_handler(args: argparse.Namespace) -> None:
+    pass
+
+
 def main() -> None:
     arg_parser = argparse.ArgumentParser(description=__doc__)
     arg_parser.add_argument("--message-level", action="store",
@@ -114,6 +118,13 @@ def main() -> None:
         help="produce assembly code but don't save to BudeBWF file"
     )
     asm_parser.set_defaults(handler=asm_handler)
+    build_help = "build executable by assembling asm ouput with FASM"
+    build_parser = subparsers.add_parser(
+        "build",
+        description=f"Build subcommand -- {build_help}.",
+        help=build_help
+    )
+    build_parser.set_defaults(handler=build_handler)
     args = arg_parser.parse_args()
     global log_level
     log_level = args.message_level
