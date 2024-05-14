@@ -135,10 +135,14 @@ def run_handler(args: argparse.Namespace) -> None:
                               capture_output=True)
         log_with_level(2, *proc.args)
         exit_status = proc.returncode
-        log_with_level(-1, f"File {filename.name!r} exited with status {exit_status}:")
+        if not args.errors_only or exit_status != 0:
+            level = -2 if args.errors_only else -1
+            log_with_level(level, f"File {filename.name!r} exited with status {exit_status}:")
         if exit_status != 0:
-            log_with_level(-1, proc.stderr.decode())
-        log_with_level(0, proc.stdout.decode())
+            level = -2 if args.errors_only else -1
+            log_with_level(level, proc.stderr.decode())
+        if not args.errors_only:
+            log_with_level(0, proc.stdout.decode())
 
 
 def main() -> None:
@@ -185,6 +189,10 @@ def main() -> None:
         "run",
         description=f"Run subcommand -- {run_help}.",
         help=run_help
+    )
+    run_parser.add_argument(
+        "-e", "--errors-only", action="store_true",
+        help="only show error messages (for non-zero exit codes)"
     )
     run_parser.set_defaults(handler=run_handler)
     args = arg_parser.parse_args()
