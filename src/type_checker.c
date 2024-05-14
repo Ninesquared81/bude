@@ -715,7 +715,7 @@ static bool check_pointer_addition(struct type_checker *checker,
 
 static void check_unreachable(struct type_checker *checker) {
     bool is_ret = checker->in_block->code[checker->ip] == T_OP_RET;
-    while (checker->in_block->code[checker->ip + 1] == W_OP_NOP
+    while (checker->in_block->code[checker->ip + 1] == T_OP_NOP
            && !is_jump_dest(checker->in_block, checker->ip + 1)) {
         ++checker->ip;
         if (checker->ip >= checker->in_block->count) return;
