@@ -18,10 +18,10 @@ def main():
         exit_status = proc.returncode
         error_level += abs(exit_status)
         if exit_status == 0:
-            print(f"File {filename.name!r} compiled successfully:")
+            print(f"File {filename.name!r} compiled successfully ({exit_status}):")
             # print(proc.stdout.decode())
         else:
-            print(f"File {filename.name!r} failed to compile:",
+            print(f"File {filename.name!r} failed to compile ({exit_status}):",
                   proc.stderr.decode(), sep="\n")
 
     if error_level == 0:
