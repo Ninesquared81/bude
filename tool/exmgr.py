@@ -7,6 +7,7 @@ import subprocess
 
 
 EXAMPLE_DIR = pathlib.Path("../examples/").resolve()
+OUTPUT_DIR = pathlib.Path("./output").resolve()
 BUDE_SOURCES = EXAMPLE_DIR.glob("*.bude")
 BUDE_EXE = pathlib.Path("../bin/bude.exe").resolve()
 
@@ -14,13 +15,24 @@ BUDE_EXE = pathlib.Path("../bin/bude.exe").resolve()
 def compile_handler(args: argparse.Namespace):
     error_level = 0
     for filename in BUDE_SOURCES:
-        proc = subprocess.run([str(BUDE_EXE), str(filename), "-d"],
+        bude_args = ["-b"]
+        name, _, ext = filename.name.rpartition(".")
+        if name and ext != "bude":
+            continue  # Skip non-Bude files. Filenames '[.]bude' are also skipped.
+        if args.dump:
+            bude_args.append("-d")
+        if not args.no_write:
+            new_name = ".".join(name, "bbwf")
+            output_path = OUTPUT_DIR / new_name
+            bude_args.extend(["-o", str(output_path)])
+        proc = subprocess.run([str(BUDE_EXE), str(filename), *bude_args],
                               capture_output=True)
+        print(*proc.args)
         exit_status = proc.returncode
         error_level += abs(exit_status)
         if exit_status == 0:
             print(f"File {filename.name!r} compiled successfully ({exit_status}):")
-            if args.dump and not args.quiet:
+            if not args.quiet:
                 print(proc.stdout.decode())
         else:
             print(f"File {filename.name!r} failed to compile ({exit_status}):",
@@ -45,7 +57,7 @@ def main():
     )
     compile_parser.add_argument(
         "-q", "--quiet", action="store_true",
-        help="if -d is specified, only emit errors"
+        help="do not emit stdout from Bude process"
     )
     compile_parser.add_argument(
         "-n", "--no-write", action="store_true",
