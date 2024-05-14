@@ -126,7 +126,19 @@ def build_handler(args: argparse.Namespace) -> None:
 
 
 def run_handler(args: argparse.Namespace) -> None:
-    pass
+    for filename in BUDE_SOURCES:
+        bude_args = ["-i"]
+        name, _, ext = filename.name.rpartition(".")
+        if name and ext != "bude":
+            continue  # Skip non-Bude files.
+        proc = subprocess.run([str(BUDE_EXE), str(filename), *bude_args],
+                              capture_output=True)
+        log_with_level(2, *proc.args)
+        exit_status = proc.returncode
+        log_with_level(-1, f"File {filename.name!r} exited with status {exit_status}:")
+        if exit_status != 0:
+            log_with_level(-1, proc.stderr.decode())
+        log_with_level(0, proc.stdout.decode())
 
 
 def main() -> None:
