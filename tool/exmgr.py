@@ -14,12 +14,12 @@ BUDE_EXE = pathlib.Path("../bin/bude.exe").resolve()
 log_level = 0
 
 
-def log_with_level(target_level, *print_args, **print_kwargs):
+def log_with_level(target_level, *print_args, **print_kwargs) -> None:
     if log_level >= target_level:
         print(*print_args, **print_kwargs)
 
 
-def compile_handler(args: argparse.Namespace):
+def compile_handler(args: argparse.Namespace) -> None:
     error_level = 0
     for filename in BUDE_SOURCES:
         bude_args = ["-b"]
@@ -51,7 +51,7 @@ def compile_handler(args: argparse.Namespace):
         exit(1)
 
 
-def main():
+def main() -> None:
     arg_parser = argparse.ArgumentParser(description=__doc__)
     arg_parser.add_argument("--message-level", action="store",
                             type=int, choices=range(-2, 3), default=0,
