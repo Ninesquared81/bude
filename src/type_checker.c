@@ -721,6 +721,11 @@ static void check_unreachable(struct type_checker *checker) {
     }
     if (!is_forward_jump_dest(checker, checker->ip + 1)) {
         ++checker->ip;
+        if (checker->in_block->code[checker->ip] == T_OP_RET
+            && checker->ip + 1 >= checker->in_block->count) {
+            // Final RET, okay to be unreachable.
+            return;
+        }
         int start_ip = checker->ip;
         while (checker->ip + 1 < checker->in_block->count
                && !is_forward_jump_dest(checker, checker->ip + 1)) {
