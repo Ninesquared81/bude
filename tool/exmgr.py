@@ -51,6 +51,10 @@ def compile_handler(args: argparse.Namespace) -> None:
         exit(1)
 
 
+def asm_handler(args: argparse.Namespace) -> None:
+    pass
+
+
 def main() -> None:
     arg_parser = argparse.ArgumentParser(description=__doc__)
     arg_parser.add_argument("--message-level", action="store",
@@ -72,6 +76,13 @@ def main() -> None:
         help="compile to IR but don't save to BudeBWF file"
     )
     compile_parser.set_defaults(handler=compile_handler)
+    asm_help = "produce assembly code"
+    asm_parser = subparsers.add_parser(
+        "asm",
+        description=f"Asm subcommand -- {asm_help}.",
+        help=asm_help
+    )
+    asm_parser.set_defaults(handler=asm_handler)
     args = arg_parser.parse_args()
     global log_level
     log_level = args.message_level
