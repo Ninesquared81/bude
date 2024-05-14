@@ -86,38 +86,38 @@ def asm_handler(args: argparse.Namespace) -> None:
 
 def build_handler(args: argparse.Namespace) -> None:
     error_level = 0
-    for filename in BUDE_SOURCES:
-        name, _, ext = filename.name.rpartition(".")
-        if name and ext != "bude":
-            continue  # Skip non-Bude files.
-        exe_name = ".".join((name, "exe"))
-        output_path = OUTPUT_DIR / exe_name
-        with tempfile.NamedTemporaryFile(delete=False) as tf:
-            asm_name = tf.name
-        bude_args = ["-a", "-o", asm_name]
-        bude_proc = subprocess.run([str(BUDE_EXE), str(filename), *bude_args],
-                                   capture_output=True)
-        log_with_level(2, *bude_proc.args)
-        bude_exit_status = bude_proc.returncode
-        error_level += abs(bude_exit_status)
-        if bude_exit_status == 0:
-            fasm_proc = subprocess.run(["fasm", asm_name, output_path],
+    with tempfile.TemporaryDirectory() as tdir:
+        for filename in BUDE_SOURCES:
+            name, _, ext = filename.name.rpartition(".")
+            if name and ext != "bude":
+                continue  # Skip non-Bude files.
+            asm_name = ".".join((name, "asm"))
+            asm_path = pathlib.Path(tdir) / asm_name
+            exe_name = ".".join((name, "exe"))
+            output_path = OUTPUT_DIR / exe_name
+            bude_args = ["-a", "-o", asm_path]
+            bude_proc = subprocess.run([str(BUDE_EXE), str(filename), *bude_args],
                                        capture_output=True)
-            log_with_level(2, *fasm_proc.args)
-            fasm_exit_status = fasm_proc.returncode
-            error_level += abs(fasm_exit_status)
-            if fasm_exit_status == 0:
-                log_with_level(-1, f"File {filename.name!r} built successfully:")
-                log_with_level(1, fasm_proc.stdout.decode())
+            log_with_level(2, *bude_proc.args)
+            bude_exit_status = bude_proc.returncode
+            error_level += abs(bude_exit_status)
+            if bude_exit_status == 0:
+                fasm_proc = subprocess.run(["fasm", asm_path, output_path],
+                                           capture_output=True)
+                log_with_level(2, *fasm_proc.args)
+                fasm_exit_status = fasm_proc.returncode
+                error_level += abs(fasm_exit_status)
+                if fasm_exit_status == 0:
+                    log_with_level(-1, f"File {filename.name!r} built successfully:")
+                    log_with_level(1, fasm_proc.stdout.decode())
+                else:
+                    log_with_level(-1, f"File {filename.name!r} failed to assemble " \
+                                   f"({fasm_exit_status}):")
+                    log_with_level(0, fasm_proc.stderr.decode())
             else:
-                log_with_level(-1, f"File {filename.name!r} failed to assemble " \
-                               f"({fasm_exit_status}):")
-                log_with_level(0, fasm_proc.stderr.decode())
-        else:
-            log_with_level(-1, "File {filename!r} failed to produce assembly" \
-                           f" ({bude_exit_status}):")
-            log_with_level(0, bude_proc.stderr.decode())
-        os.remove(asm_name)
+                log_with_level(-1, "File {filename!r} failed to produce assembly" \
+                               f" ({bude_exit_status}):")
+                log_with_level(0, bude_proc.stderr.decode())
     if error_level == 0:
         log_with_level(-2, "Whole suite built successfully!")
     else:
