@@ -5,14 +5,15 @@ import pathlib
 import subprocess
 
 
-def main():
-    example_dir = pathlib.Path("../examples/").resolve()
-    bude_sources = example_dir.glob("*.bude")
-    bude_exe = pathlib.Path("../bin/bude.exe").resolve()
+EXAMPLE_DIR = pathlib.Path("../examples/").resolve()
+BUDE_SOURCES = example_dir.glob("*.bude")
+BUDE_EXE = pathlib.Path("../bin/bude.exe").resolve()
 
+
+def main():
     error_level = 0
-    for filename in bude_sources:
-        proc = subprocess.run([str(bude_exe), str(filename), "-d"],
+    for filename in BUDE_SOURCES:
+        proc = subprocess.run([str(BUDE_EXE), str(filename), "-d"],
                               capture_output=True)
         exit_status = proc.returncode
         error_level += abs(exit_status)
