@@ -6,7 +6,7 @@ import subprocess
 
 
 EXAMPLE_DIR = pathlib.Path("../examples/").resolve()
-BUDE_SOURCES = example_dir.glob("*.bude")
+BUDE_SOURCES = EXAMPLE_DIR.glob("*.bude")
 BUDE_EXE = pathlib.Path("../bin/bude.exe").resolve()
 
 
