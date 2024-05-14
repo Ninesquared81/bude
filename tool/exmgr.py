@@ -10,7 +10,7 @@ BUDE_SOURCES = EXAMPLE_DIR.glob("*.bude")
 BUDE_EXE = pathlib.Path("../bin/bude.exe").resolve()
 
 
-def main():
+def compile_dump_ir():
     error_level = 0
     for filename in BUDE_SOURCES:
         proc = subprocess.run([str(BUDE_EXE), str(filename), "-d"],
@@ -30,6 +30,9 @@ def main():
         print("Suite compiled with errors.")
         exit(1)
 
+
+def main():
+    compile_dump_ir()
 
 if __name__ == "__main__":
     main()
