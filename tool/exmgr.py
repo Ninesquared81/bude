@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Example manager -- build, run, etc. all the Bude examples in the 'examples' directory."""
+"""Example manager -- build, run, etc., all the Bude examples in the 'examples' directory."""
 
 import argparse
 import pathlib
