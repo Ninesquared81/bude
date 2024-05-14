@@ -125,6 +125,9 @@ def build_handler(args: argparse.Namespace) -> None:
         exit(1)
 
 
+def run_handler(args: argparse.Namespace) -> None:
+    pass
+
 
 def main() -> None:
     arg_parser = argparse.ArgumentParser(description=__doc__)
@@ -165,6 +168,13 @@ def main() -> None:
         help=build_help
     )
     build_parser.set_defaults(handler=build_handler)
+    run_help = "run files in Bude interpreter"
+    run_parser = subparsers.add_parser(
+        "run",
+        description=f"Run subcommand -- {run_help}.",
+        help=run_help
+    )
+    run_parser.set_defaults(handler=run_handler)
     args = arg_parser.parse_args()
     global log_level
     log_level = args.message_level
