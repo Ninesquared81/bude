@@ -45,20 +45,24 @@ struct string_view type_name(struct type_table *table, type_index type) {
 }
 
 size_t type_size(struct type_table *table, type_index type) {
-    switch (type) {
-    case TYPE_ERROR: return 0;
-    case TYPE_WORD:  return 8;
-    case TYPE_BYTE:  return 1;
-    case TYPE_PTR:   return 8;
-    case TYPE_U8:    return 1;
-    case TYPE_U16:   return 2;
-    case TYPE_U32:   return 4;
-    case TYPE_S8:    return 1;
-    case TYPE_S16:   return 2;
-    case TYPE_S32:   return 4;
-    case TYPE_F32:   return 4;
-    case TYPE_F64:   return 8;
-    case TYPE_CHAR:  return 4;  // Assume max size for UTF-8, which is 4 bytes.
+    if (IS_SIMPLE_TYPE(type)) {
+        switch ((enum simple_type)type) {
+        case TYPE_ERROR: return 0;
+        case TYPE_WORD:  return 8;
+        case TYPE_BYTE:  return 1;
+        case TYPE_PTR:   return 8;
+        case TYPE_INT:   return 8;
+        case TYPE_U8:    return 1;
+        case TYPE_U16:   return 2;
+        case TYPE_U32:   return 4;
+        case TYPE_S8:    return 1;
+        case TYPE_S16:   return 2;
+        case TYPE_S32:   return 4;
+        case TYPE_F32:   return 4;
+        case TYPE_F64:   return 8;
+        case TYPE_CHAR:  return 4;  // Assume max size for UTF-8, which is 4 bytes.
+        }
+        assert(0 && "unreachable");
     }
     const struct type_info *info = lookup_type(table, type);
     if (info == NULL) return 0;
