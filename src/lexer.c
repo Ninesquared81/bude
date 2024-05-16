@@ -243,22 +243,31 @@ static struct token symbol(struct lexer *lexer) {
     return make_token(lexer, symbol_type(lexer));
 }
 
-static void lex_hex_int(struct lexer *lexer) {
+static int lex_hexadecimal(struct lexer *lexer) {
+    int hexit_count = 0;
     while (isxdigit(peek(lexer))) {
         advance(lexer);
+        ++hexit_count;
     }
+    return hexit_count;
 }
 
-static void lex_bin_int(struct lexer *lexer) {
+static int lex_binary(struct lexer *lexer) {
+    int bit_count = 0;
     for (char c = peek(lexer); c == '0' || c == '1'; c = peek(lexer)) {
         advance(lexer);
+        ++bit_count;
     }
+    return bit_count;
 }
 
-static void lex_dec_int(struct lexer *lexer) {
+static int lex_decimal(struct lexer *lexer) {
+    int digit_count = 0;
     while (isdigit(peek(lexer))) {
         advance(lexer);
+        ++digit_count;
     }
+    return digit_count;
 }
 
 static bool lex_int_suffix(struct lexer *lexer) {
@@ -278,26 +287,83 @@ static bool lex_int_suffix(struct lexer *lexer) {
     return is_at_end(lexer) || isspace(peek(lexer));
 }
 
-static struct token number(struct lexer *lexer) {
-    if (!match(lexer, '0')) {
-        lex_dec_int(lexer);
-    }
-    else {
-        if (match(lexer, 'x') && isxdigit(peek(lexer))) {
-            lex_hex_int(lexer);
-        }
-        else if (match(lexer, 'b') && (check(lexer, '0') || check(lexer, '1'))) {
-            lex_bin_int(lexer);
-        }
-        else {
-            // Decimal integers can start with '0'.
-            lex_dec_int(lexer);
+static bool lex_float_suffix(struct lexer *lexer) {
+    if (match(lexer, 'f')) {
+        switch (advance(lexer)) {
+        case '3': if (!match(lexer, '2')) return false; break;
+        case '6': if (!match(lexer, '4')) return false; break;
+        default: return false;
         }
     }
-    if (!lex_int_suffix(lexer)) {
+    return is_at_end(lexer) || isspace(peek(lexer));
+}
+
+static struct token decimal_lit(struct lexer *lexer) {
+    enum {NUMBER_INT, NUMBER_FLOAT} num_type = NUMBER_INT;
+    bool float_had_mantissa = lex_decimal(lexer);
+    bool float_had_frac = false;
+    if (match(lexer, '.')) {
+        num_type = NUMBER_FLOAT;
+        // Fractional part.
+        float_had_frac = lex_decimal(lexer);
+    }
+    if (match(lexer, 'e')) {
+        num_type = NUMBER_FLOAT;
+        // Exponent part.
+        // (Optional) sign.
+        (void)(match(lexer, '+') || match(lexer, '-'));
+        if (!lex_decimal(lexer)) {
+            // Must have at least one digit.
+            return symbol(lexer);
+        }
+    }
+
+    if (num_type == NUMBER_FLOAT) {
+        if ((!float_had_mantissa && !float_had_frac) || !lex_float_suffix(lexer)) {
+            return symbol(lexer);
+        }
+        return make_token(lexer, TOKEN_FLOAT_LIT);
+    }
+
+    if (check(lexer, 'f')) {
+        // We allow floats to have no '.' or 'e' if followed by a suffix.
+        // NOTE: if we lexed it as an integer, then we know we had a non-zero
+        // number of digits in the mantissa.
+        if (!lex_float_suffix(lexer)) return symbol(lexer);
+        return make_token(lexer, TOKEN_FLOAT_LIT);
+    }
+
+    if (!lex_int_suffix(lexer)) return symbol(lexer);
+    return make_token(lexer, TOKEN_INT_LIT);
+}
+
+static struct token hexadecimal_lit(struct lexer *lexer) {
+    if (!lex_hexadecimal(lexer) || !lex_int_suffix(lexer)) {
         return symbol(lexer);
     }
     return make_token(lexer, TOKEN_INT_LIT);
+}
+
+static struct token binary_lit(struct lexer *lexer) {
+    if (!lex_binary(lexer) || !lex_int_suffix(lexer)) {
+        return symbol(lexer);
+    }
+    return make_token(lexer, TOKEN_INT_LIT);
+}
+
+static struct token number(struct lexer *lexer) {
+    if (!match(lexer, '0')) {
+        return decimal_lit(lexer);
+    }
+    // Prefixes `0x`, `0b`.
+    if (match(lexer, 'x')) {
+        return hexadecimal_lit(lexer);
+    }
+    if (match(lexer, 'b')) {
+        return binary_lit(lexer);
+    }
+    // Decimal integers can start with '0'.
+    return decimal_lit(lexer);
 }
 
 static struct token string(struct lexer *lexer) {
@@ -337,12 +403,9 @@ static struct token character(struct lexer *lexer) {
     return make_token(lexer, TOKEN_CHAR_LIT);
 }
 
-static bool is_integer(struct lexer *lexer) {
-    if (isdigit(peek(lexer))) return true;
-    if (match(lexer, '-') || match(lexer, '+')) {
-        return isdigit(peek(lexer));
-    }
-    return false;
+static bool is_number(struct lexer *lexer) {
+    (void)(match(lexer, '-') || match(lexer, '+'));  // NOTE: We only allow one leading sign.
+    return isdigit(peek(lexer)) || check(lexer, '.');
 }
 
 static void start_token(struct lexer *lexer) {
@@ -356,8 +419,8 @@ struct token next_token(struct lexer *lexer) {
 
     if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOT);
 
-    if (is_integer(lexer)) {
-        return integer(lexer);
+    if (is_number(lexer)) {
+        return number(lexer);
     }
     if (match(lexer, '"')) {
         return string(lexer);
