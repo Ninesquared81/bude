@@ -217,7 +217,7 @@ static void emit_comp_field(struct compiler *compiler, enum t_opcode instruction
         emit_immediate_s16(compiler, instruction8 + 1, comp);
         emit_s16(compiler, offset);
     }
-    else {        
+    else {
         emit_immediate_s32(compiler, instruction8 + 2, comp);
         emit_s32(compiler, offset);
     }
@@ -534,7 +534,7 @@ static int compile_conditional(struct compiler *compiler) {
         patch_jump(compiler, jump_addr, else_jump);
         add_jump(compiler->block, end_addr);
     }
-    
+
     return end_addr;
 }
 
@@ -565,7 +565,7 @@ static void compile_for_loop(struct compiler *compiler) {
     if (compiler->for_loop_level > compiler->module->max_for_loop_level) {
         compiler->module->max_for_loop_level = compiler->for_loop_level;
     }
-    
+
     int offset = start_jump(compiler, start_instruction);
     int body_start = compiler->block->count;
     compile_expr(compiler);  // Loop body.
@@ -1167,4 +1167,3 @@ void compile(const char *src, struct module *module) {
     emit_simple(&compiler, T_OP_RET);  // Return from main function.
     free_compiler(&compiler);
 }
-
