@@ -173,7 +173,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
         case 'o': return check_keyword(lexer, 2, 1, "r", TOKEN_FOR);
         case 'r': return check_keyword(lexer, 2, 2, "om", TOKEN_FROM);
         case 'u': return check_keyword(lexer, 2, 2, "nc", TOKEN_FUNC);
-        case '3': return check_keyword(lexer, 2, 1. "2", TOKEN_F32);
+        case '3': return check_keyword(lexer, 2, 1, "2", TOKEN_F32);
         case '6': return check_keyword(lexer, 2, 1, "4", TOKEN_F64);
         }
         break;
