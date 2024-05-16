@@ -9,13 +9,16 @@
 #include "region.h"
 
 enum simple_type {
+    // Sentinel types.
     TYPE_ERROR,
 
+    // Basic integral types.
     TYPE_WORD,
     TYPE_BYTE,
     TYPE_PTR,
     TYPE_INT,
 
+    // Specific-width integral types.
     TYPE_U8,
     TYPE_U16,
     TYPE_U32,
@@ -23,11 +26,17 @@ enum simple_type {
     TYPE_S16,
     TYPE_S32,
 
+    // Floating-point types.
+    TYPE_F32,
+    TYPE_F64,
+
+    // Character types.
     TYPE_CHAR,
 };
 
-#define SIMPLE_TYPE_COUNT 12
-static_assert(SIMPLE_TYPE_COUNT == TYPE_CHAR + 1);
+#define SIMPLE_TYPE_COUNT 14
+#define LAST_SIMPLE_TYPE TYPE_CHAR
+static_assert(SIMPLE_TYPE_COUNT == LAST_SIMPLE_TYPE + 1);
 static_assert(TYPE_ERROR == 0);
 
 enum builtin_type {
@@ -35,7 +44,8 @@ enum builtin_type {
 };
 
 #define BUILTIN_TYPE_COUNT 1
-static_assert(BUILTIN_TYPE_COUNT + SIMPLE_TYPE_COUNT == TYPE_STRING + 1);
+#define LAST_BUILTIN_TYPE TYPE_STRING
+static_assert(BUILTIN_TYPE_COUNT + SIMPLE_TYPE_COUNT == LAST_BUILTIN_TYPE + 1);
 
 // Each type has a unique numeric identifier. For simple types,
 // the identifier comes from the enum above. User-defined types

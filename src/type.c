@@ -32,6 +32,8 @@ struct string_view type_name(struct type_table *table, type_index type) {
     case TYPE_S8:    return SV_LIT("s8");
     case TYPE_S16:   return SV_LIT("s16");
     case TYPE_S32:   return SV_LIT("s32");
+    case TYPE_F32:   return SV_LIT("f32");
+    case TYPE_F64:   return SV_LIT("f64");
     }
     const struct type_info *info = lookup_type(table, type);
     if (info == NULL) return SV_LIT("<Undefined type>");
@@ -50,6 +52,8 @@ size_t type_size(struct type_table *table, type_index type) {
     case TYPE_S8:    return 1;
     case TYPE_S16:   return 2;
     case TYPE_S32:   return 4;
+    case TYPE_F32:   return 4;
+    case TYPE_F64:   return 8;
     }
     const struct type_info *info = lookup_type(table, type);
     if (info == NULL) return 0;
