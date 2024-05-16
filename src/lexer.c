@@ -266,18 +266,19 @@ static bool lex_int_suffix(struct lexer *lexer) {
         if (is_at_end(lexer)) return false;
 
         switch (advance(lexer)) {
-        case '1': return match(lexer, '6');
-        case '3': return match(lexer, '2');
-        case '8': return true;
+        case '1': if (!match(lexer, '6')) return false; break;
+        case '3': if (!match(lexer, '2')) return false; break;
+        case '8': break;
+        default: return false;
         }
     }
-    else if (!match(lexer, 'w')) {
-        match(lexer, 't');
+    else {
+        (void)(match(lexer, 'w') || match(lexer, 't'));
     }
     return is_at_end(lexer) || isspace(peek(lexer));
 }
 
-static struct token integer(struct lexer *lexer) {
+static struct token number(struct lexer *lexer) {
     if (!match(lexer, '0')) {
         lex_dec_int(lexer);
     }
