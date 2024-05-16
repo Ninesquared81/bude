@@ -32,6 +32,8 @@ enum token_type {
     TOKEN_FOR,
     TOKEN_FROM,
     TOKEN_FUNC,
+    TOKEN_F32,
+    TOKEN_F64,
     TOKEN_GREATER_EQUALS,
     TOKEN_GREATER_THAN,
     TOKEN_IDIVMOD,
