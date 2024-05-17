@@ -135,9 +135,21 @@ static void emit_immediate_s16(struct compiler *compiler, enum t_opcode instruct
                         &compiler->previous_token.location);
 }
 
+static void emit_immediate_u32(struct compiler *compiler, enum t_opcode instruction,
+                               uint32_t operand) {
+    write_immediate_u32(compiler->block, instruction, operand,
+                        &compiler->previous_token.location);
+}
+
 static void emit_immediate_s32(struct compiler *compiler, enum t_opcode instruction,
                                int32_t operand) {
     write_immediate_s32(compiler->block, instruction, operand,
+                        &compiler->previous_token.location);
+}
+
+static void emit_immediate_u64(struct compiler *compiler, enum t_opcode instruction,
+                               uint64_t operand) {
+    write_immediate_u64(compiler->block, instruction, operand,
                         &compiler->previous_token.location);
 }
 
@@ -236,6 +248,10 @@ struct integer_prefix {
     int base;   // 10, 16, 2.
 };
 
+enum floating_point_type {
+    FLOAT_F32, FLOAT_F64,
+};
+
 enum integer_type {
     INT_WORD, INT_BYTE, INT_INT,
     INT_S8, INT_S16, INT_S32,
@@ -271,6 +287,15 @@ struct integer_prefix parse_integer_prefix(struct string_view *value) {
     }
 
     return prefix;
+}
+
+static enum floating_point_type parse_floating_point_suffix(struct string_view *value) {
+    if (value->length <= 3) return FLOAT_F64;
+
+    const char *end = &value->start[value->length];
+    if (strncmp(end - 3, "f32", 3) == 0) return FLOAT_F32;
+    if (strncmp(end - 3, "f64", 3) == 0) return FLOAT_F64;
+    return FLOAT_F64;
 }
 
 static enum integer_type parse_integer_suffix(struct string_view *value) {
@@ -367,6 +392,21 @@ static bool check_range(uint64_t magnitude, char sign, enum integer_type type) {
         break;
     }
     return magnitude <= maximum;
+}
+
+static void compile_floating_point(struct compiler *compiler) {
+    struct string_view value = peek_previous(compiler).value;
+    enum floating_point_type type = parse_floating_point_suffix(&value);
+    if (type == FLOAT_F32) {
+        // f32 -- single precision floating-point number.
+        float f32 = strtof(value.start, NULL);
+        emit_immediate_u32(compiler, T_OP_PUSH_FLOAT32, f32_to_u32(f32));
+    }
+    else {
+        // f64 -- double precision floating-point number.
+        double f64 = strtod(value.start, NULL);
+        emit_immediate_u64(compiler, T_OP_PUSH_FLOAT64, f64_to_u64(f64));
+    }
 }
 
 static void compile_integer(struct compiler *compiler) {
@@ -1121,6 +1161,9 @@ static void compile_expr(struct compiler *compiler) {
         }
         else if (match(compiler, TOKEN_COMP)) {
             compile_comp(compiler);
+        }
+        else if (match(compiler, TOKEN_FLOAT_LIT)) {
+            compile_floating_point(compiler);
         }
         else if (match(compiler, TOKEN_FOR)) {
             compile_for_loop(compiler);
