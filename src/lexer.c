@@ -243,6 +243,15 @@ static struct token symbol(struct lexer *lexer) {
     return make_token(lexer, symbol_type(lexer));
 }
 
+static int lex_decimal(struct lexer *lexer) {
+    int digit_count = 0;
+    while (isdigit(peek(lexer))) {
+        advance(lexer);
+        ++digit_count;
+    }
+    return digit_count;
+}
+
 static int lex_hexadecimal(struct lexer *lexer) {
     int hexit_count = 0;
     while (isxdigit(peek(lexer))) {
@@ -259,15 +268,6 @@ static int lex_binary(struct lexer *lexer) {
         ++bit_count;
     }
     return bit_count;
-}
-
-static int lex_decimal(struct lexer *lexer) {
-    int digit_count = 0;
-    while (isdigit(peek(lexer))) {
-        advance(lexer);
-        ++digit_count;
-    }
-    return digit_count;
 }
 
 static bool lex_int_suffix(struct lexer *lexer) {
