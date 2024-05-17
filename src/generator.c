@@ -6,6 +6,7 @@
 #include "function.h"
 #include "generator.h"
 #include "ir.h"
+#include "type_punning.h"
 #include "unicode.h"
 
 
@@ -291,6 +292,23 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             ip += 8;
             int64_t value = read_s64(block, ip - 7);
             asm_write_inst2f(assembly, "mov", "rax", "%"PRId64, value);
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case W_OP_PUSH_FLOAT32: {
+            ip += 4;
+            uint32_t bits = read_u32(block, ip - 3);
+            float value = u32_to_f32(bits);
+            asm_write_inst2f(assembly, "mov", "eax", "dword %#g", value);
+            asm_write_inst2(assembly, "mov", "eax", "eax");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        }
+        case W_OP_PUSH_FLOAT64: {
+            ip += 8;
+            uint64_t bits = read_u64(block, ip - 7);
+            double value = u64_to_f64(bits);
+            asm_write_inst2f(assembly, "mov", "rax", "qword %#g", value);
             asm_write_inst1(assembly, "push", "rax");
             break;
         }
