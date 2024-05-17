@@ -32,6 +32,9 @@ enum t_opcode {
     T_OP_PUSH_INT16,
     T_OP_PUSH_INT32,
     T_OP_PUSH_INT64,
+    /* PUSH_FLOATn Imm_fn -- Push a floating-point value to the stack. */
+    T_OP_PUSH_FLOAT32,
+    T_OP_PUSH_FLOAT64,
     /* PUSH_CHARn Imm_un -- Push a Unicode codepoint to the stack. */
     T_OP_PUSH_CHAR8,
     T_OP_PUSH_CHAR16,
@@ -165,6 +168,9 @@ enum w_opcode {
     W_OP_PUSH_INT16,
     W_OP_PUSH_INT32,
     W_OP_PUSH_INT64,
+    /* PUSH_FLOATn Imm_fn -- Push a floating-point value to the stack. */
+    W_OP_PUSH_FLOAT32,
+    W_OP_PUSH_FLOAT64,
     /* PUSH_CHARn Imm_un -- Push a Unicode codepoint to the stack. */
     W_OP_PUSH_CHAR8,
     W_OP_PUSH_CHAR16,

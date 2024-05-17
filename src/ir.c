@@ -28,6 +28,8 @@ const char *t_opcode_names[] = {
     [T_OP_PUSH_INT16]        = "T_OP_PUSH_INT16",
     [T_OP_PUSH_INT32]        = "T_OP_PUSH_INT32",
     [T_OP_PUSH_INT64]        = "T_OP_PUSH_INT64",
+    [T_OP_PUSH_FLOAT32]      = "T_OP_PUSH_FLOAT32",
+    [T_OP_PUSH_FLOAT64]      = "T_OP_PUSH_FLOAT64",
     [T_OP_PUSH_CHAR8]        = "T_OP_PUSH_CHAR8",
     [T_OP_PUSH_CHAR16]       = "T_OP_PUSH_CHAR16",
     [T_OP_PUSH_CHAR32]       = "T_OP_PUSH_CHAR32",
@@ -106,6 +108,8 @@ const char *w_opcode_names[]  = {
     [W_OP_PUSH_INT16]         = "W_OP_PUSH_INT16",
     [W_OP_PUSH_INT32]         = "W_OP_PUSH_INT32",
     [W_OP_PUSH_INT64]         = "W_OP_PUSH_INT64",
+    [W_OP_PUSH_FLOAT32]       = "W_OP_PUSH_FLOAT32",
+    [W_OP_PUSH_FLOAT64]       = "W_OP_PUSH_FLOAT64",
     [W_OP_PUSH_CHAR8]         = "W_OP_PUSH_CHAR8",
     [W_OP_PUSH_CHAR16]        = "W_OP_PUSH_CHAR16",
     [W_OP_PUSH_CHAR32]        = "W_OP_PUSH_CHAR32",
@@ -588,4 +592,3 @@ void ir_error(const char *restrict filename, struct ir_block *block,
     report_location(filename, &block->locations[index]);
     fprintf(stderr, message);
 }
-

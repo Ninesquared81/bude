@@ -6,6 +6,7 @@
 #include "ir.h"
 #include "string_view.h"
 #include "type.h"
+#include "type_punning.h"
 
 #define OPCODE_FORMAT "-21s"
 
@@ -84,6 +85,20 @@ static int immediate_s32_instruction(const char *name, struct ir_block *block, i
 static int immediate_s64_instruction(const char *name, struct ir_block *block, int offset) {
     print_instruction(name, block, offset, 9);
     printf("%"PRId64"\n", read_s64(block, offset + 1));
+    return offset + 9;
+}
+
+static int immediate_f32_instruction(const char *name, struct ir_block *block, int offset) {
+    print_instruction(name, block, offset, 5);
+    float value = u32_to_f32(read_u32(block, offset + 1));
+    printf("%g\n", value);
+    return offset + 5;
+}
+
+static int immediate_f64_instruction(const char *name, struct ir_block *block, int offset) {
+    print_instruction(name, block, offset, 9);
+    double value = u64_to_f64(read_u64(block, offset + 1));
+    printf("%g\n", value);
     return offset + 9;
 }
 
@@ -273,6 +288,10 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return immediate_s32_instruction("T_OP_PUSH_INT32", block, offset);
     case T_OP_PUSH_INT64:
         return immediate_s64_instruction("T_OP_PUSH_INT64", block, offset);
+    case T_OP_PUSH_FLOAT32:
+        return immediate_f32_instruction("T_OP_PUSH_FLOAT32", block, offset);
+    case T_OP_PUSH_FLOAT64:
+        return immediate_f64_instruction("T_OP_PUSH_FLOAT64", block, offset);
     case T_OP_PUSH_CHAR8:
         return immediate_u8_instruction("T_OP_PUSH_CHAR8", block, offset);
     case T_OP_PUSH_CHAR16:
@@ -438,6 +457,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return immediate_s32_instruction("W_OP_PUSH_INT32", block, offset);
     case W_OP_PUSH_INT64:
         return immediate_s64_instruction("W_OP_PUSH_INT64", block, offset);
+    case W_OP_PUSH_FLOAT32:
+        return immediate_f32_instruction("W_OP_PUSH_FLOAT32", block, offset);
+    case W_OP_PUSH_FLOAT64:
+        return immediate_f64_instruction("W_OP_PUSH_FLOAT64", block, offset);
     case W_OP_PUSH_CHAR8:
         return immediate_u8_instruction("W_OP_PUSH_CHAR8", block, offset);
     case W_OP_PUSH_CHAR16:
