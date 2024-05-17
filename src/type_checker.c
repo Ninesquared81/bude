@@ -944,6 +944,14 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             ts_push(checker, TYPE_INT);
             copy_immediate_u64(checker, W_OP_PUSH_INT64);
             break;
+        case T_OP_PUSH_FLOAT32:
+            ts_push(checker, TYPE_F32);
+            copy_immediate_u32(checker, W_OP_PUSH_FLOAT32);
+            break;
+        case T_OP_PUSH_FLOAT64:
+            ts_push(checker, TYPE_F64);
+            copy_immediate_u64(checker, W_OP_PUSH_FLOAT64);
+            break;
         case T_OP_PUSH_CHAR8:
             ts_push(checker, TYPE_CHAR);
             copy_immediate_u8(checker, W_OP_PUSH_CHAR8);
