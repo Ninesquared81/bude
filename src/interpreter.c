@@ -183,6 +183,18 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
+        case W_OP_PUSH_FLOAT32: {
+            ip += 4;
+            uint32_t bits = read_u32(interpreter->block, ip - 3);
+            push(interpreter->main_stack, bits);
+            break;
+        }
+        case W_OP_PUSH_FLOAT64: {
+            ip += 8;
+            uint64_t bits = read_u64(interpreter->block, ip - 7);
+            push(interpreter->main_stack, bits);
+            break;
+        }
         case W_OP_PUSH_CHAR8: {
             uint8_t value = read_u8(interpreter->block, ip + 1);
             ip += 1;
@@ -1001,4 +1013,3 @@ enum interpret_result interpret(struct interpreter *interpreter) {
     }
     return INTERPRET_OK;
 }
-
