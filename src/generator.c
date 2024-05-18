@@ -688,6 +688,16 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
             break;
+        case W_OP_PRINT_FLOAT:
+            asm_write_inst1(assembly, "pop", "rdx");
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
+            asm_write_inst2(assembly, "lea", "rcx", "[fmt_f64]");
+            asm_write_inst2(assembly, "mov", "rbp", "rsp");
+            asm_write_inst2(assembly, "and", "spl", "0F0h");
+            asm_write_inst2(assembly, "sub", "rsp", "32");
+            asm_write_inst1(assembly, "call", "[printf]");
+            asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            break;
         case W_OP_PRINT_INT:
             asm_write_inst1(assembly, "pop", "rdx");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_s64]");
@@ -774,6 +784,29 @@ static void generate_function(struct asm_block *assembly, struct module *module,
         case W_OP_ZX32L:
             asm_write_inst2(assembly, "mov", "eax", "[rsp+8]");
             asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            break;
+        case W_OP_FPROM:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm2", "eax");
+            asm_write_inst2(assembly, "cvtss2sd", "xmm1", "xmm2");
+            asm_write_inst2(assembly, "movq", "rax", "xmm1");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_FPROML:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst1(assembly, "pop", "rcx");
+            asm_write_inst2(assembly, "movd", "xmm2", "ecx");
+            asm_write_inst2(assembly, "cvtss2sd", "xmm1", "xmm2");
+            asm_write_inst2(assembly, "movq", "rcx", "xmm1");
+            asm_write_inst1(assembly, "push", "rcx");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_FDEM:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm2", "rax");
+            asm_write_inst2(assembly, "cvtsd2ss", "xmm1", "xmm2");
+            asm_write_inst2(assembly, "movd", "eax", "xmm1");
+            asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_PACK1:
             ++ip;
@@ -1135,6 +1168,9 @@ void generate_constants(struct asm_block *assembly, struct module *module) {
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_u64");
     asm_write_inst3(assembly, "db", "'%%I64u'", "10", "0");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "fmt_f64");
+    asm_write_inst3(assembly, "db", "'%%g'", "10", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_char");
     asm_write_inst2(assembly, "db", "'%%c'", "0");

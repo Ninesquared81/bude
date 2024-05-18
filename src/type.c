@@ -105,6 +105,20 @@ bool is_signed(type_index type) {
     }
 }
 
+bool is_float(type_index type) {
+    switch (type) {
+    case TYPE_F32:
+    case TYPE_F64:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool is_numeric(type_index type) {
+    return is_integral(type) || is_float(type);
+}
+
 bool is_pack(struct type_table *table, type_index type) {
     if (IS_SIMPLE_TYPE(type)) return false;
     const struct type_info *info = lookup_type(table, type);

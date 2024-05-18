@@ -481,6 +481,12 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             printf("%s", bytes);
             break;
         }
+        case W_OP_PRINT_FLOAT: {
+            uint64_t bits = pop(interpreter->main_stack);
+            double value = u64_to_f64(bits);
+            printf("%g\n", value);
+            break;
+        }
         case W_OP_PRINT_INT:
             printf("%"PRIssw"\n", u64_to_s64(pop(interpreter->main_stack)));
             break;
@@ -591,6 +597,26 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             a &= 0xFFFFFFFF;
             push(interpreter->main_stack, a);
             push(interpreter->main_stack, b);
+            break;
+        }
+        case W_OP_FPROM: {
+            stack_word bits = pop(interpreter->main_stack);
+            double value = u32_to_f32(bits);
+            push(interpreter->main_stack, f64_to_u64(value));
+            break;
+        }
+        case W_OP_FPROML: {
+            stack_word top = pop(interpreter->main_stack);
+            stack_word bits = pop(interpreter->main_stack);
+            double value = u32_to_f32(bits);
+            push(interpreter->main_stack, f64_to_u64(value));
+            push(interpreter->main_stack, top);
+            break;
+        }
+        case W_OP_FDEM: {
+            stack_word bits = pop(interpreter->main_stack);
+            float value = u64_to_f64(bits);
+            push(interpreter->main_stack, f32_to_u32(value));
             break;
         }
         case W_OP_PACK1: {

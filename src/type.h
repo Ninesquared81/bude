@@ -57,6 +57,8 @@ typedef int type_index;
 
 bool is_signed(type_index type);
 bool is_integral(type_index type);
+bool is_float(type_index type);
+bool is_numeric(type_index type);
 
 struct type_info {
     enum type_kind {

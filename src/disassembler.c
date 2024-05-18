@@ -549,6 +549,8 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_PRINT", block, offset);
     case W_OP_PRINT_CHAR:
         return simple_instruction("W_OP_PRINT_CHAR", block, offset);
+    case W_OP_PRINT_FLOAT:
+        return simple_instruction("W_OP_PRINT_FLOAT", block, offset);
     case W_OP_PRINT_INT:
         return simple_instruction("W_OP_PRINT_INT", block, offset);
     case W_OP_PRINT_STRING:
@@ -587,6 +589,12 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_ZX32", block, offset);
     case W_OP_ZX32L:
         return simple_instruction("W_OP_ZX32L", block, offset);
+    case W_OP_FPROM:
+        return simple_instruction("W_OP_FPROM", block, offset);
+    case W_OP_FPROML:
+        return simple_instruction("W_OP_FPROML", block, offset);
+    case W_OP_FDEM:
+        return simple_instruction("W_OP_FDEM", block, offset);
     case W_OP_PACK1:
         return w_pack_instruction("W_OP_PACK1", block, offset, 1);
     case W_OP_PACK2:

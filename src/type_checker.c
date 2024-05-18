@@ -284,6 +284,11 @@ static enum w_opcode promote(type_index type) {
     return convert(TYPE_INT, type).rhs_conv;
 }
 
+static enum w_opcode promote_float(type_index type) {
+    if (type == TYPE_F32) return W_OP_FPROM;
+    return W_OP_NOP;
+}
+
 static enum w_opcode sign_extend(type_index type) {
     switch (type) {
     case TYPE_BYTE:
@@ -674,14 +679,20 @@ static void emit_print_instruction(struct type_checker *checker, type_index type
             emit_print_instruction(checker, info->comp.fields[i]);
         }
     }
-    else if (!is_signed(type)) {
-        emit_simple(checker, W_OP_PRINT);
-    }
-    else {
+    else if (is_signed(type)) {
         // Promote signed type to int.
         enum w_opcode conv_instruction = promote(type);
         emit_simple_nnop(checker, conv_instruction);
         emit_simple(checker, W_OP_PRINT_INT);
+    }
+    else if (is_float(type)) {
+        // Promote single-precision to double-precision.
+        enum w_opcode conv_instruction = promote_float(type);
+        emit_simple_nnop(checker, conv_instruction);
+        emit_simple(checker, W_OP_PRINT_FLOAT);
+    }
+    else  {
+        emit_simple(checker, W_OP_PRINT);
     }
 }
 

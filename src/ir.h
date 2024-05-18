@@ -261,6 +261,8 @@ enum w_opcode {
     W_OP_PRINT,
     /* PRINT_CHAR -- Print the top element of the stack as a character. */
     W_OP_PRINT_CHAR,
+    /* PRINT_FLOAT -- Print the top element of the stack as an IEEE 754 double-precision (binary 64-bit) floating-point value. */
+    W_OP_PRINT_FLOAT,
     /* PRINT_INT -- Print the top element of the stack as a signed integer. */
     W_OP_PRINT_INT,
     /* PRINT_STRING -- Print the top two stack elements (start pointer, length) as a string. */
@@ -290,6 +292,12 @@ enum w_opcode {
     W_OP_ZX16L,
     W_OP_ZX32,
     W_OP_ZX32L,
+    /* FPROM, FPROML -- promote a single-precision floating-point value to double-precision.
+       The -L version operates on the element under the top. */
+    W_OP_FPROM,
+    W_OP_FPROML,
+    /* FDEM -- demote a double-precision floating-point value to single-precision. */
+    W_OP_FDEM,
     /* (W)PACKn Imm_u8... -- Construct a pack with n fields of the provided sizes. */
     W_OP_PACK1,
     W_OP_PACK2,
