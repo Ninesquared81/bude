@@ -187,6 +187,10 @@ enum w_opcode {
     W_OP_POPN32,
     /* ADD -- Add top two stack elements. */
     W_OP_ADD,
+    /* ADDF32 -- Add top two IEEE 754 single-precision (binary 32-bit) floating-point values */
+    W_OP_ADDF32,
+    /* ADDF64 -- Add top two IEEE 754 double-precision (binary 64-bit) floating-point values */
+    W_OP_ADDF64,
     /* AND -- Logical (value-preserving) and operation of top two elements. */
     W_OP_AND,
     /* DEREF -- Dereference (byte) ptr at top of stack. */

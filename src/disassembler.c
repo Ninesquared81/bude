@@ -483,6 +483,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return immediate_s32_instruction("W_OP_POPN32", block, offset);
     case W_OP_ADD:
         return simple_instruction("W_OP_ADD", block, offset);
+    case W_OP_ADDF32:
+        return simple_instruction("W_OP_ADDF32", block, offset);
+    case W_OP_ADDF64:
+        return simple_instruction("W_OP_ADDF64", block, offset);
     case W_OP_AND:
         return simple_instruction("W_OP_AND", block, offset);
     case W_OP_DEREF:

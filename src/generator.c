@@ -381,6 +381,24 @@ static void generate_function(struct asm_block *assembly, struct module *module,
         case W_OP_ADD:
             BIN_OP("add");
             break;
+        case W_OP_ADDF32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm1", "eax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm2", "eax");
+            asm_write_inst2(assembly, "addss", "xmm1", "xmm2");
+            asm_write_inst2(assembly, "movd", "eax", "xmm1");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_ADDF64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm2", "rax");
+            asm_write_inst2(assembly, "addsd", "xmm1", "xmm2");
+            asm_write_inst2(assembly, "movq", "rax", "xmm1");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_AND:
             asm_write_inst1c(assembly, "pop", "rdx", "'Then' value.");
             asm_write_inst2c(assembly, "mov", "rax", "[rsp]", "'Else' value.");

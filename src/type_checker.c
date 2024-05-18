@@ -1004,7 +1004,32 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             type_index result_type;
-            if (!check_pointer_addition(checker, lhs_type, rhs_type)) {
+            enum w_opcode add_instruction = W_OP_ADD;
+            if (check_pointer_addition(checker, lhs_type, rhs_type)) {
+                // Pointer-offset addition.
+                result_type = TYPE_PTR;
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                // Float addition.
+                if (!is_float(lhs_type) || !is_float(rhs_type)) {
+                    fprintf(stderr, "Adding float and non-float not supported (yet).");
+                    exit(1);
+                }
+                // f32 + f32 -> f32; f64 + f64 -> f64; f32 + f64 -> f64; f64 + f32 -> f64.
+                result_type = (lhs_type == rhs_type) ? lhs_type : TYPE_F64;
+                add_instruction = (result_type == TYPE_F32) ? W_OP_ADDF32 : W_OP_ADDF64;
+                if (lhs_type != result_type) {
+                    // Must be an f32; promote.
+                    assert(lhs_type == TYPE_F32 && rhs_type == TYPE_F64);
+                    emit_simple(checker, W_OP_FPROML);
+                }
+                if (rhs_type != result_type) {
+                    assert(lhs_type == TYPE_F64 && rhs_type == TYPE_F32);
+                    emit_simple(checker, W_OP_FPROM);
+                }
+            }
+            else {
+                // Integer addition.
                 struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
                 result_type = conversion.result_type;
                 if (result_type == TYPE_ERROR) {
@@ -1015,11 +1040,8 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 emit_simple_nnop(checker, conversion.rhs_conv);
                 emit_simple_nnop(checker, conversion.result_conv);
             }
-            else {
-                result_type = TYPE_PTR;
-            }
             ts_push(checker, result_type);
-            emit_simple(checker, W_OP_ADD);
+            emit_simple(checker, add_instruction);
             break;
         }
         case T_OP_AND: {
