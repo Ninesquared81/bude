@@ -4,3 +4,12 @@
 5.2f64
 
 pop pop pop pop
+
+
+42. -5e0 + print
+
+-42f32 1.f32 + print
+
+36f32 -5. + print
+
+73. 0f32 + print
