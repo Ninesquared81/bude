@@ -325,6 +325,13 @@ static struct arithm_conv convert(type_index lhs, type_index rhs) {
     return (struct arithm_conv) {0};
 }
 
+static struct float_conv convert_float(type_index lhs, type_index rhs) {
+    if (IS_SIMPLE_TYPE(lhs) && IS_SIMPLE_TYPE(rhs)) {
+        return float_conversions[lhs][rhs];
+    }
+    return (struct float_conv) {0};
+}
+
 static enum w_opcode promote(type_index type) {
     return convert(TYPE_INT, type).rhs_conv;
 }
@@ -1093,7 +1100,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                     emit_simple_nnop(checker, promote(rhs_type));
                     rhs_type = TYPE_INT;
                 }
-                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
                 result_type = conversion.result_type;
                 add_instruction = (result_type == TYPE_F32) ? W_OP_ADDF32 : W_OP_ADDF64;
                 emit_simple_nnop(checker, conversion.lhs_conv);
@@ -1139,7 +1146,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                     emit_simple_nnop(checker, promote(rhs_type));
                     rhs_type = TYPE_INT;
                 }
-                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
                 result_type = conversion.result_type;
@@ -1321,7 +1328,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                     emit_simple_nnop(checker, promote(rhs_type));
                     rhs_type = TYPE_INT;
                 }
-                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
                 result_type = conversion.result_type;
@@ -1418,7 +1425,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                     emit_simple_nnop(checker, promote(rhs_type));
                     rhs_type = TYPE_INT;
                 }
-                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
                 result_type = conversion.result_type;
