@@ -22,6 +22,12 @@ struct arithm_conv {
     enum w_opcode result_conv;
 };
 
+struct float_conv {
+    type_index result_type;
+    enum w_opcode lhs_conv;
+    enum w_opcode rhs_conv;
+};
+
 static struct string_view type_array_to_sv(struct type_checker *checker,
                                            int count, type_index types[count]) {
     struct string_builder builder = {0};
@@ -270,6 +276,29 @@ static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_
     [TYPE_S32][TYPE_U8]    = {TYPE_S32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
     [TYPE_S32][TYPE_U16]   = {TYPE_S32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
     [TYPE_S32][TYPE_U32]   = {TYPE_U32,  W_OP_SX32L, W_OP_NOP,   W_OP_ZX32},
+};
+
+/* This table tells one how to convert the lhs and rhs for floating-point
+ * arithmetic operations. For mixed integer--floating-point operations, the table
+ * assumes the integer operand has already been promoted to stack-word width (see
+ * the above 'arithemtic conversions' table for this operation.
+ *   Values of type 'word' are reinterpreted as signed integers, which may cause
+ * counter-intuitive behaviour when the MSB is set. The reason for this compromise
+ * is that x86-64 SSE has no facility for converting 64-bit unsigned integers to
+ * floating-point. It's not a problem for narrower unsigned types since they can be
+ * safely stored in a 64-bit 'int' without loss of meaning.
+ */
+static struct float_conv float_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT] = {
+    /* Integer--floating-point conversions. */
+    // [TYPE_INT][TYPE_F32] = {TYPE_F32, W_OP_ICONVF32L, W_OP_NOP},
+    // [TYPE_INT][TYPE_F64] = {TYPE_F64, W_OP_ICONVF64L, W_OP_NOP},
+    // [TYPE_F32][TYPE_INT] = {TYPE_F32, W_OP_NOP,       W_OP_ICONVF32},
+    // [TYPE_F64][TYPE_INT] = {TYPE_F64, W_OP_NOP,       W_OP_ICOMVF64},
+    /* Floating-point--floating-point conversions. */
+    [TYPE_F32][TYPE_F32] = {TYPE_F32, W_OP_NOP,       W_OP_NOP},
+    [TYPE_F32][TYPE_F64] = {TYPE_F64, W_OP_FPROML,    W_OP_NOP},
+    [TYPE_F64][TYPE_F32] = {TYPE_F64, W_OP_NOP,       W_OP_FPROM},
+    [TYPE_F64][TYPE_F64] = {TYPE_F64, W_OP_NOP,       W_OP_NOP},
 };
 
 static struct arithm_conv convert(type_index lhs, type_index rhs) {
@@ -561,6 +590,23 @@ static void emit_s16(struct type_checker *checker, int16_t value) {
 
 static void emit_s32(struct type_checker *checker, int32_t value) {
     emit_u32(checker, s32_to_u32(value));
+}
+
+static type_index emit_divmod_instruction(struct type_checker *checker,
+                                    type_index lhs_type, type_index rhs_type) {
+    struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+    enum w_opcode divmod_instruction = W_OP_DIVMOD;  // Unsigned division.
+    if (is_signed(conversion.result_type)) {
+        // In bude, division is Euclidean (remainder always non-negative) by default.
+        // Use W_OP_IDIVMOD (truncated) if possible.
+        divmod_instruction = (is_signed(lhs_type)) ? W_OP_EDIVMOD : W_OP_IDIVMOD;
+    }
+    emit_simple_nnop(checker, conversion.lhs_conv);
+    emit_simple_nnop(checker, conversion.rhs_conv);
+    emit_simple(checker, divmod_instruction);
+    emit_simple_nnop(checker, conversion.result_conv);
+    emit_simple_nnop(checker, conversion.result_conv);
+    return conversion.result_type;
 }
 
 static void emit_pack_instruction(struct type_checker *checker, type_index index) {
@@ -1062,27 +1108,44 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             ts_push(checker, TYPE_BYTE);
             emit_simple(checker, W_OP_DEREF);
             break;
+        case T_OP_DIV: {
+            type_index rhs_type = ts_pop(checker);
+            type_index lhs_type = ts_pop(checker);
+            type_index result_type = TYPE_WORD;
+            if (is_float(lhs_type) || is_float(rhs_type)) {
+                // Float division.
+                if (!is_float(lhs_type) || !is_float(rhs_type)) {
+                    fprintf(stderr, "Mixing floats and non-floats is not supported (yet).\n");
+                    exit(1);
+                }
+                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                result_type = conversion.result_type;
+                emit_simple(checker, (result_type == TYPE_F64) ? W_OP_DIVF64 : W_OP_DIVF32);
+            }
+            else if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                result_type = emit_divmod_instruction(checker, lhs_type, rhs_type);
+                emit_simple(checker, W_OP_POP);
+            }
+            else {
+                type_error(checker, "invalid types for `/`");
+            }
+            ts_push(checker, result_type);
+            break;
+        }
         case T_OP_DIVMOD: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
-            if (conversion.result_type == TYPE_ERROR) {
+            type_index result_type = TYPE_WORD;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                result_type = emit_divmod_instruction(checker, lhs_type, rhs_type);
+            }
+            else {
                 type_error(checker, "invalid types for `divmod`");
-                conversion.result_type = TYPE_WORD;
             }
-            enum w_opcode divmod_instruction = W_OP_DIVMOD;  // Unsigned division.
-            if (is_signed(conversion.result_type)) {
-                // In bude, division is Euclidean (remainder always non-negative) by default.
-                // Use W_OP_IDIVMOD (truncated) if possible.
-                divmod_instruction = (is_signed(lhs_type)) ? W_OP_EDIVMOD : W_OP_IDIVMOD;
-            }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, divmod_instruction);
-            emit_simple_nnop(checker, conversion.result_conv);
-            emit_simple_nnop(checker, conversion.result_conv);
-            ts_push(checker, conversion.result_type);  // Quotient.
-            ts_push(checker, conversion.result_type);  // Remainder.
+            ts_push(checker, result_type);  // Quotient.
+            ts_push(checker, result_type);  // Remainder.
             break;
         }
         case T_OP_IDIVMOD: {

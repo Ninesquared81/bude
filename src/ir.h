@@ -51,6 +51,8 @@ enum t_opcode {
     T_OP_AND,
     /* DEREF -- Dereference (byte) ptr at top of stack. */
     T_OP_DEREF,
+    /* DIV -- Divide next element by top. For integers, this is equivalent to DIVMOD; POP. */
+    T_OP_DIV,
     /* DIVMOD -- Unsigned division and reaminder. */
     T_OP_DIVMOD,
     /* IDIVMOD -- Signed (truncated) division and remainder. */
@@ -195,6 +197,10 @@ enum w_opcode {
     W_OP_AND,
     /* DEREF -- Dereference (byte) ptr at top of stack. */
     W_OP_DEREF,
+    /* DIVF32 -- Single-precsion floating-point division. */
+    W_OP_DIVF32,
+    /* DIVF64 -- Double-precision floating-point division. */
+    W_OP_DIVF64,
     /* DIVMOD -- Unsigned division and reaminder. */
     W_OP_DIVMOD,
     /* IDIVMOD -- Signed (truncated) division and remainder. */

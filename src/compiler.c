@@ -1131,8 +1131,7 @@ static bool compile_simple(struct compiler *compiler) {
         emit_simple(compiler, T_OP_RET);
         break;
     case TOKEN_SLASH:
-        emit_simple(compiler, T_OP_DIVMOD);
-        emit_simple(compiler, T_OP_POP);
+        emit_simple(compiler, T_OP_DIV);
         break;
     case TOKEN_SLASH_EQUALS:
         emit_simple(compiler, T_OP_NOT_EQUALS);
