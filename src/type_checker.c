@@ -1128,12 +1128,16 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_DIV: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            type_index result_type = TYPE_WORD;
+            type_index result_type = TYPE_ERROR;
             if (is_float(lhs_type) || is_float(rhs_type)) {
                 // Float division.
-                if (!is_float(lhs_type) || !is_float(rhs_type)) {
-                    fprintf(stderr, "Mixing floats and non-floats is not supported (yet).\n");
-                    exit(1);
+                if (is_integral(lhs_type)) {
+                    emit_simple_nnop(checker, promotel(lhs_type));
+                    lhs_type = TYPE_INT;
+                }
+                else if (is_integral(rhs_type)) {
+                    emit_simple_nnop(checker, promote(rhs_type));
+                    rhs_type = TYPE_INT;
                 }
                 struct float_conv conversion = float_conversions[lhs_type][rhs_type];
                 emit_simple_nnop(checker, conversion.lhs_conv);
@@ -1145,8 +1149,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 result_type = emit_divmod_instruction(checker, lhs_type, rhs_type);
                 emit_simple(checker, W_OP_POP);
             }
-            else {
+            if (result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `/`");
+                result_type = TYPE_WORD;
             }
             ts_push(checker, result_type);
             break;
@@ -1299,7 +1304,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index lhs_type = ts_pop(checker);
             enum w_opcode mult_instruction = W_OP_MULT;
             enum w_opcode result_conv = W_OP_NOP;
-            type_index result_type = TYPE_WORD;
+            type_index result_type = TYPE_ERROR;
             if (is_integral(lhs_type) && is_integral(rhs_type)) {
                 struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
                 emit_simple_nnop(checker, conversion.lhs_conv);
@@ -1308,9 +1313,13 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 result_type = conversion.result_type;
             }
             else if (is_float(lhs_type) || is_float(rhs_type)) {
-                if (!is_float(lhs_type) || !is_float(rhs_type)) {
-                    fprintf(stderr, "Mixing float and non-float not supported yet.\n");
-                    exit(1);
+                if (is_integral(lhs_type)) {
+                    emit_simple_nnop(checker, promotel(lhs_type));
+                    lhs_type = TYPE_INT;
+                }
+                else if (is_integral(rhs_type)) {
+                    emit_simple_nnop(checker, promote(rhs_type));
+                    rhs_type = TYPE_INT;
                 }
                 struct float_conv conversion = float_conversions[lhs_type][rhs_type];
                 emit_simple_nnop(checker, conversion.lhs_conv);
@@ -1318,8 +1327,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 result_type = conversion.result_type;
                 mult_instruction = (result_type == TYPE_F64) ? W_OP_MULTF64 : W_OP_MULTF32;
             }
-            else {
+            if (result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `*`");
+                result_type = TYPE_WORD;
             }
             emit_simple(checker, mult_instruction);
             emit_simple_nnop(checker, result_conv);
@@ -1384,7 +1394,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
             enum w_opcode sub_instruction = W_OP_SUB;
-            type_index result_type = TYPE_WORD;
+            type_index result_type = TYPE_ERROR;
             enum w_opcode result_conv = W_OP_NOP;
             if (lhs_type == TYPE_PTR) {
                 if (rhs_type == TYPE_PTR) {
@@ -1400,9 +1410,13 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             else if (is_float(lhs_type) || is_float(rhs_type)) {
                 // Floating-point arithmetic.
-                if (!is_float(lhs_type) || !is_float(rhs_type)) {
-                    fprintf(stderr, "Mixing float and non-float not supported (yet).\n");
-                    exit(1);
+                if (is_integral(lhs_type)) {
+                    emit_simple_nnop(checker, promotel(lhs_type));
+                    lhs_type = TYPE_INT;
+                }
+                else if (is_integral(rhs_type)) {
+                    emit_simple_nnop(checker, promote(rhs_type));
+                    rhs_type = TYPE_INT;
                 }
                 struct float_conv conversion = float_conversions[lhs_type][rhs_type];
                 emit_simple_nnop(checker, conversion.lhs_conv);
@@ -1417,8 +1431,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 result_type = conversion.result_type;
                 result_conv = conversion.result_conv;
             }
-            else {
+            if (result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `-`");
+                result_type = TYPE_WORD;
             }
             ts_push(checker, result_type);
             emit_simple(checker, sub_instruction);

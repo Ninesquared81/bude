@@ -21,3 +21,11 @@ pop pop pop pop
 -78.351 650.5 - print
 
 123.45 1s8 + print
+
+12.f32 0 * print
+
+45. 8 - print
+
+64.2 7 / print
+
+44f32 55f32 + print
