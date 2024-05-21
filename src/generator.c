@@ -386,7 +386,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2(assembly, "movd", "xmm1", "eax");
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
-            asm_write_inst2(assembly, "addss", "xmm0", "xmm2");
+            asm_write_inst2(assembly, "addss", "xmm0", "xmm1");
             asm_write_inst2(assembly, "movd", "eax", "xmm0");
             asm_write_inst1(assembly, "push", "rax");
             break;
