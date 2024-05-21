@@ -318,7 +318,7 @@ static struct float_conv float_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT]
 };
 
 static struct arithm_conv convert(type_index lhs, type_index rhs) {
-    if (IS_SIMPLE_TYPE(rhs) && IS_SIMPLE_TYPE(lhs)) {
+    if (IS_SIMPLE_TYPE(lhs) && IS_SIMPLE_TYPE(rhs)) {
         return arithmetic_conversions[lhs][rhs];
     }
     // Custom types are always non-arithmetic.
