@@ -613,6 +613,14 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_FPROML", block, offset);
     case W_OP_FDEM:
         return simple_instruction("W_OP_FDEM", block, offset);
+    case W_OP_ICONVF32:
+        return simple_instruction("W_OP_ICONVF32", block, offset);
+    case W_OP_ICONVF32L:
+        return simple_instruction("W_OP_ICONVF32L", block, offset);
+    case W_OP_ICONVF64:
+        return simple_instruction("W_OP_ICONVF64", block, offset);
+    case W_OP_ICONVF64L:
+        return simple_instruction("W_OP_ICONVF64L", block, offset);
     case W_OP_PACK1:
         return w_pack_instruction("W_OP_PACK1", block, offset, 1);
     case W_OP_PACK2:

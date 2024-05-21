@@ -306,10 +306,10 @@ static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_
  */
 static struct float_conv float_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT] = {
     /* Integer--floating-point conversions. */
-    // [TYPE_INT][TYPE_F32] = {TYPE_F32, W_OP_ICONVF32L, W_OP_NOP},
-    // [TYPE_INT][TYPE_F64] = {TYPE_F64, W_OP_ICONVF64L, W_OP_NOP},
-    // [TYPE_F32][TYPE_INT] = {TYPE_F32, W_OP_NOP,       W_OP_ICONVF32},
-    // [TYPE_F64][TYPE_INT] = {TYPE_F64, W_OP_NOP,       W_OP_ICOMVF64},
+    [TYPE_INT][TYPE_F32] = {TYPE_F32, W_OP_ICONVF32L, W_OP_NOP},
+    [TYPE_INT][TYPE_F64] = {TYPE_F64, W_OP_ICONVF64L, W_OP_NOP},
+    [TYPE_F32][TYPE_INT] = {TYPE_F32, W_OP_NOP,       W_OP_ICONVF32},
+    [TYPE_F64][TYPE_INT] = {TYPE_F64, W_OP_NOP,       W_OP_ICONVF64},
     /* Floating-point--floating-point conversions. */
     [TYPE_F32][TYPE_F32] = {TYPE_F32, W_OP_NOP,       W_OP_NOP},
     [TYPE_F32][TYPE_F64] = {TYPE_F64, W_OP_FPROML,    W_OP_NOP},
@@ -329,7 +329,6 @@ static enum w_opcode promote(type_index type) {
     return convert(TYPE_INT, type).rhs_conv;
 }
 
-[[maybe_unused]]
 static enum w_opcode promotel(type_index type) {
     return convert(type, TYPE_INT).lhs_conv;
 }
@@ -1070,17 +1069,29 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_ADD: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            type_index result_type;
+            type_index result_type = TYPE_ERROR;
             enum w_opcode add_instruction = W_OP_ADD;
             if (check_pointer_addition(checker, lhs_type, rhs_type)) {
                 // Pointer-offset addition.
                 result_type = TYPE_PTR;
             }
+            else if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                // Integer addition.
+                struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+                result_type = conversion.result_type;
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                emit_simple_nnop(checker, conversion.result_conv);
+            }
             else if (is_float(lhs_type) || is_float(rhs_type)) {
-                // Float addition.
-                if (!is_float(lhs_type) || !is_float(rhs_type)) {
-                    fprintf(stderr, "Adding float and non-float not supported (yet).\n");
-                    exit(1);
+                // Float additon.
+                if (is_integral(lhs_type)) {
+                    emit_simple_nnop(checker, promotel(lhs_type));
+                    lhs_type = TYPE_INT;
+                }
+                else if (is_integral(rhs_type)) {
+                    emit_simple_nnop(checker, promote(rhs_type));
+                    rhs_type = TYPE_INT;
                 }
                 struct float_conv conversion = float_conversions[lhs_type][rhs_type];
                 result_type = conversion.result_type;
@@ -1088,17 +1099,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
             }
-            else {
-                // Integer addition.
-                struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
-                result_type = conversion.result_type;
-                if (result_type == TYPE_ERROR) {
-                    type_error(checker, "invalid types for `+`");
-                    result_type = TYPE_WORD;  // Continue with a word.
-                }
-                emit_simple_nnop(checker, conversion.lhs_conv);
-                emit_simple_nnop(checker, conversion.rhs_conv);
-                emit_simple_nnop(checker, conversion.result_conv);
+            if (result_type == TYPE_ERROR) {
+                type_error(checker, "invalid types for `+`");
+                result_type = TYPE_WORD;  // Continue with a word.
             }
             ts_push(checker, result_type);
             emit_simple(checker, add_instruction);

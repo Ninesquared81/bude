@@ -19,3 +19,5 @@ pop pop pop pop
 42.5 1.234 / print
 
 -78.351 650.5 - print
+
+123.45 1s8 + print

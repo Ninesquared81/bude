@@ -639,6 +639,34 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, f32_to_u32(value));
             break;
         }
+        case W_OP_ICONVF32: {
+            sstack_word integer_value = u64_to_s64(pop(interpreter->main_stack));
+            float floating_value = integer_value;
+            push(interpreter->main_stack, f32_to_u32(floating_value));
+            break;
+        }
+        case W_OP_ICONVF32L: {
+            stack_word top = pop(interpreter->main_stack);
+            sstack_word integer_value = u64_to_s64(pop(interpreter->main_stack));
+            float floating_value = integer_value;
+            push(interpreter->main_stack, f32_to_u32(floating_value));
+            push(interpreter->main_stack, top);
+            break;
+        }
+        case W_OP_ICONVF64: {
+            sstack_word integer_value = u64_to_s64(pop(interpreter->main_stack));
+            double floating_value = integer_value;
+            push(interpreter->main_stack, f64_to_u64(floating_value));
+            break;
+        }
+        case W_OP_ICONVF64L: {
+            stack_word top = pop(interpreter->main_stack);
+            sstack_word integer_value = u64_to_s64(pop(interpreter->main_stack));
+            double floating_value = integer_value;
+            push(interpreter->main_stack, f64_to_u64(floating_value));
+            push(interpreter->main_stack, top);
+            break;
+        }
         case W_OP_PACK1: {
             ++ip;
             // We don't need to actually do anything here.

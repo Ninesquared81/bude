@@ -316,6 +316,14 @@ enum w_opcode {
     W_OP_FPROML,
     /* FDEM -- demote a double-precision floating-point value to single-precision. */
     W_OP_FDEM,
+    /* ICONVF32, ICONVF32L -- convert a 64-bit integer to a 32-bit single-precision
+       floating-point value. The -L version operates on the element under the top. */
+    W_OP_ICONVF32,
+    W_OP_ICONVF32L,
+    /* ICONVF64, ICONVF64L -- convert a 64-bit integer to a 64-bit double-precision
+       floating-point value. The -L version operates on the element under the top. */
+    W_OP_ICONVF64,
+    W_OP_ICONVF64L,
     /* (W)PACKn Imm_u8... -- Construct a pack with n fields of the provided sizes. */
     W_OP_PACK1,
     W_OP_PACK2,

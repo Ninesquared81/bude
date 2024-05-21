@@ -880,6 +880,34 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2(assembly, "movd", "eax", "xmm1");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_ICONVF32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "cvtsi2ss", "xmm0", "rax");
+            asm_write_inst2(assembly, "movd", "eax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_ICONVF32L:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst1(assembly, "pop", "rcx");
+            asm_write_inst2(assembly, "cvtsi2ss", "xmm0", "rcx");
+            asm_write_inst2(assembly, "movd", "ecx", "xmm0");
+            asm_write_inst1(assembly, "push", "rcx");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_ICONVF64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rax");
+            asm_write_inst2(assembly, "movq", "rax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_ICONVF64L:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst1(assembly, "pop", "rcx");
+            asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rcx");
+            asm_write_inst2(assembly, "movd", "rcx", "xmm0");
+            asm_write_inst1(assembly, "push", "rcx");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_PACK1:
             ++ip;
             break;
