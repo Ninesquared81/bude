@@ -261,6 +261,10 @@ enum w_opcode {
     W_OP_LOWER_THAN,
     /* MULT -- Multiply the top two stack elements. */
     W_OP_MULT,
+    /* MULTF32 -- Single-precision floating-point multiplication of top two stack elements. */
+    W_OP_MULTF32,
+    /* MULTF64 -- Double-precision floating-point multiplication of top two stack elements. */
+    W_OP_MULTF64,
     /* NOT -- Logical not operation of the top two stack elements. */
     W_OP_NOT,
     /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */
@@ -279,6 +283,10 @@ enum w_opcode {
     W_OP_PRINT_STRING,
     /* SUB -- Subtract the top stack element from the next element. */
     W_OP_SUB,
+    /* SUBF32 -- Single-precision floating-point subtraction of top element from next element. */
+    W_OP_SUBF32,
+    /* SUBF64 -- Double-precision floating-point subtraction of top element from next element. */
+    W_OP_SUBF64,
     /* SWAP -- Swap the top two stack words. */
     W_OP_SWAP,
     /* SWAP_COMPSn Imm_sn Imm_sn -- Swap the two comps at the top of the stack with the

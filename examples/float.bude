@@ -12,4 +12,10 @@ pop pop pop pop
 
 36f32 -5. + print
 
-73. 0f32 + print
+73.4 0f32 + print
+
+123. 65.432f32 * print
+
+42.5 1.234 / print
+
+-78.351 650.5 - print

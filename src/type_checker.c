@@ -181,6 +181,22 @@ void free_type_checker(struct type_checker *checker) {
 }
 
 
+/* This table tells one how to convert the lhs and rhs of an integer arithmetic conversion.
+ * For floating-point conversions, see the 'float_conversions' table below. All arithmetic
+ * operations happen on the level of word-sized (64-bit) operations, so the lhs and rhs must
+ * first be converted to signed/unsigned 64-bit integers. The overall result type depends on
+ * Bude's conversion rules and may be narrower than word size, so the final column tells how
+ * to convert back to the narrower type. For all conversion instructions, if no conversion is
+ * to occur, a NOP instruction is listed instead.
+ *   The conversion rules depend on the widths and signednesses of the two operands. If the
+ * operands are of the same type (same width and signedness), then the result is also that
+ * type. If the types are of different widths, then the result type is the wider of the two
+ * operand types. If the types are of the same width but different signedness, then the
+ * result is the unsigned type of that width.
+ *   Some operations require an integral operand to be 'promoted'. This is where the type is
+ * converted to the 64-bit type with the same signedness. The operation to accomplish this can
+ * be found by taking that type as rhs with the type 'int' as the lhs.
+ */
 static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_COUNT] = {
     /* lhs_type  rhs_type    result_type lhs_conv    rhs_conv   result_conv */
     [TYPE_WORD][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
@@ -311,6 +327,11 @@ static struct arithm_conv convert(type_index lhs, type_index rhs) {
 
 static enum w_opcode promote(type_index type) {
     return convert(TYPE_INT, type).rhs_conv;
+}
+
+[[maybe_unused]]
+static enum w_opcode promotel(type_index type) {
+    return convert(type, TYPE_INT).lhs_conv;
 }
 
 static enum w_opcode promote_float(type_index type) {
@@ -1058,21 +1079,14 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             else if (is_float(lhs_type) || is_float(rhs_type)) {
                 // Float addition.
                 if (!is_float(lhs_type) || !is_float(rhs_type)) {
-                    fprintf(stderr, "Adding float and non-float not supported (yet).");
+                    fprintf(stderr, "Adding float and non-float not supported (yet).\n");
                     exit(1);
                 }
-                // f32 + f32 -> f32; f64 + f64 -> f64; f32 + f64 -> f64; f64 + f32 -> f64.
-                result_type = (lhs_type == rhs_type) ? lhs_type : TYPE_F64;
+                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                result_type = conversion.result_type;
                 add_instruction = (result_type == TYPE_F32) ? W_OP_ADDF32 : W_OP_ADDF64;
-                if (lhs_type != result_type) {
-                    // Must be an f32; promote.
-                    assert(lhs_type == TYPE_F32 && rhs_type == TYPE_F64);
-                    emit_simple(checker, W_OP_FPROML);
-                }
-                if (rhs_type != result_type) {
-                    assert(lhs_type == TYPE_F64 && rhs_type == TYPE_F32);
-                    emit_simple(checker, W_OP_FPROM);
-                }
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
             }
             else {
                 // Integer addition.
@@ -1280,16 +1294,33 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_MULT: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
-            if (conversion.result_type == TYPE_ERROR) {
-                type_error(checker, "invalid types for `*`");
-                conversion.result_type = TYPE_WORD;
+            enum w_opcode mult_instruction = W_OP_MULT;
+            enum w_opcode result_conv = W_OP_NOP;
+            type_index result_type = TYPE_WORD;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                result_conv = conversion.result_conv;
+                result_type = conversion.result_type;
             }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, W_OP_MULT);
-            emit_simple_nnop(checker, conversion.result_conv);
-            ts_push(checker, conversion.result_type);
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                if (!is_float(lhs_type) || !is_float(rhs_type)) {
+                    fprintf(stderr, "Mixing float and non-float not supported yet.\n");
+                    exit(1);
+                }
+                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                result_type = conversion.result_type;
+                mult_instruction = (result_type == TYPE_F64) ? W_OP_MULTF64 : W_OP_MULTF32;
+            }
+            else {
+                type_error(checker, "invalid types for `*`");
+            }
+            emit_simple(checker, mult_instruction);
+            emit_simple_nnop(checker, result_conv);
+            ts_push(checker, result_type);
             break;
         }
         case T_OP_NOT: {
@@ -1349,30 +1380,46 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_SUB: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
-            if (conversion.result_type != TYPE_ERROR) {
-                emit_simple_nnop(checker, conversion.lhs_conv);
-                emit_simple_nnop(checker, conversion.rhs_conv);
-            }
-            else if (lhs_type == TYPE_PTR) {
+            enum w_opcode sub_instruction = W_OP_SUB;
+            type_index result_type = TYPE_WORD;
+            enum w_opcode result_conv = W_OP_NOP;
+            if (lhs_type == TYPE_PTR) {
                 if (rhs_type == TYPE_PTR) {
-                    conversion.result_type = TYPE_INT;
+                    result_type = TYPE_INT;
                 }
                 else if (is_integral(rhs_type)) {
                     emit_simple_nnop(checker, promote(rhs_type));
+                    result_type = TYPE_PTR;
                 }
                 else {
                     type_error(checker, "invalid types for `-`");
-                    conversion.result_type = TYPE_WORD;
                 }
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                // Floating-point arithmetic.
+                if (!is_float(lhs_type) || !is_float(rhs_type)) {
+                    fprintf(stderr, "Mixing float and non-float not supported (yet).\n");
+                    exit(1);
+                }
+                struct float_conv conversion = float_conversions[lhs_type][rhs_type];
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                result_type = conversion.result_type;
+                sub_instruction = (result_type == TYPE_F64) ? W_OP_SUBF64 : W_OP_SUBF32;
+            }
+            else if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                result_type = conversion.result_type;
+                result_conv = conversion.result_conv;
             }
             else {
                 type_error(checker, "invalid types for `-`");
-                conversion.result_type = TYPE_WORD;
             }
-            ts_push(checker, conversion.result_type);
-            emit_simple(checker, W_OP_SUB);
-            emit_simple_nnop(checker, conversion.result_conv);
+            ts_push(checker, result_type);
+            emit_simple(checker, sub_instruction);
+            emit_simple_nnop(checker, result_conv);
             break;
         }
         case T_OP_SWAP: {

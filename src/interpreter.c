@@ -26,7 +26,19 @@
         sstack_word b = u64_to_s64(pop(stack)); \
         sstack_word a = u64_to_s64(pop(stack)); \
         push(stack, s64_to_u64(a op b));        \
-    } while (0);
+    } while (0)
+
+#define BINF32_OP(op, stack) do {         \
+        float b = u32_to_f32(pop(stack)); \
+        float a = u32_to_f32(pop(stack)); \
+        push(stack, f32_to_u32(a op b));  \
+    } while (0)
+
+#define BINF64_OP(op, stack) do {          \
+        double b = u64_to_f64(pop(stack)); \
+        double a = u64_to_f64(pop(stack)); \
+        push(stack, f64_to_u64(a op b));   \
+    } while (0)
 
 bool init_interpreter(struct interpreter *interpreter, struct module *module) {
     interpreter->module = module;
@@ -260,20 +272,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_ADD: BIN_OP(+, interpreter->main_stack); break;
-        case W_OP_ADDF32: {
-            stack_word b = pop(interpreter->main_stack);
-            stack_word a = pop(interpreter->main_stack);
-            float result = u32_to_f32(a) + u32_to_f32(b);
-            push(interpreter->main_stack, f32_to_u32(result));
-            break;
-        }
-        case W_OP_ADDF64: {
-            stack_word b = pop(interpreter->main_stack);
-            stack_word a = pop(interpreter->main_stack);
-            double result = u64_to_f64(a) + u64_to_f64(b);
-            push(interpreter->main_stack, f64_to_u64(result));
-            break;
-        }
+        case W_OP_ADDF32: BINF32_OP(+, interpreter->main_stack); break;
+        case W_OP_ADDF64: BINF64_OP(+, interpreter->main_stack); break;
         case W_OP_DEREF: {
             stack_word addr = pop(interpreter->main_stack);
             push(interpreter->main_stack, *(unsigned char *)(uintptr_t)addr);
@@ -421,6 +421,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_LOWER_SAME: BIN_OP(<=, interpreter->main_stack); break;
         case W_OP_LOWER_THAN: BIN_OP(<, interpreter->main_stack); break;
         case W_OP_MULT: BIN_OP(*, interpreter->main_stack); break;
+        case W_OP_MULTF32: BINF32_OP(*, interpreter->main_stack); break;
+        case W_OP_MULTF64: BINF64_OP(*, interpreter->main_stack); break;
         case W_OP_NOT: {
             bool condition = pop(interpreter->main_stack);
             push(interpreter->main_stack, !condition);
@@ -428,6 +430,10 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_NOT_EQUALS: BIN_OP(!=, interpreter->main_stack); break;
         case W_OP_SUB: BIN_OP(-, interpreter->main_stack); break;
+        case W_OP_SUBF32: BINF32_OP(-, interpreter->main_stack); break;
+        case W_OP_SUBF64: BINF64_OP(-, interpreter->main_stack); break;
+        case W_OP_DIVF32: BINF32_OP(/, interpreter->main_stack); break;
+        case W_OP_DIVF64: BINF64_OP(/, interpreter->main_stack); break;
         case W_OP_DIVMOD: {
             stack_word b = pop(interpreter->main_stack);
             stack_word a = pop(interpreter->main_stack);

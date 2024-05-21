@@ -312,6 +312,8 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_AND", block, offset);
     case T_OP_DEREF:
         return simple_instruction("T_OP_DEREF", block, offset);
+    case T_OP_DIV:
+        return simple_instruction("T_OP_DIV", block, offset);
     case T_OP_DIVMOD:
         return simple_instruction("T_OP_DIVMOD", block, offset);
     case T_OP_IDIVMOD:
@@ -491,6 +493,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_AND", block, offset);
     case W_OP_DEREF:
         return simple_instruction("W_OP_DEREF", block, offset);
+    case W_OP_DIVF32:
+        return simple_instruction("W_OP_DIVF32", block, offset);
+    case W_OP_DIVF64:
+        return simple_instruction("W_OP_DIVF64", block, offset);
     case W_OP_DIVMOD:
         return simple_instruction("W_OP_DIVMOD", block, offset);
     case W_OP_IDIVMOD:
@@ -543,6 +549,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_LOWER_THAN", block, offset);
     case W_OP_MULT:
         return simple_instruction("W_OP_MULT", block, offset);
+    case W_OP_MULTF32:
+        return simple_instruction("W_OP_MULTF32", block, offset);
+    case W_OP_MULTF64:
+        return simple_instruction("W_OP_MULTF64", block, offset);
     case W_OP_NOT:
         return simple_instruction("W_OP_NOT", block, offset);
     case W_OP_NOT_EQUALS:
@@ -561,6 +571,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_PRINT_STRING", block, offset);
     case W_OP_SUB:
         return simple_instruction("W_OP_SUB", block, offset);
+    case W_OP_SUBF32:
+        return simple_instruction("W_OP_SUBF32", block, offset);
+    case W_OP_SUBF64:
+        return simple_instruction("W_OP_SUBF64", block, offset);
     case W_OP_SWAP:
         return simple_instruction("W_OP_SWAP", block, offset);
     case W_OP_SWAP_COMPS8:

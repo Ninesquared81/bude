@@ -385,18 +385,18 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movd", "xmm1", "eax");
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movd", "xmm2", "eax");
-            asm_write_inst2(assembly, "addss", "xmm1", "xmm2");
-            asm_write_inst2(assembly, "movd", "eax", "xmm1");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "addss", "xmm0", "xmm2");
+            asm_write_inst2(assembly, "movd", "eax", "xmm0");
             asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_ADDF64:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movq", "xmm1", "rax");
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movq", "xmm2", "rax");
-            asm_write_inst2(assembly, "addsd", "xmm1", "xmm2");
-            asm_write_inst2(assembly, "movq", "rax", "xmm1");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "addsd", "xmm0", "xmm1");
+            asm_write_inst2(assembly, "movq", "rax", "xmm0");
             asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_AND:
@@ -410,6 +410,24 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movzx", "rdx", "byte [rax]");
             asm_write_inst1(assembly, "push", "rdx");
+            break;
+        case W_OP_DIVF32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm1", "eax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "divss", "xmm0", "xmm1");
+            asm_write_inst2(assembly, "movd", "eax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_DIVF64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "divsd", "xmm0", "xmm1");
+            asm_write_inst2(assembly, "movq", "rax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_DIVMOD:
             asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
@@ -655,6 +673,24 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2c(assembly, "imul", "rax", "[rsp]", "Multiplication is commutative.");
             asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
+        case W_OP_MULTF32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm1", "eax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "mulss", "xmm0", "xmm1");
+            asm_write_inst2(assembly, "movd", "eax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_MULTF64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "mulsd", "xmm0", "xmm1");
+            asm_write_inst2(assembly, "movq", "rax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_NOT:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2c(assembly, "xor", "edx", "edx", "Zero out rdx.");
@@ -727,6 +763,24 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             break;
         case W_OP_SUB:
             BIN_OP("sub");
+            break;
+        case W_OP_SUBF32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm1", "eax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "subss", "xmm0", "xmm1");
+            asm_write_inst2(assembly, "movd", "eax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_SUBF64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "subsd", "xmm0", "xmm1");
+            asm_write_inst2(assembly, "movq", "rax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_SWAP:
             asm_write_inst2(assembly, "mov", "rax", "[rsp]");
