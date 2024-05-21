@@ -614,7 +614,7 @@ static void emit_s32(struct type_checker *checker, int32_t value) {
 
 static type_index emit_divmod_instruction(struct type_checker *checker,
                                     type_index lhs_type, type_index rhs_type) {
-    struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+    struct arithm_conv conversion = convert(lhs_type, rhs_type);
     enum w_opcode divmod_instruction = W_OP_DIVMOD;  // Unsigned division.
     if (is_signed(conversion.result_type)) {
         // In bude, division is Euclidean (remainder always non-negative) by default.
@@ -1077,7 +1077,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             else if (is_integral(lhs_type) && is_integral(rhs_type)) {
                 // Integer addition.
-                struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
                 result_type = conversion.result_type;
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
@@ -1173,7 +1173,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_IDIVMOD: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `idivmod`");
                 conversion.result_type = TYPE_WORD;
@@ -1190,7 +1190,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_EDIVMOD: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `edivmod`");
                 conversion.result_type = TYPE_WORD;
@@ -1221,7 +1221,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `=`");
             }
@@ -1238,7 +1238,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_GREATER_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `>=`");
             }
@@ -1254,7 +1254,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_GREATER_THAN: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `>`");
             }
@@ -1270,7 +1270,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_LESS_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `<=`");
             }
@@ -1286,7 +1286,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_LESS_THAN: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `<`");
             }
@@ -1306,7 +1306,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             enum w_opcode result_conv = W_OP_NOP;
             type_index result_type = TYPE_ERROR;
             if (is_integral(lhs_type) && is_integral(rhs_type)) {
-                struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
                 result_conv = conversion.result_conv;
@@ -1344,7 +1344,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_NOT_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+            struct arithm_conv conversion = convert(lhs_type, rhs_type);
             if (conversion.result_type == TYPE_ERROR) {
                 type_error(checker, "invalid types for `/=`");
             }
@@ -1425,7 +1425,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 sub_instruction = (result_type == TYPE_F64) ? W_OP_SUBF64 : W_OP_SUBF32;
             }
             else if (is_integral(lhs_type) && is_integral(rhs_type)) {
-                struct arithm_conv conversion = arithmetic_conversions[lhs_type][rhs_type];
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
                 result_type = conversion.result_type;
