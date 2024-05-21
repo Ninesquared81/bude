@@ -292,6 +292,8 @@ static void grow_block(struct ir_block *block) {
     int new_capacity = (old_capacity > 0) ? old_capacity + old_capacity/2 : BLOCK_INIT_SIZE;
     block->code = reallocate_array(block->code, old_capacity, new_capacity,
                                    sizeof block->code[0]);
+    block->locations = reallocate_array(block->locations, old_capacity, new_capacity,
+                                        sizeof block->locations[0]);
     block->capacity = new_capacity;
 }
 
