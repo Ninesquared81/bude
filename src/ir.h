@@ -113,14 +113,34 @@ enum t_opcode {
     T_OP_SUB,
     /* SWAP -- Swap the top two stack elements. */
     T_OP_SWAP,
-    /* AS_BYTE, AS_Un, AS_Sn -- Clear any excess bits and treat as an integer of that type. */
+    /* AS_type -- Clear any excess bits and treat as an value of that type. */
+    T_OP_AS_WORD,
     T_OP_AS_BYTE,
+    T_OP_AS_PTR,
+    T_OP_AS_INT,
     T_OP_AS_U8,
     T_OP_AS_U16,
     T_OP_AS_U32,
     T_OP_AS_S8,
     T_OP_AS_S16,
     T_OP_AS_S32,
+    T_OP_AS_F32,
+    T_OP_AS_F64,
+    T_OP_AS_CHAR,
+    /* TO_type -- Convert to the closest representable value of that type. */
+    T_OP_TO_WORD,
+    T_OP_TO_BYTE,
+    T_OP_TO_PTR,
+    T_OP_TO_INT,
+    T_OP_TO_U8,
+    T_OP_TO_U16,
+    T_OP_TO_U32,
+    T_OP_TO_S8,
+    T_OP_TO_S16,
+    T_OP_TO_S32,
+    T_OP_TO_F32,
+    T_OP_TO_F64,
+    T_OP_TO_CHAR,
     /* (T)PACKn Idx_un -- Construct a pack with the given type index. */
     T_OP_PACK8,
     T_OP_PACK16,
@@ -324,6 +344,19 @@ enum w_opcode {
        floating-point value. The -L version operates on the element under the top. */
     W_OP_ICONVF64,
     W_OP_ICONVF64L,
+    /* FCONVI32 -- convert a 32-bit single-precision floating-point value to a
+       64-bit integer. */
+    W_OP_FCONVI32,
+    /* FCONVI64 -- convert a 64-bit double-precision floating-point value to a
+       64-bit intger. */
+    W_OP_FCONVI64,
+    /* ICONVC32 -- convert a signed 64-bit integer to a UTF-32 codepoint. Values
+       not in the range 0--0x10ffff are clamped. */
+    W_OP_ICONVC32,
+    /* CHAR_8CONV32 -- convert a UTF-8--encoded character to UTF-32. */
+    W_OP_CHAR_8CONV32,
+    /* CHAR_32CONV8 -- convert a UTF-32--encoded character to UTF-8. */
+    W_OP_CHAR_32CONV8,
     /* (W)PACKn Imm_u8... -- Construct a pack with n fields of the provided sizes. */
     W_OP_PACK1,
     W_OP_PACK2,

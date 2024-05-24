@@ -345,6 +345,16 @@ static enum w_opcode promote_float(type_index type) {
     return W_OP_NOP;
 }
 
+static enum w_opcode float_to_int(type_index type) {
+    assert(is_float(type));
+    return (type == TYPE_F64) ? W_OP_FCONVI64 : W_OP_FCONVI32;
+}
+
+static enum w_opcode int_to_float(type_index type) {
+    assert(is_float(type));
+    return convert_float(type, TYPE_INT).rhs_conv;
+}
+
 static enum w_opcode sign_extend(type_index type) {
     switch (type) {
     case TYPE_BYTE:
@@ -836,6 +846,60 @@ static void check_jump_instruction(struct type_checker *checker) {
         type_error(checker, "inconsistent stack after jump instruction",
                    checker->ip);
     }
+}
+
+static void check_to_integral(struct type_checker *checker, type_index to_type) {
+    type_index from_type = ts_pop(checker);
+    if (is_integral(from_type)) {
+        emit_simple_nnop(checker, promote(from_type));
+    }
+    else if (is_float(from_type)) {
+        emit_simple(checker, float_to_int(from_type));
+    }
+    else if (from_type == TYPE_CHAR) {
+        // Convert UTF-8 to UTF-32, which is reinterpreted as a u32.
+        emit_simple(checker, W_OP_CHAR_8CONV32);
+    }
+    else {
+        struct string_view from_name = type_name(checker->types, from_type);
+        struct string_view to_name = type_name(checker->types, to_type);
+        type_error(checker, "Cannot convert type '%"PRI_SV"' to '%"PRI_SV"'",
+                   SV_FMT(from_name), SV_FMT(to_name));
+    }
+    ts_push(checker, to_type);
+}
+
+static void check_to_float(struct type_checker *checker, type_index to_type) {
+    type_index from_type = ts_pop(checker);
+    if (is_integral(from_type)) {
+        emit_simple_nnop(checker, promote(from_type));
+        emit_simple(checker, int_to_float(to_type));
+    }
+    else if (is_float(from_type)) {
+        // NOTE: This makes use of the relative ordering of TYPE_F32 and TYPE_F64.
+        // This is unlikely to change, but if it does, it will break this code.
+        if (to_type > from_type) {
+            // f32 to f64.
+            emit_simple(checker, W_OP_FPROM);
+        }
+        else if (to_type < from_type) {
+            // f64 to f32.
+            emit_simple(checker, W_OP_FDEM);
+        }
+        // Do nothing if the types are the same.
+    }
+    else if (from_type == TYPE_CHAR) {
+        // Convert to UTF-32/u32 (implicitly also word/int), then to f32/64.
+        emit_simple(checker, W_OP_CHAR_8CONV32);
+        emit_simple(checker, int_to_float(to_type));
+    }
+    else {
+        struct string_view from_name = type_name(checker->types, from_type);
+        struct string_view to_name = type_name(checker->types, to_type);
+        type_error(checker, "Cannot convert type '%"PRI_SV"' to '%"PRI_SV"'",
+                   SV_FMT(from_name), SV_FMT(to_name));
+    }
+    ts_push(checker, to_type);
 }
 
 static void check_pack_instruction(struct type_checker *checker, type_index index) {
@@ -1466,46 +1530,131 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             }
             break;
         }
-        case T_OP_AS_BYTE: {
+        case T_OP_AS_WORD:
+            ts_pop(checker);
+            ts_push(checker, TYPE_WORD);
+            break;
+        case T_OP_AS_BYTE:
             ts_pop(checker);
             ts_push(checker, TYPE_BYTE);
             emit_simple(checker, W_OP_ZX8);
             break;
-        }
-        case T_OP_AS_U8: {
+        case T_OP_AS_PTR:
+            ts_pop(checker);
+            ts_push(checker, TYPE_PTR);
+            break;
+        case T_OP_AS_INT:
+            ts_pop(checker);
+            ts_push(checker, TYPE_INT);
+            break;
+        case T_OP_AS_U8:
             ts_pop(checker);
             ts_push(checker, TYPE_U8);
             emit_simple(checker, W_OP_ZX8);
             break;
-        }
-        case T_OP_AS_U16: {
+        case T_OP_AS_U16:
             ts_pop(checker);
             ts_push(checker, TYPE_U16);
             emit_simple(checker, W_OP_ZX16);
             break;
-        }
-        case T_OP_AS_U32: {
+        case T_OP_AS_U32:
             ts_pop(checker);
             ts_push(checker, TYPE_U32);
             emit_simple(checker, W_OP_ZX32);
             break;
-        }
-        case T_OP_AS_S8: {
+        case T_OP_AS_S8:
             ts_pop(checker);
             ts_push(checker, TYPE_S8);
             emit_simple(checker, W_OP_ZX8);
             break;
-        }
-        case T_OP_AS_S16: {
+        case T_OP_AS_S16:
             ts_pop(checker);
             ts_push(checker, TYPE_S16);
             emit_simple(checker, W_OP_ZX16);
             break;
-        }
-        case T_OP_AS_S32: {
+        case T_OP_AS_S32:
             ts_pop(checker);
             ts_push(checker, TYPE_S32);
             emit_simple(checker, W_OP_ZX32);
+            break;
+        case T_OP_AS_F32:
+            ts_pop(checker);
+            ts_push(checker, TYPE_F32);
+            emit_simple(checker, W_OP_ZX32);
+            break;
+        case T_OP_AS_F64:
+            ts_pop(checker);
+            ts_push(checker, TYPE_F64);
+            break;
+        case T_OP_AS_CHAR:
+            // NOTE: We don't check that the value is actually a valid UTF-8 encoding.
+            ts_pop(checker);
+            ts_push(checker, TYPE_CHAR);
+            emit_simple(checker, W_OP_ZX32);
+            break;
+        case T_OP_TO_WORD:
+            check_to_integral(checker, TYPE_WORD);
+            break;
+        case T_OP_TO_BYTE:
+            check_to_integral(checker, TYPE_BYTE);
+            emit_simple(checker, W_OP_ZX8);
+            break;
+        case T_OP_TO_PTR:
+            check_to_integral(checker, TYPE_PTR);
+            break;
+        case T_OP_TO_INT:
+            check_to_integral(checker, TYPE_INT);
+            break;
+        case T_OP_TO_U8:
+            check_to_integral(checker, TYPE_U8);
+            emit_simple(checker, W_OP_ZX8);
+            break;
+        case T_OP_TO_U16:
+            check_to_integral(checker, TYPE_U16);
+            emit_simple(checker, W_OP_ZX16);
+            break;
+        case T_OP_TO_U32:
+            check_to_integral(checker, TYPE_U32);
+            emit_simple(checker, W_OP_ZX32);
+            break;
+        case T_OP_TO_S8:
+            check_to_integral(checker, TYPE_S8);
+            emit_simple(checker, W_OP_ZX8);
+            break;
+        case T_OP_TO_S16:
+            check_to_integral(checker, TYPE_S16);
+            emit_simple(checker, W_OP_ZX16);
+            break;
+        case T_OP_TO_S32:
+            check_to_integral(checker, TYPE_S32);
+            emit_simple(checker, W_OP_ZX32);
+            break;
+        case T_OP_TO_F32:
+            check_to_float(checker, TYPE_F32);
+            emit_simple(checker, W_OP_ZX32);
+            break;
+        case T_OP_TO_F64:
+            check_to_float(checker, TYPE_F64);
+            break;
+        case T_OP_TO_CHAR: {
+            // Convert to int/word, then to char32 (UTF-32), then to char (UTF-8).
+            type_index from_type = ts_pop(checker);
+            if (is_integral(from_type)) {
+                emit_simple_nnop(checker, promote(from_type));
+                emit_simple(checker, W_OP_ICONVC32);
+                emit_simple(checker, W_OP_CHAR_32CONV8);
+            }
+            else if (is_float(from_type)) {
+                emit_simple(checker, float_to_int(from_type));
+                emit_simple(checker, W_OP_ICONVC32);
+                emit_simple(checker, W_OP_CHAR_32CONV8);
+            }
+            else if (from_type != TYPE_CHAR) {
+                struct string_view from_name = type_name(checker->types, from_type);
+                type_error(checker, "cannot convert type '%"PRI_SV"' to type 'char'",
+                           SV_FMT(from_name));
+            }
+            ts_push(checker, TYPE_CHAR);
             break;
         }
         case T_OP_EXIT: {
