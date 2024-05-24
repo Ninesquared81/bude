@@ -1510,7 +1510,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         }
         case T_OP_EXIT: {
             type_index type = ts_pop(checker);
-            if (!is_integral(type)) {
+            if (is_integral(type)) {
+                emit_simple_nnop(checker, promote(type));
+            }
+            else {
                 type_error(checker, "expected integral type for `exit`");
             }
             check_unreachable(checker);
