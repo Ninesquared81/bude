@@ -848,6 +848,18 @@ static void check_jump_instruction(struct type_checker *checker) {
     }
 }
 
+static void check_as_simple(struct type_checker *checker, type_index as_type) {
+    assert(IS_SIMPLE_TYPE(as_type));
+    type_index from_type = ts_pop(checker);
+    if (!IS_SIMPLE_TYPE(from_type)) {
+        struct string_view from_name = type_name(checker->types, from_type);
+        struct string_view as_name = type_name(checker->types, as_type);
+        type_error(checker, "Cannot coerce type '%"PRI_SV"' to simple type '%"PRI_SV"'",
+                   SV_FMT(from_name), SV_FMT(as_name));
+    }
+    ts_push(checker, as_type);
+}
+
 static void check_to_integral(struct type_checker *checker, type_index to_type) {
     type_index from_type = ts_pop(checker);
     if (is_integral(from_type)) {
@@ -1531,65 +1543,52 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             break;
         }
         case T_OP_AS_WORD:
-            ts_pop(checker);
-            ts_push(checker, TYPE_WORD);
+            check_as_simple(checker, TYPE_WORD);
             break;
         case T_OP_AS_BYTE:
-            ts_pop(checker);
-            ts_push(checker, TYPE_BYTE);
+            check_as_simple(checker, TYPE_BYTE);
             emit_simple(checker, W_OP_ZX8);
             break;
         case T_OP_AS_PTR:
-            ts_pop(checker);
-            ts_push(checker, TYPE_PTR);
+            check_as_simple(checker, TYPE_PTR);
             break;
         case T_OP_AS_INT:
-            ts_pop(checker);
-            ts_push(checker, TYPE_INT);
+            check_as_simple(checker, TYPE_INT);
             break;
         case T_OP_AS_U8:
-            ts_pop(checker);
-            ts_push(checker, TYPE_U8);
+            check_as_simple(checker, TYPE_U8);
             emit_simple(checker, W_OP_ZX8);
             break;
         case T_OP_AS_U16:
-            ts_pop(checker);
-            ts_push(checker, TYPE_U16);
+            check_as_simple(checker, TYPE_U16);
             emit_simple(checker, W_OP_ZX16);
             break;
         case T_OP_AS_U32:
-            ts_pop(checker);
-            ts_push(checker, TYPE_U32);
+            check_as_simple(checker, TYPE_U32);
             emit_simple(checker, W_OP_ZX32);
             break;
         case T_OP_AS_S8:
-            ts_pop(checker);
-            ts_push(checker, TYPE_S8);
+            check_as_simple(checker, TYPE_S8);
             emit_simple(checker, W_OP_ZX8);
             break;
         case T_OP_AS_S16:
-            ts_pop(checker);
-            ts_push(checker, TYPE_S16);
+            check_as_simple(checker, TYPE_S16);
             emit_simple(checker, W_OP_ZX16);
             break;
         case T_OP_AS_S32:
-            ts_pop(checker);
-            ts_push(checker, TYPE_S32);
+            check_as_simple(checker, TYPE_S32);
             emit_simple(checker, W_OP_ZX32);
             break;
         case T_OP_AS_F32:
-            ts_pop(checker);
-            ts_push(checker, TYPE_F32);
+            check_as_simple(checker, TYPE_F32);
             emit_simple(checker, W_OP_ZX32);
             break;
         case T_OP_AS_F64:
-            ts_pop(checker);
-            ts_push(checker, TYPE_F64);
+            check_as_simple(checker, TYPE_F64);
             break;
         case T_OP_AS_CHAR:
             // NOTE: We don't check that the value is actually a valid UTF-8 encoding.
-            ts_pop(checker);
-            ts_push(checker, TYPE_CHAR);
+            check_as_simple(checker, TYPE_CHAR);
             emit_simple(checker, W_OP_ZX32);
             break;
         case T_OP_TO_WORD:
