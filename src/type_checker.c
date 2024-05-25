@@ -851,7 +851,7 @@ static void check_jump_instruction(struct type_checker *checker) {
 static void check_as_simple(struct type_checker *checker, type_index as_type) {
     assert(IS_SIMPLE_TYPE(as_type));
     type_index from_type = ts_pop(checker);
-    if (!IS_SIMPLE_TYPE(from_type)) {
+    if (!IS_SIMPLE_TYPE(from_type) && !is_pack(checker->types, from_type)) {
         struct string_view from_name = type_name(checker->types, from_type);
         struct string_view as_name = type_name(checker->types, as_type);
         type_error(checker, "Cannot coerce type '%"PRI_SV"' to simple type '%"PRI_SV"'",
