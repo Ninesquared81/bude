@@ -747,13 +747,14 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
         switch (symbol->type) {
         case SYM_COMP: return symbol->comp.index;
         case SYM_PACK: return symbol->pack.index;
-        default: return TYPE_ERROR;
+        default: break;
         }
         break;
     }
-    default: return TYPE_ERROR;
+    default: break;
     }
-    return TYPE_ERROR;
+    parse_error(compiler, "Invalid type: '%"PRI_SV"'", SV_FMT(token->value));
+    exit(1);
 }
 
 static void compile_pack(struct compiler *compiler) {
