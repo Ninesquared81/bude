@@ -667,6 +667,39 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, top);
             break;
         }
+        case W_OP_FCONVI32: {
+            float floating_value = u32_to_f32(pop(interpreter->main_stack));
+            sstack_word integer_value = floating_value;
+            push(interpreter->main_stack, s64_to_u64(integer_value));
+            break;
+        }
+        case W_OP_FCONVI64: {
+            double floating_value = u64_to_f64(pop(interpreter->main_stack));
+            sstack_word integer_value = floating_value;
+            push(interpreter->main_stack, s64_to_u64(integer_value));
+            break;
+        }
+        case W_OP_ICONVC32: {
+            sstack_word integer_value = u64_to_s64(pop(interpreter->main_stack));
+            if (integer_value < 0) integer_value = 0;
+            if (integer_value > UNICODE_MAX) integer_value = UNICODE_MAX;
+            push(interpreter->main_stack, s64_to_u64(integer_value));
+            break;
+        }
+        case W_OP_CHAR_8CONV32: {
+            // TODO: remove the need for this dummy.
+            stack_word bytes = pop(interpreter->main_stack);
+            const char *dummy = (void *)&bytes;
+            uint32_t codepoint = decode_utf8(&dummy);
+            push(interpreter->main_stack, codepoint);
+            break;
+        }
+        case W_OP_CHAR_32CONV8: {
+            stack_word codepoint = pop(interpreter->main_stack);
+            stack_word char_value = encode_utf8_u32(codepoint);
+            push(interpreter->main_stack, char_value);
+            break;
+        }
         case W_OP_PACK1: {
             ++ip;
             // We don't need to actually do anything here.
