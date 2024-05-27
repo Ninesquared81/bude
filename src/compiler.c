@@ -725,6 +725,7 @@ static void compile_character(struct compiler *compiler) {
 static type_index parse_type(struct compiler *compiler, struct token *token) {
     switch (token->type) {
     case TOKEN_BYTE: return TYPE_BYTE;
+    case TOKEN_CHAR: return TYPE_CHAR;
     case TOKEN_F32: return TYPE_F32;
     case TOKEN_F64: return TYPE_F64;
     case TOKEN_INT: return TYPE_INT;
