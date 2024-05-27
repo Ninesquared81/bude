@@ -774,7 +774,10 @@ static void emit_print_instruction(struct type_checker *checker, type_index type
         emit_simple_nnop(checker, conv_instruction);
         emit_simple(checker, W_OP_PRINT_FLOAT);
     }
-    else  {
+    else if (type == TYPE_CHAR) {
+        emit_simple(checker, W_OP_PRINT_CHAR);
+    }
+    else {
         emit_simple(checker, W_OP_PRINT);
     }
 }
