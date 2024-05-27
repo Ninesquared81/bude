@@ -887,6 +887,66 @@ static void compile_comp(struct compiler *compiler) {
     clear_region(compiler->temp);
 }
 
+static void compile_as_conversion(struct compiler *compiler) {
+    struct token type_token = advance(compiler);
+    type_index type = parse_type(compiler, &type_token);
+    static enum t_opcode conversions[] = {
+        [TYPE_WORD] = T_OP_AS_WORD,
+        [TYPE_BYTE] = T_OP_AS_BYTE,
+        [TYPE_PTR]  = T_OP_AS_PTR,
+        [TYPE_INT]  = T_OP_AS_INT,
+        [TYPE_U8]   = T_OP_AS_U8,
+        [TYPE_U16]  = T_OP_AS_U16,
+        [TYPE_U32]  = T_OP_AS_U32,
+        [TYPE_S8]   = T_OP_AS_S8,
+        [TYPE_S16]  = T_OP_AS_S16,
+        [TYPE_S32]  = T_OP_AS_S32,
+        [TYPE_F32]  = T_OP_AS_F32,
+        [TYPE_F64]  = T_OP_AS_F64,
+        [TYPE_CHAR] = T_OP_AS_CHAR,
+    };
+    static_assert(sizeof conversions == sizeof(enum t_opcode[SIMPLE_TYPE_COUNT]));
+    assert(type != TYPE_ERROR);
+    if (IS_SIMPLE_TYPE(type)) {
+        emit_simple(compiler, conversions[type]);
+    }
+    else {
+        // Custom type.
+        compile_error(compiler, "Conversion to non-simple types not supported yet");
+        exit(1);
+    }
+}
+
+static void compile_to_conversion(struct compiler *compiler) {
+    struct token type_token = advance(compiler);
+    type_index type = parse_type(compiler, &type_token);
+    static enum t_opcode conversions[] = {
+        [TYPE_WORD] = T_OP_TO_WORD,
+        [TYPE_BYTE] = T_OP_TO_BYTE,
+        [TYPE_PTR]  = T_OP_TO_PTR,
+        [TYPE_INT]  = T_OP_TO_INT,
+        [TYPE_U8]   = T_OP_TO_U8,
+        [TYPE_U16]  = T_OP_TO_U16,
+        [TYPE_U32]  = T_OP_TO_U32,
+        [TYPE_S8]   = T_OP_TO_S8,
+        [TYPE_S16]  = T_OP_TO_S16,
+        [TYPE_S32]  = T_OP_TO_S32,
+        [TYPE_F32]  = T_OP_TO_F32,
+        [TYPE_F64]  = T_OP_TO_F64,
+        [TYPE_CHAR] = T_OP_TO_CHAR,
+    };
+    static_assert(sizeof conversions == sizeof(enum t_opcode[SIMPLE_TYPE_COUNT]));
+    assert(type != TYPE_ERROR);
+    if (IS_SIMPLE_TYPE(type)) {
+        emit_simple(compiler, conversions[type]);
+    }
+    else {
+        // Custom type.
+        compile_error(compiler, "Conversion to non-simple types not supported yet");
+        exit(1);
+    }
+}
+
 static void compile_assignment(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `<-`");
     struct string_view name = peek_previous(compiler).value;
@@ -1157,7 +1217,10 @@ static bool compile_simple(struct compiler *compiler) {
 
 static void compile_expr(struct compiler *compiler) {
     while (!is_at_end(compiler)) {
-        if (match(compiler, TOKEN_CHAR_LIT)) {
+        if (match(compiler, TOKEN_AS)) {
+            compile_as_conversion(compiler);
+        }
+        else if (match(compiler, TOKEN_CHAR_LIT)) {
             compile_character(compiler);
         }
         else if (match(compiler, TOKEN_COMP)) {
@@ -1189,6 +1252,9 @@ static void compile_expr(struct compiler *compiler) {
         }
         else if (match(compiler, TOKEN_SYMBOL)) {
             compile_symbol(compiler);
+        }
+        else if (match(compiler, TOKEN_TO)) {
+            compile_to_conversion(compiler);
         }
         else if (match(compiler, TOKEN_WHILE)) {
             compile_loop(compiler);
