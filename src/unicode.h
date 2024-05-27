@@ -21,6 +21,8 @@
 
 #define UTF8_DECODE_ERROR 0xffffffffu
 
+#define UNICODE_MAX 0x10ffff
+
 #define HAS_PREFIX(byte, prefix, mask)               \
     ((byte & mask) == prefix)
 
