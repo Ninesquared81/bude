@@ -930,6 +930,14 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2(assembly, "cmovg", "rcx", "rdx");
             asm_write_inst1(assembly, "push", "rcx");
             break;
+        case W_OP_CHAR_8CONV32:
+            // NOTE: We use the Bude calling convention here since this is an internal function.
+            asm_write_inst1(assembly, "call", "decode_utf8");
+            break;
+        case W_OP_CHAR_32CONV8:
+            // NOTE: As above, we use the Bude calling convention here.
+            asm_write_inst1(assembly, "call", "encode_utf8");
+            break;
         case W_OP_PACK1:
             ++ip;
             break;
@@ -1238,6 +1246,82 @@ static void generate_function(struct asm_block *assembly, struct module *module,
 #undef BIN_OP
 }
 
+static void generate_decode_utf8(struct asm_block *assembly) {
+    asm_label(assembly, "decode_utf8");
+    asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
+    asm_write_inst1(assembly, "pop", "rax");
+    asm_write_inst2c(assembly, "xor", "edx", "edx", "UTF-32 result.");
+    asm_write_inst2(assembly, "mov", "dl", "al");
+    asm_write_inst2(assembly, "shr", "eax", "8");
+    asm_write_inst2(assembly, "test", "dl", "dl");
+    // 1 byte: jump to end.
+    asm_write_inst1(assembly, "jns", ".func_end");
+    // 2+ bytes.
+    asm_write_inst2c(assembly, "mov", "ecx", "1", "Number of continuation bytes.");
+    asm_write_inst2(assembly, "shl", "dl", "3");
+    // 2 bytes: handle continuation bytes.
+    asm_write_inst1(assembly, "jnc", ".start_cont_bytes");
+    asm_write_inst1(assembly, "inc", "ecx");
+    asm_write_inst2(assembly, "shl", "dl", "1");
+    // 3 bytes: handle continuation bytes.
+    asm_write_inst1(assembly, "jnc", ".start_cont_bytes");
+    asm_write_inst1(assembly, "inc", "ecx");
+    // 4 bytes: discard final 0 in 'header'.
+    asm_write_inst2(assembly, "shl", "dl", "1");
+    asm_label(assembly, ".start_cont_bytes");
+    asm_write_inst2(assembly, "shr", "dl", "cl");
+    asm_write_inst2(assembly, "shr", "dl", "2");
+    asm_label(assembly, ".cont_bytes");
+    asm_write_inst2(assembly, "shl", "edx", "8");
+    asm_write_inst2(assembly, "mov", "dl", "al");
+    asm_write_inst2(assembly, "shr", "eax", "8");
+    asm_write_inst2(assembly, "shl", "dl", "2");
+    asm_write_inst2(assembly, "shr", "edx", "2");
+    asm_write_inst1(assembly, "dec", "ecx");
+    asm_write_inst1(assembly, "jnz", ".cont_bytes");
+    asm_label(assembly, ".func_end");
+    asm_write_inst1(assembly, "push", "rdx");
+    asm_write_inst1(assembly, "push", "rbp");
+    asm_write_inst0(assembly, "ret");
+}
+
+static void generate_encode_utf8(struct asm_block *assembly) {
+    asm_label(assembly, "encode_utf8");
+    asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
+    asm_write_inst1(assembly, "pop", "rax");
+    asm_write_inst2c(assembly, "xor", "edx", "edx", "UTF-8 result.");
+    asm_write_inst2(assembly, "mov", "dl", "al");
+    asm_write_inst2(assembly, "cmp", "eax", "80h");
+    asm_write_inst1(assembly, "jl", ".func_end");
+    asm_write_inst2c(assembly, "mov", "ecx", "1", "Number of continuation bytes.");
+    asm_write_inst2c(assembly, "mov", "r8b", "1fh", "First byte prefix mask.");
+    asm_write_inst2(assembly, "cmp", "eax", "800h");
+    asm_write_inst1(assembly, "jl", ".cont_bytes");
+    asm_write_inst1(assembly, "inc", "ecx");
+    asm_write_inst2(assembly, "shr", "r8b", "1");
+    asm_write_inst2(assembly, "cmp", "eax", "10000h");
+    asm_write_inst1(assembly, "jl", ".cont_bytes");
+    asm_write_inst1(assembly, "inc", "ecx");
+    asm_write_inst2(assembly, "shr", "r8b", "1");
+    asm_label(assembly, ".cont_bytes");
+    asm_write_inst2(assembly, "and", "dl", "3fh");  // Mask off first two bits.
+    asm_write_inst2(assembly, "or", "dl", "80h");   // Set first 2 bits to '10'.
+    asm_write_inst2(assembly, "shl", "edx", "8");
+    asm_write_inst2(assembly, "shr", "eax", "6");
+    asm_write_inst2(assembly, "mov", "dl", "al");
+    asm_write_inst1(assembly, "dec", "ecx");
+    asm_write_inst1(assembly, "jnz", ".cont_bytes");
+    // Add prefix to first byte.
+    asm_write_inst2(assembly, "and", "dl", "r8b");
+    asm_write_inst1(assembly, "not", "r8b");
+    asm_write_inst2(assembly, "shl", "r8b", "1");
+    asm_write_inst2(assembly, "or", "dl", "r8b");
+    asm_label(assembly, ".func_end");
+    asm_write_inst1(assembly, "push", "rdx");
+    asm_write_inst1(assembly, "push", "rbp");
+    asm_write_inst0(assembly, "ret");
+}
+
 void generate_code(struct asm_block *assembly, struct module *module) {
     asm_section(assembly, ".code", "code", "readable", "executable");
     asm_write(assembly, "\n");
@@ -1260,6 +1344,9 @@ void generate_code(struct asm_block *assembly, struct module *module) {
     asm_write_inst2(assembly, "sub", "rsp", "32");
     asm_write_inst1(assembly, "call", "[ExitProcess]");
     asm_write(assembly, "\n");
+    // Built in functions.
+    generate_decode_utf8(assembly);
+    generate_encode_utf8(assembly);
     // Functions.
     for (int i = 0; i < module->functions.count; ++i) {
         generate_function(assembly, module, i);
