@@ -908,6 +908,28 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1(assembly, "push", "rcx");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_FCONVI32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "cvtss2si", "rax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_FCONVI64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "cvtsd2si", "rax", "xmm0");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_ICONVC32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "xor", "ecx", "ecx");
+            asm_write_inst2(assembly, "mov", "rdx", "10ffffh");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "cmovns", "rcx", "rax");
+            asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst2(assembly, "cmovg", "rcx", "rdx");
+            asm_write_inst1(assembly, "push", "rcx");
+            break;
         case W_OP_PACK1:
             ++ip;
             break;
