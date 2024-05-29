@@ -127,6 +127,7 @@ enum t_opcode {
     T_OP_AS_F32,
     T_OP_AS_F64,
     T_OP_AS_CHAR,
+    T_OP_AS_CHAR16,
     T_OP_AS_CHAR32,
     /* TO_type -- Convert to the closest representable value of that type. */
     T_OP_TO_WORD,
@@ -142,6 +143,7 @@ enum t_opcode {
     T_OP_TO_F32,
     T_OP_TO_F64,
     T_OP_TO_CHAR,
+    T_OP_TO_CHAR16,
     T_OP_TO_CHAR32,
     /* (T)PACKn Idx_un -- Construct a pack with the given type index. */
     T_OP_PACK8,
@@ -359,6 +361,10 @@ enum w_opcode {
     W_OP_CHAR_8CONV32,
     /* CHAR_32CONV8 -- convert a UTF-32--encoded character to UTF-8. */
     W_OP_CHAR_32CONV8,
+    /* CHAR_16CONV32 -- convert a UTF-16--encoded character to UTF-32. */
+    W_OP_CHAR_16CONV32,
+    /* CHAR_32CONV16 -- convert a UTF-32--encoded character to UTF-16. */
+    W_OP_CHAR_32CONV16,
     /* (W)PACKn Imm_u8... -- Construct a pack with n fields of the provided sizes. */
     W_OP_PACK1,
     W_OP_PACK2,

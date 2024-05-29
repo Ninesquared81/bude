@@ -32,11 +32,11 @@ enum simple_type {
 
     // Character types.
     TYPE_CHAR,
-    // TYPE_CHAR16,
+    TYPE_CHAR16,
     TYPE_CHAR32,
 };
 
-#define SIMPLE_TYPE_COUNT 15
+#define SIMPLE_TYPE_COUNT 16
 #define LAST_SIMPLE_TYPE TYPE_CHAR32
 static_assert(SIMPLE_TYPE_COUNT == LAST_SIMPLE_TYPE + 1);
 static_assert(TYPE_ERROR == 0);
@@ -61,6 +61,7 @@ bool is_signed(type_index type);
 bool is_integral(type_index type);
 bool is_float(type_index type);
 bool is_numeric(type_index type);
+bool is_character(type_index type);
 
 struct type_info {
     enum type_kind {

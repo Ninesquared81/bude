@@ -726,6 +726,7 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
     switch (token->type) {
     case TOKEN_BYTE: return TYPE_BYTE;
     case TOKEN_CHAR: return TYPE_CHAR;
+    case TOKEN_CHAR16: return TYPE_CHAR16;
     case TOKEN_CHAR32: return TYPE_CHAR32;
     case TOKEN_F32: return TYPE_F32;
     case TOKEN_F64: return TYPE_F64;
@@ -905,6 +906,7 @@ static void compile_as_conversion(struct compiler *compiler) {
         [TYPE_F32]    = T_OP_AS_F32,
         [TYPE_F64]    = T_OP_AS_F64,
         [TYPE_CHAR]   = T_OP_AS_CHAR,
+        [TYPE_CHAR16] = T_OP_AS_CHAR16,
         [TYPE_CHAR32] = T_OP_AS_CHAR32,
     };
     static_assert(sizeof conversions == sizeof(enum t_opcode[SIMPLE_TYPE_COUNT]));
@@ -936,6 +938,7 @@ static void compile_to_conversion(struct compiler *compiler) {
         [TYPE_F32]  = T_OP_TO_F32,
         [TYPE_F64]  = T_OP_TO_F64,
         [TYPE_CHAR] = T_OP_TO_CHAR,
+        [TYPE_CHAR16] = T_OP_TO_CHAR16,
         [TYPE_CHAR32] = T_OP_TO_CHAR32,
     };
     static_assert(sizeof conversions == sizeof(enum t_opcode[SIMPLE_TYPE_COUNT]));

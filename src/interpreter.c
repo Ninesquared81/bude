@@ -700,6 +700,10 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, char_value);
             break;
         }
+        case W_OP_CHAR_16CONV32:
+        case W_OP_CHAR_32CONV16:
+            assert(0 && "Not implemented");
+            break;
         case W_OP_PACK1: {
             ++ip;
             // We don't need to actually do anything here.

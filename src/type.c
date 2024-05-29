@@ -36,6 +36,7 @@ struct string_view type_name(struct type_table *table, type_index type) {
         case TYPE_F32:    return SV_LIT("f32");
         case TYPE_F64:    return SV_LIT("f64");
         case TYPE_CHAR:   return SV_LIT("char");
+        case TYPE_CHAR16: return SV_LIT("char16");
         case TYPE_CHAR32: return SV_LIT("char32");
         }
         assert(0 && "unreachable");
@@ -62,6 +63,7 @@ size_t type_size(struct type_table *table, type_index type) {
         case TYPE_F32:    return 4;
         case TYPE_F64:    return 8;
         case TYPE_CHAR:   return 4;  // Assume max size for UTF-8, which is 4 bytes.
+        case TYPE_CHAR16: return 4;
         case TYPE_CHAR32: return 4;
         }
         assert(0 && "unreachable");

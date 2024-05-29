@@ -394,6 +394,8 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_AS_F64", block, offset);
     case T_OP_AS_CHAR:
         return simple_instruction("T_OP_AS_CHAR", block, offset);
+    case T_OP_AS_CHAR16:
+        return simple_instruction("T_OP_AS_CHAR16", block, offset);
     case T_OP_AS_CHAR32:
         return simple_instruction("T_OP_AS_CHAR32", block, offset);
     case T_OP_TO_WORD:
@@ -422,6 +424,8 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_TO_F64", block, offset);
     case T_OP_TO_CHAR:
         return simple_instruction("T_OP_TO_CHAR", block, offset);
+    case T_OP_TO_CHAR16:
+        return simple_instruction("T_OP_TO_CHAR16", block, offset);
     case T_OP_TO_CHAR32:
         return simple_instruction("T_OP_TO_CHAR32", block, offset);
     case T_OP_PACK8:
@@ -673,6 +677,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_CHAR_8CONV32", block, offset);
     case W_OP_CHAR_32CONV8:
         return simple_instruction("W_OP_CHAR_32CONV8", block, offset);
+    case W_OP_CHAR_16CONV32:
+        return simple_instruction("W_OP_CHAR_16CONV32", block, offset);
+    case W_OP_CHAR_32CONV16:
+        return simple_instruction("W_OP_CHAR_32CONV16", block, offset);
     case W_OP_PACK1:
         return w_pack_instruction("W_OP_PACK1", block, offset, 1);
     case W_OP_PACK2:

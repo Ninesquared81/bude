@@ -943,6 +943,10 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             // NOTE: As above, we use the Bude calling convention here.
             asm_write_inst1(assembly, "call", "encode_utf8");
             break;
+        case W_OP_CHAR_16CONV32:
+        case W_OP_CHAR_32CONV16:
+            assert(0 && "Not implemented");
+            break;
         case W_OP_PACK1:
             ++ip;
             break;
