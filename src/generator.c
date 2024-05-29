@@ -724,7 +724,12 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst2c(assembly, "mov", "rsp", "rbp", "Restore cached version of rsp.");
             break;
         case W_OP_PRINT_CHAR:
-            asm_write_inst1(assembly, "pop", "rdx");
+            // NOTE: We treat a 'char' as an array of 4 bytes and print it as a string.
+            // We get the null terminator for free since the upper 4 bytes will be zero,
+            // as will any unused bytes in the UTF-8 encoding.
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "mov", "[char_print_buf]", "rax");
+            asm_write_inst2(assembly, "lea", "rdx", "[char_print_buf]");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_char]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
             asm_write_inst2(assembly, "and", "spl", "0F0h");
@@ -1382,7 +1387,7 @@ void generate_constants(struct asm_block *assembly, struct module *module) {
     asm_write_inst3(assembly, "db", "'%%g'", "10", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_char");
-    asm_write_inst2(assembly, "db", "'%%c'", "0");
+    asm_write_inst2(assembly, "db", "'%%s'", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_string");
     asm_write_inst2(assembly, "db", "'%%.*s'", "0");
@@ -1397,6 +1402,8 @@ void generate_constants(struct asm_block *assembly, struct module *module) {
 
 void generate_bss(struct asm_block *assembly) {
     asm_section(assembly, ".bss", "data", "readable", "writeable");
+    asm_label(assembly, "char_print_buf");
+    asm_write_inst1(assembly, "rq", "1");
     asm_label(assembly, "aux");
     asm_write_inst1(assembly, "rq", "1024*1024");
 }
