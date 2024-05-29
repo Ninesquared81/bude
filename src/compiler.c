@@ -701,7 +701,7 @@ static void compile_character(struct compiler *compiler) {
     const char *c = value.start + 1;
     if (*c != '\\') {
         // Normal character.
-        codepoint = decode_utf8(&c);
+        codepoint = decode_utf8(c, &c);
         if (codepoint == UTF8_DECODE_ERROR) {
             parse_error(compiler, "unable to decode UTF-8 character.\n");
         }

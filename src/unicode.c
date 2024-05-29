@@ -51,8 +51,8 @@ uint32_t encode_utf8_u32(uint32_t codepoint) {
 }
 
 
-uint32_t decode_utf8(const char **start) {
-    uint8_t byte = *(*start)++;
+uint32_t decode_utf8(const char *start, const char **end) {
+    uint8_t byte = *start++;
     if ((byte & ~UTF8_MASK_CONT) == UTF8_PRE_CONT) {
         // Continuation byte: invalid start point
         return UTF8_DECODE_ERROR;
@@ -61,7 +61,7 @@ uint32_t decode_utf8(const char **start) {
     uint32_t codepoint = 0;
     if ((byte & ~UTF8_MASK2) == UTF8_PRE2) {
         codepoint = byte & UTF8_MASK2;
-        byte = *(*start)++;
+        byte = *start++;
         if ((byte & ~UTF8_MASK_CONT) != UTF8_PRE_CONT) {
             // Expected a continuation byte.
             return UTF8_DECODE_ERROR;
@@ -72,7 +72,7 @@ uint32_t decode_utf8(const char **start) {
     else if ((byte & ~UTF8_MASK3) == UTF8_PRE3) {
         codepoint = byte & UTF8_MASK3;
         for (int i = 0; i < 2; ++i) {
-            byte = *(*start)++;
+            byte = *start++;
             if ((byte & ~UTF8_MASK_CONT) != UTF8_PRE_CONT) {
                 // Expected a continuation byte.
                 return UTF8_DECODE_ERROR;
@@ -84,7 +84,7 @@ uint32_t decode_utf8(const char **start) {
     else if ((byte & ~UTF8_MASK4) == UTF8_PRE4) {
         codepoint = byte & UTF8_MASK4;
         for (int i = 0; i < 3; ++i) {
-            byte = *(*start)++;
+            byte = *start++;
             if ((byte & ~UTF8_MASK_CONT) != UTF8_PRE_CONT) {
                 // Expected a continuation byte.
                 return UTF8_DECODE_ERROR;
@@ -98,5 +98,6 @@ uint32_t decode_utf8(const char **start) {
         // Invalid prefix.
         return UTF8_DECODE_ERROR;
     }
+    if (end != NULL) *end = start;
     return codepoint;
 }

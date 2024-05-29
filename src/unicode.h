@@ -33,6 +33,6 @@ struct utf8 {
 
 struct utf8 encode_utf8_codepoint(uint32_t codepoint);
 uint32_t encode_utf8_u32(uint32_t codepoint);
-uint32_t decode_utf8(const char **start);
+uint32_t decode_utf8(const char *start, const char **end);
 
 #endif

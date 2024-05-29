@@ -687,10 +687,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_CHAR_8CONV32: {
-            // TODO: remove the need for this dummy.
             stack_word bytes = pop(interpreter->main_stack);
-            const char *dummy = (void *)&bytes;
-            uint32_t codepoint = decode_utf8(&dummy);
+            uint32_t codepoint = decode_utf8((void *)&bytes, NULL);
             push(interpreter->main_stack, codepoint);
             break;
         }
