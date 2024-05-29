@@ -19,6 +19,7 @@ enum token_type {
     TOKEN_AS,
     TOKEN_BYTE,
     TOKEN_CHAR,
+    TOKEN_CHAR32,
     TOKEN_COMP,
     TOKEN_DECOMP,
     TOKEN_DEF,

@@ -32,10 +32,12 @@ enum simple_type {
 
     // Character types.
     TYPE_CHAR,
+    // TYPE_CHAR16,
+    TYPE_CHAR32,
 };
 
-#define SIMPLE_TYPE_COUNT 14
-#define LAST_SIMPLE_TYPE TYPE_CHAR
+#define SIMPLE_TYPE_COUNT 15
+#define LAST_SIMPLE_TYPE TYPE_CHAR32
 static_assert(SIMPLE_TYPE_COUNT == LAST_SIMPLE_TYPE + 1);
 static_assert(TYPE_ERROR == 0);
 

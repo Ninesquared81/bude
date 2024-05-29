@@ -4,3 +4,9 @@ as word print
 233 to char print
 '\n' print
 'é' to int print
+
+43s8 to char print
+'\n' print
+
+'é' to char32 print
+'\n' print

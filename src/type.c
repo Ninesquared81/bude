@@ -22,20 +22,21 @@ const char *kind_name(enum type_kind kind) {
 struct string_view type_name(struct type_table *table, type_index type) {
     if (IS_SIMPLE_TYPE(type)) {
         switch ((enum simple_type)type) {
-        case TYPE_ERROR: return SV_LIT("<TYPE_ERROR>");
-        case TYPE_WORD:  return SV_LIT("word");
-        case TYPE_BYTE:  return SV_LIT("byte");
-        case TYPE_PTR:   return SV_LIT("ptr");
-        case TYPE_INT:   return SV_LIT("int");
-        case TYPE_U8:    return SV_LIT("u8");
-        case TYPE_U16:   return SV_LIT("u16");
-        case TYPE_U32:   return SV_LIT("u32");
-        case TYPE_S8:    return SV_LIT("s8");
-        case TYPE_S16:   return SV_LIT("s16");
-        case TYPE_S32:   return SV_LIT("s32");
-        case TYPE_F32:   return SV_LIT("f32");
-        case TYPE_F64:   return SV_LIT("f64");
-        case TYPE_CHAR:  return SV_LIT("char");
+        case TYPE_ERROR:  return SV_LIT("<TYPE_ERROR>");
+        case TYPE_WORD:   return SV_LIT("word");
+        case TYPE_BYTE:   return SV_LIT("byte");
+        case TYPE_PTR:    return SV_LIT("ptr");
+        case TYPE_INT:    return SV_LIT("int");
+        case TYPE_U8:     return SV_LIT("u8");
+        case TYPE_U16:    return SV_LIT("u16");
+        case TYPE_U32:    return SV_LIT("u32");
+        case TYPE_S8:     return SV_LIT("s8");
+        case TYPE_S16:    return SV_LIT("s16");
+        case TYPE_S32:    return SV_LIT("s32");
+        case TYPE_F32:    return SV_LIT("f32");
+        case TYPE_F64:    return SV_LIT("f64");
+        case TYPE_CHAR:   return SV_LIT("char");
+        case TYPE_CHAR32: return SV_LIT("char32");
         }
         assert(0 && "unreachable");
     }
@@ -47,20 +48,21 @@ struct string_view type_name(struct type_table *table, type_index type) {
 size_t type_size(struct type_table *table, type_index type) {
     if (IS_SIMPLE_TYPE(type)) {
         switch ((enum simple_type)type) {
-        case TYPE_ERROR: return 0;
-        case TYPE_WORD:  return 8;
-        case TYPE_BYTE:  return 1;
-        case TYPE_PTR:   return 8;
-        case TYPE_INT:   return 8;
-        case TYPE_U8:    return 1;
-        case TYPE_U16:   return 2;
-        case TYPE_U32:   return 4;
-        case TYPE_S8:    return 1;
-        case TYPE_S16:   return 2;
-        case TYPE_S32:   return 4;
-        case TYPE_F32:   return 4;
-        case TYPE_F64:   return 8;
-        case TYPE_CHAR:  return 4;  // Assume max size for UTF-8, which is 4 bytes.
+        case TYPE_ERROR:  return 0;
+        case TYPE_WORD:   return 8;
+        case TYPE_BYTE:   return 1;
+        case TYPE_PTR:    return 8;
+        case TYPE_INT:    return 8;
+        case TYPE_U8:     return 1;
+        case TYPE_U16:    return 2;
+        case TYPE_U32:    return 4;
+        case TYPE_S8:     return 1;
+        case TYPE_S16:    return 2;
+        case TYPE_S32:    return 4;
+        case TYPE_F32:    return 4;
+        case TYPE_F64:    return 8;
+        case TYPE_CHAR:   return 4;  // Assume max size for UTF-8, which is 4 bytes.
+        case TYPE_CHAR32: return 4;
         }
         assert(0 && "unreachable");
     }
@@ -117,6 +119,16 @@ bool is_float(type_index type) {
 
 bool is_numeric(type_index type) {
     return is_integral(type) || is_float(type);
+}
+
+bool is_character(type_index type) {
+    switch (type) {
+    case TYPE_CHAR:
+    case TYPE_CHAR32:
+        return true;
+    default:
+        return false;
+    }
 }
 
 bool is_pack(struct type_table *table, type_index type) {

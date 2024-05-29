@@ -127,6 +127,7 @@ enum t_opcode {
     T_OP_AS_F32,
     T_OP_AS_F64,
     T_OP_AS_CHAR,
+    T_OP_AS_CHAR32,
     /* TO_type -- Convert to the closest representable value of that type. */
     T_OP_TO_WORD,
     T_OP_TO_BYTE,
@@ -141,6 +142,7 @@ enum t_opcode {
     T_OP_TO_F32,
     T_OP_TO_F64,
     T_OP_TO_CHAR,
+    T_OP_TO_CHAR32,
     /* (T)PACKn Idx_un -- Construct a pack with the given type index. */
     T_OP_PACK8,
     T_OP_PACK16,
