@@ -496,7 +496,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         case W_OP_PRINT_CHAR: {
             stack_word value = pop(interpreter->main_stack);
-            char bytes[4];
+            char bytes[8];
             memcpy(bytes, &value, sizeof bytes);
             printf("%s", bytes);
             break;
