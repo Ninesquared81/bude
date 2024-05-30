@@ -3,22 +3,6 @@
 
 #include <stdint.h>
 
-#define UTF8_MAX1 0x007f
-#define UTF8_MAX2 0x07ff
-#define UTF8_MAX3 0xffff
-#define UTF8_PRE2 0xc0
-#define UTF8_PRE3 0xe0
-#define UTF8_PRE4 0xf0
-#define UTF8_PRE_CONT 0x80
-#define UTF8_MASK2 0x1f
-#define UTF8_MASK3 0x0f
-#define UTF8_MASK4 0x07
-#define UTF8_MASK_CONT 0x3f
-#define UTF8_BITS2 5
-#define UTF8_BITS3 4
-#define UTF8_BITS4 3
-#define UTF8_BITS_CONT 6
-
 #define UTF8_DECODE_ERROR 0xffffffffu
 
 #define UNICODE_MAX 0x10ffff
@@ -31,8 +15,17 @@ struct utf8 {
     uint8_t bytes[4];
 };
 
+struct utf16 {
+    int n_units;
+    uint16_t units[2];
+};
+
 struct utf8 encode_utf8_codepoint(uint32_t codepoint);
 uint32_t encode_utf8_u32(uint32_t codepoint);
 uint32_t decode_utf8(const char *start, const char **end);
+
+struct utf16 encode_utf16_codepoint(uint32_t codepoint);
+uint32_t encode_utf16_u32(uint32_t codepoint);
+uint32_t decode_utf16(const char *start, const char **end);
 
 #endif
