@@ -698,10 +698,18 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             push(interpreter->main_stack, char_value);
             break;
         }
-        case W_OP_CHAR_16CONV32:
-        case W_OP_CHAR_32CONV16:
-            assert(0 && "Not implemented");
+        case W_OP_CHAR_16CONV32: {
+            stack_word bytes = pop(interpreter->main_stack);
+            stack_word codepoint = decode_utf16((void *)&bytes, NULL);
+            push(interpreter->main_stack, codepoint);
             break;
+        }
+        case W_OP_CHAR_32CONV16: {
+            stack_word codepoint = pop(interpreter->main_stack);
+            stack_word char16_value = encode_utf16_u32(codepoint);
+            push(interpreter->main_stack, char16_value);
+            break;
+        }
         case W_OP_PACK1: {
             ++ip;
             // We don't need to actually do anything here.
