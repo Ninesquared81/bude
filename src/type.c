@@ -126,6 +126,7 @@ bool is_numeric(type_index type) {
 bool is_character(type_index type) {
     switch (type) {
     case TYPE_CHAR:
+    case TYPE_CHAR16:
     case TYPE_CHAR32:
         return true;
     default:
