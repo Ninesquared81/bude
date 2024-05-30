@@ -10,3 +10,11 @@ as word print
 
 'é' to char32 print
 '\n' print
+
+'é' to char16 print
+'\n' print
+
+'é' to char16 as int print
+0x1d11e to char16 dupe print
+'\n' print
+as int 0x10000 divmod print print
