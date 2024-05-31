@@ -8,6 +8,9 @@ as word print
 43s8 to char print
 '\n' print
 
+0x1d11e to char print
+'\n' print
+
 'é' to char32 print
 '\n' print
 
