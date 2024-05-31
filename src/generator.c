@@ -944,8 +944,10 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             asm_write_inst1(assembly, "call", "encode_utf8");
             break;
         case W_OP_CHAR_16CONV32:
+            asm_write_inst1(assembly, "call", "decode_utf16");
+            break;
         case W_OP_CHAR_32CONV16:
-            assert(0 && "Not implemented");
+            asm_write_inst1(assembly, "call", "encode_utf16");
             break;
         case W_OP_PACK1:
             ++ip;
@@ -1331,6 +1333,52 @@ static void generate_encode_utf8(struct asm_block *assembly) {
     asm_write_inst0(assembly, "ret");
 }
 
+static void generate_decode_utf16(struct asm_block *assembly) {
+    asm_label(assembly, "decode_utf16");
+    asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
+    asm_write_inst1(assembly, "pop", "rax");
+    asm_write_inst2c(assembly, "xor", "edx", "edx", "UTF-32 result.");
+    asm_write_inst2(assembly, "mov", "dx", "ax");
+    asm_write_inst2(assembly, "and", "ax", "0fc00h");
+    asm_write_inst2(assembly, "cmp", "ax", "0d800h");
+    asm_write_inst1(assembly, "jne", ".func_end");
+    // Surrogate pairs.
+    asm_write_inst2(assembly, "shr", "eax", "16");
+    asm_write_inst2(assembly, "sub", "dx", "0d800h");
+    asm_write_inst2(assembly, "shl", "edx", "16");
+    asm_write_inst2(assembly, "mov", "dx", "ax");
+    // NOTE: We don't check to make sure the second unit is a low surrogate.
+    asm_write_inst2(assembly, "shl", "dx", "6");
+    asm_write_inst2(assembly, "shr", "edx", "6");
+    asm_write_inst2(assembly, "add", "edx", "10000h");  // Convert complement to codepoint.
+    asm_label(assembly, ".func_end");
+    asm_write_inst1(assembly, "push", "rdx");
+    asm_write_inst1(assembly, "push", "rbp");
+    asm_write_inst0(assembly, "ret");
+}
+
+static void generate_encode_utf16(struct asm_block *assembly) {
+    asm_label(assembly, "encode_utf16");
+    asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
+    asm_write_inst1(assembly, "pop", "rax");
+    asm_write_inst2c(assembly, "mov", "edx", "eax", "UTF-16 result.");
+    asm_write_inst2(assembly, "sub", "eax", "10000h");
+    asm_write_inst1(assembly, "jl", ".func_end");
+    // Need surrogate pairs.
+    // eax now contains the complement.
+    asm_write_inst2(assembly, "mov", "dx", "ax");
+    asm_write_inst2(assembly, "and", "edx", "3ffh");  // Clear high bits of edx (not just dx).
+    asm_write_inst2(assembly, "or", "dx", "0dc00h");  // Low surrogate.
+    asm_write_inst2(assembly, "shl", "edx", "16");
+    asm_write_inst2(assembly, "shr", "eax", "10");
+    asm_write_inst2(assembly, "or", "ax", "0d800h");  // High surrogate.
+    asm_write_inst2(assembly, "or", "edx", "eax");  // Combine surrogates.
+    asm_label(assembly, ".func_end");
+    asm_write_inst1(assembly, "push", "rdx");
+    asm_write_inst1(assembly, "push", "rbp");
+    asm_write_inst0(assembly, "ret");
+}
+
 void generate_code(struct asm_block *assembly, struct module *module) {
     asm_section(assembly, ".code", "code", "readable", "executable");
     asm_write(assembly, "\n");
@@ -1356,6 +1404,8 @@ void generate_code(struct asm_block *assembly, struct module *module) {
     // Built in functions.
     generate_decode_utf8(assembly);
     generate_encode_utf8(assembly);
+    generate_decode_utf16(assembly);
+    generate_encode_utf16(assembly);
     // Functions.
     for (int i = 0; i < module->functions.count; ++i) {
         generate_function(assembly, module, i);
