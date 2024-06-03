@@ -1,5 +1,5 @@
 -42 dupe print
-as word print
+as u8 print
 
 233 to char print
 '\n' print
@@ -21,3 +21,5 @@ as word print
 0x1d11e to char16 dupe print
 '\n' print
 as int 0x10000 divmod print print
+
+-42.5 to int print
