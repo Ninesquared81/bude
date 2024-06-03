@@ -116,7 +116,7 @@ static int simple_instruction(const char *name, struct ir_block *block, int offs
 }
 
 static int t_packcomp8_instruction(const char *name, struct ir_block *block,
-                               struct module *module, int offset) {
+                                   struct module *module, int offset) {
     print_instruction(name, block, offset, 2);
     int packcomp = read_s8(block, offset + 1);
     struct string_view packcomp_name = type_name(&module->types, packcomp);
@@ -125,7 +125,7 @@ static int t_packcomp8_instruction(const char *name, struct ir_block *block,
 }
 
 static int t_packcomp16_instruction(const char *name, struct ir_block *block,
-                                struct module *module, int offset) {
+                                    struct module *module, int offset) {
     print_instruction(name, block, offset, 2);
     int packcomp = read_s16(block, offset + 1);
     struct string_view packcomp_name = type_name(&module->types, packcomp);
@@ -134,7 +134,7 @@ static int t_packcomp16_instruction(const char *name, struct ir_block *block,
 }
 
 static int t_packcomp32_instruction(const char *name, struct ir_block *block,
-                                struct module *module, int offset) {
+                                    struct module *module, int offset) {
     print_instruction(name, block, offset, 2);
     int packcomp = read_s32(block, offset + 1);
     struct string_view packcomp_name = type_name(&module->types, packcomp);
