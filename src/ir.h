@@ -409,7 +409,7 @@
     X(W_OP_CALL16)                                                      \
     X(W_OP_CALL32)                                                      \
     /* RET -- Return from the current function. */                      \
-    X(W_OP_RET)                                                         \
+    X(W_OP_RET)
 
 #define X(opcode) opcode,
 enum t_opcode {
