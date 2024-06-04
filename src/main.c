@@ -12,7 +12,7 @@
 #include "interpreter.h"
 #include "ir.h"
 #include "memory.h"
-#include "optimiser.h"
+//#include "optimiser.h"
 #include "stack.h"
 #include "type_checker.h"
 #include "writer.h"

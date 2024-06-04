@@ -3,7 +3,7 @@
 
 #include "ir.h"
 #include "optimiser.h"
-
+/*
 static bool check_next(struct ir_block *block, int offset, int operand_size, enum opcode opcode) {
     int next_offset = offset + 1;
     switch (operand_size) {
@@ -110,3 +110,4 @@ void optimise(struct ir_block *block) {
         }
     }
 }
+*/
