@@ -10,14 +10,55 @@
 #include "unicode.h"
 
 
-void generate_header(struct asm_block *assembly) {
+struct generator {
+    struct asm_block *assembly;
+    struct module *module;
+    int aux_count;
+};
+
+
+void generate_header(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_write(assembly, "format PE64 console\n");
     asm_write(assembly, "include 'win64ax.inc'\n");
     asm_write(assembly, "\n");
 }
 
-static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t sizes[n]) {
+#define aux_push(generator, value)                              \
+    do {                                                        \
+        struct asm_block *assembly = generator->assembly;       \
+        asm_write_inst2(assembly, "mov", "[rsi]", value);       \
+        asm_write_inst2(assembly, "add", "rsi", "8");           \
+        generator->aux_count += 1;                              \
+    } while (0)
+
+
+#define aux_pop(generator, value)                               \
+    do {                                                        \
+        struct asm_block *assembly = generator->assembly;       \
+        asm_write_inst2(assembly, "sub", "rsi", "8");           \
+        asm_write_inst2(assembly, "mov", "value", "[rsi]");     \
+        generator->aux_count -= 1;                              \
+    } while (0)
+
+static void aux_to_stack(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
+    asm_write_inst2(assembly, "sub", "rsi", "8");
+    asm_write_inst1(assembly, "push", "qword [rsi]");
+    generator->aux_count -= 1;
+}
+
+[[maybe_unused]]
+static void stack_to_aux(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
+    asm_write_inst1(assembly, "pop", "qword [rsi]");
+    asm_write_inst2(assembly, "add", "rsi", "8");
+    generator->aux_count += 1;
+}
+
+static void generate_pack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
     assert(n > 0);
+    struct asm_block *assembly = generator->assembly;
     int offset = (n - 1) * 8 + sizes[0];
     for (int i = 1; i < n; ++i) {
         asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", (n - i - 1) * 8);
@@ -43,8 +84,9 @@ static void generate_pack_instruction(struct asm_block *assembly, int n, uint8_t
     asm_write_inst2f(assembly, "add", "rsp", "%d", (n - 1) * 8);
 }
 
-static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8_t sizes[n]) {
+static void generate_unpack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
     if (n <= 1) return;  // Effective NOP.
+    struct asm_block *assembly = generator->assembly;
     int offset = sizes[0];
     for (int i = 1; i < n; ++i) {
         int size = sizes[i];
@@ -90,7 +132,8 @@ static void generate_unpack_instruction(struct asm_block *assembly, int n, uint8
     asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
 }
 
-static void generate_pack_field_get(struct asm_block *assembly, int offset, int size) {
+static void generate_pack_field_get(struct generator *generator, int offset, int size) {
+    struct asm_block *assembly = generator->assembly;
     switch (size) {
     case 1:
         asm_write_inst2f(assembly, "movzx", "eax", "byte [rsp+%d]", offset);
@@ -111,7 +154,8 @@ static void generate_pack_field_get(struct asm_block *assembly, int offset, int 
     asm_write_inst1(assembly, "push", "rax");
 }
 
-static void generate_pack_field_set(struct asm_block *assembly, int offset, int size) {
+static void generate_pack_field_set(struct generator *generator, int offset, int size) {
+    struct asm_block *assembly = generator->assembly;
     asm_write_inst1(assembly, "pop", "rax");
     switch (size) {
     case 1:
@@ -168,7 +212,8 @@ static void restore_block(struct asm_block *assembly, int start_offset, int size
     }
 }
 
-static void generate_swap_comps(struct asm_block *assembly, int lhs_size, int rhs_size) {
+static void generate_swap_comps(struct generator *generator, int lhs_size, int rhs_size) {
+    struct asm_block *assembly = generator->assembly;
     if (lhs_size == 1) {
         // Special case: lhs fits in a register.
         asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", 8 * rhs_size);
@@ -206,28 +251,27 @@ static void generate_swap_comps(struct asm_block *assembly, int lhs_size, int rh
     }
 }
 
-static void generate_function_call(struct asm_block *assembly, int func_index) {
-    asm_write_inst1f(assembly, "call", "func_%d", func_index);
+static void generate_function_call(struct generator *generator, int func_index) {
+    asm_write_inst1f(generator->assembly, "call", "func_%d", func_index);
 }
 
-static void generate_function_return(struct asm_block *assembly) {
-    asm_write_inst2(assembly, "sub", "rbx", "8");
-    asm_write_inst1(assembly, "push", "qword [rbx]");
-    asm_write_inst0(assembly, "ret");
+static void generate_function_return(struct generator *generator) {
+    aux_to_stack(generator);
+    asm_write_inst0(generator->assembly, "ret");
 }
 
-static void generate_function(struct asm_block *assembly, struct module *module,
-                              int func_index) {
+static void generate_function(struct generator *generator, int func_index) {
 #define BIN_OP(OP)                                                      \
     do {                                                                \
         asm_write_inst1c(assembly, "pop", "rdx", "RHS.");               \
         asm_write_inst2c(assembly, OP, "[rsp]", "rdx", "LHS left on stack."); \
     } while (0)
 
+    struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "func_%d", func_index);
-    asm_write_inst1c(assembly, "pop", "qword [rbx]", "Return address.");
-    asm_write_inst2(assembly, "add", "rbx", "8");
-    struct function *function = get_function(&module->functions, func_index);
+    asm_write_inst1c(assembly, "pop", "qword [rsi]", "Return address.");
+    asm_write_inst2(assembly, "add", "rsi", "8");
+    struct function *function = get_function(&generator->module->functions, func_index);
     struct ir_block *block = &function->w_code;
     // Instructions.
     for (int ip = 0; ip < block->count; ++ip) {
@@ -338,7 +382,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             uint8_t index = read_u8(block, ip);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu8"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", read_string(module, index)->length);
+            asm_write_inst1f(assembly, "push", "%u", read_string(generator->module, index)->length);
             break;
         }
         case W_OP_LOAD_STRING16: {
@@ -346,7 +390,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             uint16_t index = read_u16(block, ip - 1);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", read_string(module, index)->length);
+            asm_write_inst1f(assembly, "push", "%u", read_string(generator->module, index)->length);
             break;
         }
         case W_OP_LOAD_STRING32: {
@@ -354,7 +398,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             uint32_t index = read_u32(block, ip - 3);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", read_string(module, index)->length);
+            asm_write_inst1f(assembly, "push", "%u", read_string(generator->module, index)->length);
             break;
         }
         case W_OP_POP:
@@ -573,8 +617,8 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             }
             else {
                 // Outer loop.
-                asm_write_inst2cf(assembly, "mov", "rax", "[rsi - %"PRIu16"*8]",
-                                  "Offset of loop variable.", offset);
+                asm_write_inst2cf(assembly, "mov", "rax", "[rsi - %d]",
+                                  "Offset of loop variable.", offset * 8);
                 asm_write_inst1(assembly, "push", "rax");
             }
             break;
@@ -797,21 +841,21 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int lhs_size = read_s8(block, ip + 1);
             int rhs_size = read_s8(block, ip + 2);
             ip += 2;
-            generate_swap_comps(assembly, lhs_size, rhs_size);
+            generate_swap_comps(generator, lhs_size, rhs_size);
             break;
         }
         case W_OP_SWAP_COMPS16: {
             int lhs_size = read_s16(block, ip + 1);
             int rhs_size = read_s16(block, ip + 2);
             ip += 4;
-            generate_swap_comps(assembly, lhs_size, rhs_size);
+            generate_swap_comps(generator, lhs_size, rhs_size);
             break;
         }
         case W_OP_SWAP_COMPS32: {
             int lhs_size = read_s32(block, ip + 1);
             int rhs_size = read_s32(block, ip + 2);
             ip += 8;
-            generate_swap_comps(assembly, lhs_size, rhs_size);
+            generate_swap_comps(generator, lhs_size, rhs_size);
             break;
         }
         case W_OP_SX8:
@@ -958,7 +1002,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 2),
             };
             ip += 2;
-            generate_pack_instruction(assembly, 2, sizes);
+            generate_pack_instruction(generator, 2, sizes);
             break;
         }
         case W_OP_PACK3: {
@@ -968,7 +1012,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 3),
             };
             ip += 3;
-            generate_pack_instruction(assembly, 3, sizes);
+            generate_pack_instruction(generator, 3, sizes);
             break;
         }
         case W_OP_PACK4: {
@@ -979,7 +1023,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 4),
             };
             ip += 4;
-            generate_pack_instruction(assembly, 4, sizes);
+            generate_pack_instruction(generator, 4, sizes);
             break;
         }
         case W_OP_PACK5: {
@@ -991,7 +1035,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 5),
             };
             ip += 5;
-            generate_pack_instruction(assembly, 5, sizes);
+            generate_pack_instruction(generator, 5, sizes);
             break;
         }
         case W_OP_PACK6: {
@@ -1004,7 +1048,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 6),
             };
             ip += 6;
-            generate_pack_instruction(assembly, 6, sizes);
+            generate_pack_instruction(generator, 6, sizes);
             break;
         }
         case W_OP_PACK7: {
@@ -1018,7 +1062,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 7),
             };
             ip += 7;
-            generate_pack_instruction(assembly, 7, sizes);
+            generate_pack_instruction(generator, 7, sizes);
             break;
         }
         case W_OP_PACK8: {
@@ -1033,7 +1077,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 8),
             };
             ip += 8;
-            generate_pack_instruction(assembly, 8, sizes);
+            generate_pack_instruction(generator, 8, sizes);
             break;
         }
         case W_OP_UNPACK1:
@@ -1045,7 +1089,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 2),
             };
             ip += 2;
-            generate_unpack_instruction(assembly, 2, sizes);
+            generate_unpack_instruction(generator, 2, sizes);
             break;
         }
         case W_OP_UNPACK3: {
@@ -1055,7 +1099,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 3),
             };
             ip += 3;
-            generate_unpack_instruction(assembly, 3, sizes);
+            generate_unpack_instruction(generator, 3, sizes);
             break;
         }
         case W_OP_UNPACK4: {
@@ -1066,7 +1110,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 4),
             };
             ip += 4;
-            generate_unpack_instruction(assembly, 4, sizes);
+            generate_unpack_instruction(generator, 4, sizes);
             break;
         }
         case W_OP_UNPACK5: {
@@ -1078,7 +1122,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 5),
             };
             ip += 5;
-            generate_unpack_instruction(assembly, 5, sizes);
+            generate_unpack_instruction(generator, 5, sizes);
             break;
         }
         case W_OP_UNPACK6: {
@@ -1091,7 +1135,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 6),
             };
             ip += 6;
-            generate_unpack_instruction(assembly, 6, sizes);
+            generate_unpack_instruction(generator, 6, sizes);
             break;
         }
         case W_OP_UNPACK7: {
@@ -1105,7 +1149,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 7),
             };
             ip += 7;
-            generate_unpack_instruction(assembly, 7, sizes);
+            generate_unpack_instruction(generator, 7, sizes);
             break;
         }
         case W_OP_UNPACK8: {
@@ -1120,14 +1164,14 @@ static void generate_function(struct asm_block *assembly, struct module *module,
                 read_u8(block, ip + 8),
             };
             ip += 8;
-            generate_unpack_instruction(assembly, 8, sizes);
+            generate_unpack_instruction(generator, 8, sizes);
             break;
         }
         case W_OP_PACK_FIELD_GET: {
             int offset = read_s8(block, ip + 1);
             int size = read_s8(block, ip + 2);
             ip += 2;
-            generate_pack_field_get(assembly, offset, size);
+            generate_pack_field_get(generator, offset, size);
             break;
         }
         case W_OP_COMP_FIELD_GET8: {
@@ -1152,7 +1196,7 @@ static void generate_function(struct asm_block *assembly, struct module *module,
             int offset = read_s8(block, ip + 1);
             int size = read_s8(block, ip + 2);
             ip += 2;
-            generate_pack_field_set(assembly, offset, size);
+            generate_pack_field_set(generator, offset, size);
             break;
         }
         case W_OP_COMP_FIELD_SET8: {
@@ -1233,23 +1277,23 @@ static void generate_function(struct asm_block *assembly, struct module *module,
         case W_OP_CALL8: {
             int func_index = read_u8(block, ip + 1);
             ip += 1;
-            generate_function_call(assembly, func_index);
+            generate_function_call(generator, func_index);
             break;
         }
         case W_OP_CALL16: {
             int func_index = read_u16(block, ip + 1);
             ip += 2;
-            generate_function_call(assembly, func_index);
+            generate_function_call(generator, func_index);
             break;
         }
         case W_OP_CALL32: {
             int func_index = read_u32(block, ip + 1);
             ip += 4;
-            generate_function_call(assembly, func_index);
+            generate_function_call(generator, func_index);
             break;
         }
         case W_OP_RET:
-            generate_function_return(assembly);
+            generate_function_return(generator);
             break;
         }
     }
@@ -1257,7 +1301,8 @@ static void generate_function(struct asm_block *assembly, struct module *module,
 #undef BIN_OP
 }
 
-static void generate_decode_utf8(struct asm_block *assembly) {
+static void generate_decode_utf8(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "decode_utf8");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
     asm_write_inst1(assembly, "pop", "rax");
@@ -1296,7 +1341,8 @@ static void generate_decode_utf8(struct asm_block *assembly) {
     asm_write_inst0(assembly, "ret");
 }
 
-static void generate_encode_utf8(struct asm_block *assembly) {
+static void generate_encode_utf8(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "encode_utf8");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
     asm_write_inst1(assembly, "pop", "rax");
@@ -1333,7 +1379,8 @@ static void generate_encode_utf8(struct asm_block *assembly) {
     asm_write_inst0(assembly, "ret");
 }
 
-static void generate_decode_utf16(struct asm_block *assembly) {
+static void generate_decode_utf16(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "decode_utf16");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
     asm_write_inst1(assembly, "pop", "rax");
@@ -1357,7 +1404,8 @@ static void generate_decode_utf16(struct asm_block *assembly) {
     asm_write_inst0(assembly, "ret");
 }
 
-static void generate_encode_utf16(struct asm_block *assembly) {
+static void generate_encode_utf16(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "encode_utf16");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
     asm_write_inst1(assembly, "pop", "rax");
@@ -1379,21 +1427,20 @@ static void generate_encode_utf16(struct asm_block *assembly) {
     asm_write_inst0(assembly, "ret");
 }
 
-void generate_code(struct asm_block *assembly, struct module *module) {
+void generate_code(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_section(assembly, ".code", "code", "readable", "executable");
     asm_write(assembly, "\n");
     asm_label(assembly, "start");
     asm_write(assembly, "\n");
     asm_write(assembly, "  ;;\t=== INITIALISATION ===\n");
     // Global registers.
-    asm_write_inst2c(assembly, "lea", "rsi", "[aux]", "Loop stack pointer.");
-    asm_write_inst2cf(assembly, "lea", "rbx", "[rsi + %zu*8]",
-                      "Auxiliary stack pointer (space reserved for loop stack).",
-                      module->max_for_loop_level);
+    asm_write_inst2c(assembly, "lea", "rsi", "[aux]", "Auxiliary stack pointer.");
+    asm_write_inst2c(assembly, "mov", "rbx", "rsi", "Auxiliary base pointer.");
     asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Loop counter.");
     // Entry point.
     asm_write(assembly, "  ;;\t=== ENTRY POINT ===\n");
-    generate_function_call(assembly, 0);
+    generate_function_call(generator, 0);
     // End.
     asm_write(assembly, "  ;;\t=== END ===\n");
     asm_write_inst2c(assembly, "xor", "rcx", "rcx", "Successful exit.");
@@ -1402,17 +1449,18 @@ void generate_code(struct asm_block *assembly, struct module *module) {
     asm_write_inst1(assembly, "call", "[ExitProcess]");
     asm_write(assembly, "\n");
     // Built in functions.
-    generate_decode_utf8(assembly);
-    generate_encode_utf8(assembly);
-    generate_decode_utf16(assembly);
-    generate_encode_utf16(assembly);
+    generate_decode_utf8(generator);
+    generate_encode_utf8(generator);
+    generate_decode_utf16(generator);
+    generate_encode_utf16(generator);
     // Functions.
-    for (int i = 0; i < module->functions.count; ++i) {
-        generate_function(assembly, module, i);
+    for (int i = 0; i < generator->module->functions.count; ++i) {
+        generate_function(generator, i);
     }
 }
 
-void generate_imports(struct asm_block *assembly) {
+static void generate_imports(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_section(assembly, ".idata", "import", "data", "readable");
     asm_write(assembly, "\n");
     asm_write(assembly, "  library\\\n");
@@ -1427,7 +1475,8 @@ void generate_imports(struct asm_block *assembly) {
     asm_write(assembly, "\n");
 }
 
-void generate_constants(struct asm_block *assembly, struct module *module) {
+static void generate_constants(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_section(assembly, ".rdata", "data", "readable");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_s64");
@@ -1446,15 +1495,17 @@ void generate_constants(struct asm_block *assembly, struct module *module) {
     asm_label(assembly, "fmt_string");
     asm_write_inst2(assembly, "db", "'%%.*s'", "0");
     asm_write(assembly, "\n");
-    for (int i = 0; i < module->strings.count; ++i) {
+    struct string_table *strings = &generator->module->strings;
+    for (int i = 0; i < strings->count; ++i) {
         asm_label(assembly, "str%u", i);
         asm_write(assembly, "\tdb\t");
-        asm_write_string(assembly, module->strings.views[i].start);
+        asm_write_string(assembly, strings->views[i].start);
         asm_write(assembly, "\n\n");
     }
 }
 
-void generate_bss(struct asm_block *assembly) {
+static void generate_bss(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
     asm_section(assembly, ".bss", "data", "readable", "writeable");
     asm_label(assembly, "char_print_buf");
     asm_write_inst1(assembly, "rq", "1");
@@ -1463,10 +1514,15 @@ void generate_bss(struct asm_block *assembly) {
 }
 
 enum generate_result generate(struct module *module, struct asm_block *assembly) {
-    generate_header(assembly);
-    generate_code(assembly, module);
-    generate_constants(assembly, module);
-    generate_imports(assembly);
-    generate_bss(assembly);
-    return (!asm_had_error(assembly)) ? GENERATE_OK : GENERATE_ERROR;
+    struct generator generator = {
+        .assembly = assembly,
+        .module = module,
+        .aux_count = 0,
+    };
+    generate_header(&generator);
+    generate_code(&generator);
+    generate_constants(&generator);
+    generate_imports(&generator);
+    generate_bss(&generator);
+    return (!asm_had_error(generator.assembly)) ? GENERATE_OK : GENERATE_ERROR;
 }
