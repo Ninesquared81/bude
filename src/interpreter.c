@@ -357,7 +357,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_FOR_DEC_START: {
             int skip_jump = read_s16(interpreter->block, ip + 1);
             stack_word counter = pop(interpreter->main_stack);
-            if (counter != 0) {
+            if (counter > 0) {
                 ip += 2;
                 push(interpreter->loop_stack, counter);
             }
@@ -369,7 +369,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_FOR_DEC: {
             int loop_jump = read_s16(interpreter->block, ip + 1);
             stack_word counter = pop(interpreter->loop_stack);
-            if (--counter != 0) {
+            if (--counter > 0) {
                 push(interpreter->loop_stack, counter);
                 jump(interpreter->block, loop_jump, &ip);
             }
@@ -380,11 +380,12 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_FOR_INC_START: {
             int skip_jump = read_s16(interpreter->block, ip + 1);
-            stack_word counter = pop(interpreter->main_stack);
-            if (counter != 0) {
+            stack_word target = pop(interpreter->main_stack);
+            stack_word counter = 0;
+            if (counter < target) {
                 ip += 2;
-                push(interpreter->loop_stack, 0);
-                push(interpreter->auxiliary_stack, counter);
+                push(interpreter->loop_stack, counter);
+                push(interpreter->auxiliary_stack, target);
             }
             else {
                 jump(interpreter->block, skip_jump, &ip);
