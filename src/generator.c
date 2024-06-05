@@ -383,7 +383,7 @@ static void generate_function(struct generator *generator, int func_index) {
             struct string_view *string = read_string(generator->module, index);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu8"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", string->length);
+            asm_write_inst1f(assembly, "push", "%zu", string->length);
             break;
         }
         case W_OP_LOAD_STRING16: {
@@ -392,7 +392,7 @@ static void generate_function(struct generator *generator, int func_index) {
             struct string_view *string = read_string(generator->module, index);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", string->length);
+            asm_write_inst1f(assembly, "push", "%zu", string->length);
             break;
         }
         case W_OP_LOAD_STRING32: {
@@ -401,7 +401,7 @@ static void generate_function(struct generator *generator, int func_index) {
             struct string_view *string = read_string(generator->module, index);
             asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%u", string->length);
+            asm_write_inst1f(assembly, "push", "%zu", string->length);
             break;
         }
         case W_OP_POP:
