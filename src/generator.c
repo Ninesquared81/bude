@@ -17,7 +17,7 @@ struct generator {
 };
 
 
-void generate_header(struct generator *generator) {
+static void generate_header(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_write(assembly, "format PE64 console\n");
     asm_write(assembly, "include 'win64ax.inc'\n");
