@@ -28,7 +28,6 @@ static void free_string_table(struct string_table *table) {
 
 void init_module(struct module *module, const char *filename) {
     module->filename = filename;
-    module->max_for_loop_level = 0;
     module->region = new_region(MODULE_REGION_SIZE);
     CHECK_ALLOCATION(module->region);
     init_function_table(&module->functions);
@@ -69,4 +68,3 @@ struct string_view *read_string(struct module *module, int index) {
     assert(index < module->strings.count);
     return &module->strings.views[index];
 }
-

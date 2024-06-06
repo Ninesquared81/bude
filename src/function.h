@@ -19,6 +19,7 @@ struct function {
     struct ir_block t_code;
     struct ir_block w_code;
     struct signature sig;
+    int max_for_loop_level;
 };
 
 struct function_table {

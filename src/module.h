@@ -21,7 +21,6 @@ struct module {
     struct type_table types;
     struct region *region;
     const char *filename;
-    size_t max_for_loop_level;
 };
 
 void init_module(struct module *module, const char *filename);

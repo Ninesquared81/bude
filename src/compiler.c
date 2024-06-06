@@ -24,14 +24,14 @@ struct compiler {
     struct token current_token;
     struct token previous_token;
     struct symbol_dictionary symbols;
-    struct ir_block *block;
-    size_t for_loop_level;
+    struct function *function;
     struct module *module;
     struct region *temp;
+    int for_loop_level;
 };
 
 static void init_compiler(struct compiler *compiler, const char *src, struct module *module) {
-    compiler->block = NULL;  // Will be set later.
+    compiler->function = NULL;  // Will be set later.
     init_lexer(&compiler->lexer, src, module->filename);
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
@@ -107,62 +107,62 @@ static struct token peek_previous(struct compiler *compiler) {
 }
 
 static void emit_simple(struct compiler *compiler, enum t_opcode instruction) {
-    write_simple(compiler->block, instruction, &compiler->previous_token.location);
+    write_simple(&compiler->function->t_code, instruction, &compiler->previous_token.location);
 }
 
 [[maybe_unused]]
 static void emit_immediate_u8(struct compiler *compiler, enum t_opcode instruction,
                               uint8_t operand) {
-    write_immediate_u8(compiler->block, instruction, operand,
+    write_immediate_u8(&compiler->function->t_code, instruction, operand,
                        &compiler->previous_token.location);
 }
 
 static void emit_immediate_s8(struct compiler *compiler, enum t_opcode instruction,
                               int8_t operand) {
-    write_immediate_s8(compiler->block, instruction, operand,
+    write_immediate_s8(&compiler->function->t_code, instruction, operand,
                        &compiler->previous_token.location);
 }
 
 static void emit_immediate_u16(struct compiler *compiler, enum t_opcode instruction,
                                uint16_t operand) {
-    write_immediate_u16(compiler->block, instruction, operand,
+    write_immediate_u16(&compiler->function->t_code, instruction, operand,
                         &compiler->previous_token.location);
 }
 
 static void emit_immediate_s16(struct compiler *compiler, enum t_opcode instruction,
                                int16_t operand) {
-    write_immediate_s16(compiler->block, instruction, operand,
+    write_immediate_s16(&compiler->function->t_code, instruction, operand,
                         &compiler->previous_token.location);
 }
 
 static void emit_immediate_u32(struct compiler *compiler, enum t_opcode instruction,
                                uint32_t operand) {
-    write_immediate_u32(compiler->block, instruction, operand,
+    write_immediate_u32(&compiler->function->t_code, instruction, operand,
                         &compiler->previous_token.location);
 }
 
 static void emit_immediate_s32(struct compiler *compiler, enum t_opcode instruction,
                                int32_t operand) {
-    write_immediate_s32(compiler->block, instruction, operand,
+    write_immediate_s32(&compiler->function->t_code, instruction, operand,
                         &compiler->previous_token.location);
 }
 
 static void emit_immediate_u64(struct compiler *compiler, enum t_opcode instruction,
                                uint64_t operand) {
-    write_immediate_u64(compiler->block, instruction, operand,
+    write_immediate_u64(&compiler->function->t_code, instruction, operand,
                         &compiler->previous_token.location);
 }
 
 static void emit_s8(struct compiler *compiler, int8_t value) {
-    write_u8(compiler->block, value, &compiler->previous_token.location);
+    write_u8(&compiler->function->t_code, value, &compiler->previous_token.location);
 }
 
 static void emit_s16(struct compiler *compiler, int16_t value) {
-    write_u16(compiler->block, value, &compiler->previous_token.location);
+    write_u16(&compiler->function->t_code, value, &compiler->previous_token.location);
 }
 
 static void emit_s32(struct compiler *compiler, int32_t value) {
-    write_u32(compiler->block, value, &compiler->previous_token.location);
+    write_u32(&compiler->function->t_code, value, &compiler->previous_token.location);
 }
 
 static void emit_immediate_uv(struct compiler *compiler, enum t_opcode instruction8,
@@ -171,19 +171,19 @@ static void emit_immediate_uv(struct compiler *compiler, enum t_opcode instructi
     enum t_opcode instruction32 = instruction8 + 2;
     enum t_opcode instruction64 = instruction8 + 3;
     if (operand <= UINT8_MAX) {
-        write_immediate_u8(compiler->block, instruction8, operand,
+        write_immediate_u8(&compiler->function->t_code, instruction8, operand,
                            &compiler->previous_token.location);
     }
     else if (operand <= UINT16_MAX) {
-        write_immediate_u16(compiler->block, instruction16, operand,
+        write_immediate_u16(&compiler->function->t_code, instruction16, operand,
                             &compiler->previous_token.location);
     }
     else if (operand <= UINT32_MAX) {
-        write_immediate_u32(compiler->block, instruction32, operand,
+        write_immediate_u32(&compiler->function->t_code, instruction32, operand,
                             &compiler->previous_token.location);
     }
     else {
-        write_immediate_u64(compiler->block, instruction64, operand,
+        write_immediate_u64(&compiler->function->t_code, instruction64, operand,
                             &compiler->previous_token.location);
     }
 }
@@ -196,19 +196,19 @@ static void emit_immediate_sv(struct compiler *compiler, enum t_opcode instructi
     enum t_opcode instruction32 = instruction8 + 2;
     enum t_opcode instruction64 = instruction8 + 3;
     if (IN_RANGE(operand, INT8_MIN, INT8_MAX)) {
-        write_immediate_s8(compiler->block, instruction8, operand,
+        write_immediate_s8(&compiler->function->t_code, instruction8, operand,
                            &compiler->previous_token.location);
     }
     else if (IN_RANGE(operand, INT16_MIN, INT16_MAX)) {
-        write_immediate_s16(compiler->block, instruction16, operand,
+        write_immediate_s16(&compiler->function->t_code, instruction16, operand,
                             &compiler->previous_token.location);
     }
     else if (IN_RANGE(operand, INT32_MIN, INT32_MAX)) {
-        write_immediate_s32(compiler->block, instruction32, operand,
+        write_immediate_s32(&compiler->function->t_code, instruction32, operand,
                             &compiler->previous_token.location);
     }
     else {
-        write_immediate_s64(compiler->block, instruction64, operand,
+        write_immediate_s64(&compiler->function->t_code, instruction64, operand,
                             &compiler->previous_token.location);
     }
 }
@@ -236,8 +236,9 @@ static void emit_comp_field(struct compiler *compiler, enum t_opcode instruction
 }
 
 static bool check_last_instruction(struct compiler *compiler, enum t_opcode instruction) {
-    int count = compiler->block->count;
-    return count > 0 && compiler->block->code[count - 1] == instruction;
+    struct ir_block *block = &compiler->function->t_code;
+    int count = block->count;
+    return count > 0 && block->code[count - 1] == instruction;
 }
 
 static void compile_expr(struct compiler *compiler);
@@ -493,7 +494,7 @@ static void compile_integer(struct compiler *compiler) {
 
 static int start_jump(struct compiler *compiler, enum t_opcode jump_instruction) {
     assert(is_jump(jump_instruction));
-    int jump_offset = compiler->block->count;
+    int jump_offset = compiler->function->t_code.count;
     emit_immediate_s16(compiler, jump_instruction, 0);
     return jump_offset;
 }
@@ -503,10 +504,11 @@ static void patch_jump(struct compiler *compiler, int instruction_offset, int ju
         compile_error(compiler, "Jump too big.");
         exit(1);
     }
-    overwrite_s16(compiler->block, instruction_offset + 1, jump);
+    overwrite_s16(&compiler->function->t_code, instruction_offset + 1, jump);
 }
 
 static int compile_conditional(struct compiler *compiler) {
+    struct ir_block *block = &compiler->function->t_code;
     compile_expr(compiler);  // Condition.
     expect_consume(compiler, TOKEN_THEN, "Expect `then` after condition in `if` block.");
 
@@ -544,19 +546,19 @@ static int compile_conditional(struct compiler *compiler) {
     compile_expr(compiler);  // Then body.
 
     // Note: these initial values assume no `else` or `elif` clauses.
-    int end_addr = compiler->block->count;
+    int end_addr = block->count;
     int else_start = end_addr;
 
     if (match(compiler, TOKEN_ELIF)) {
         start_jump(compiler, T_OP_JUMP);
-        else_start = compiler->block->count;
+        else_start = block->count;
         end_addr = compile_conditional(compiler);
     }
     else if (match(compiler, TOKEN_ELSE)) {
         start_jump(compiler, T_OP_JUMP);
-        else_start = compiler->block->count;
+        else_start = block->count;
         compile_expr(compiler);  // Else body.
-        end_addr = compiler->block->count;
+        end_addr = block->count;
         expect_consume(compiler, TOKEN_END, "Expect `end` after `if` body.");
     }
     else {
@@ -565,20 +567,21 @@ static int compile_conditional(struct compiler *compiler) {
 
     int jump = else_start - start - 1;
     patch_jump(compiler, start, jump);
-    add_jump(compiler->block, else_start);
+    add_jump(block, else_start);
 
     if (else_start != end_addr) {
         // We only emit a jump at the end of the `then` clause if we need to.
         int jump_addr = else_start - 3;
         int else_jump = end_addr - jump_addr - 1;
         patch_jump(compiler, jump_addr, else_jump);
-        add_jump(compiler->block, end_addr);
+        add_jump(block, end_addr);
     }
 
     return end_addr;
 }
 
 static void compile_for_loop(struct compiler *compiler) {
+    struct ir_block *block = &compiler->function->t_code;
     enum t_opcode start_instruction = T_OP_FOR_DEC_START;
     enum t_opcode update_instruction = T_OP_FOR_DEC;
     if (match(compiler, TOKEN_SYMBOL)) {
@@ -602,32 +605,33 @@ static void compile_for_loop(struct compiler *compiler) {
     compile_expr(compiler);  // Count.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `for` start.");
     ++compiler->for_loop_level;
-    if (compiler->for_loop_level > compiler->module->max_for_loop_level) {
-        compiler->module->max_for_loop_level = compiler->for_loop_level;
+    if (compiler->for_loop_level > compiler->function->max_for_loop_level) {
+        compiler->function->max_for_loop_level = compiler->for_loop_level;
     }
 
     int offset = start_jump(compiler, start_instruction);
-    int body_start = compiler->block->count;
+    int body_start = block->count;
     compile_expr(compiler);  // Loop body.
 
-    int loop_jump = body_start - compiler->block->count - 1;
+    int loop_jump = body_start - block->count - 1;
     emit_immediate_s16(compiler, update_instruction, loop_jump);
-    add_jump(compiler->block, body_start);
+    add_jump(block, body_start);
 
-    int skip_jump = compiler->block->count - offset - 1;
+    int skip_jump = block->count - offset - 1;
     patch_jump(compiler, offset, skip_jump);
-    add_jump(compiler->block, compiler->block->count);
+    add_jump(block, block->count);
 
     --compiler->for_loop_level;
     expect_consume(compiler, TOKEN_END, "Expect `end` after `for` loop.");
 }
 
 static void compile_loop(struct compiler *compiler) {
-    int condition_start = compiler->block->count;
+    struct ir_block *block = &compiler->function->t_code;
+    int condition_start = block->count;
     compile_expr(compiler);  // Condition.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `while` condition.");
 
-    int body_start = compiler->block->count;
+    int body_start = block->count;
     emit_immediate_s16(compiler, T_OP_JUMP_NCOND, 0);
     compile_expr(compiler);  // Loop body.
 
@@ -641,13 +645,13 @@ static void compile_loop(struct compiler *compiler) {
      *     ... <----------+
      */
 
-    int loop_jump = condition_start - compiler->block->count - 1;  // Negative.
+    int loop_jump = condition_start - block->count - 1;  // Negative.
     emit_immediate_s16(compiler, T_OP_JUMP, loop_jump);
-    add_jump(compiler->block, condition_start);
+    add_jump(block, condition_start);
 
-    int exit_jump = compiler->block->count - body_start - 1;  // Positive.
+    int exit_jump = block->count - body_start - 1;  // Positive.
     patch_jump(compiler, body_start, exit_jump);
-    add_jump(compiler->block, compiler->block->count);
+    add_jump(block, block->count);
 
     expect_consume(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }
@@ -979,6 +983,7 @@ static void compile_assignment(struct compiler *compiler) {
 
 static void compile_function(struct compiler *compiler) {
     /* `func` params... name [`->` rets...] `def` body... `end` */
+    struct ir_block *block = &compiler->function->t_code;
     struct token prev = advance(compiler);
     if (prev.type == TOKEN_RIGHT_ARROW || prev.type == TOKEN_DEF || is_at_end(compiler)) {
         parse_error(compiler, "Expect function name.");
@@ -1052,20 +1057,20 @@ static void compile_function(struct compiler *compiler) {
     };
     insert_symbol(&compiler->symbols, &symbol);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after function signature.");
-    struct ir_block *previous_block = compiler->block;
-    compiler->block = &get_function(&compiler->module->functions, index)->t_code;
+    struct function *previous_function = compiler->function;
+    compiler->function = get_function(&compiler->module->functions, index);
     compile_expr(compiler);  // Body.
     if (!check_last_instruction(compiler, T_OP_RET)
-        || is_jump_dest(compiler->block, compiler->block->count)) {
+        || is_jump_dest(block, block->count)) {
         // Implicit return at end of function. Only emit if we need it.
         emit_simple(compiler, T_OP_RET);
     }
-    compiler->block = previous_block;
+    compiler->function = previous_function;
     expect_consume(compiler, TOKEN_END, "Expect `end` after function body.");
 }
 
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
-    size_t level = symbol->loop_var.level;
+    int level = symbol->loop_var.level;
     if (level > compiler->for_loop_level) {
         compile_error(compiler, "loop variable '"PRI_SV"' referenced outside defining loop.\n",
                       SV_FMT(symbol->name));
@@ -1279,8 +1284,7 @@ void compile(const char *src, struct module *module) {
     init_builtins(&compiler.symbols);
     assert(module->functions.count == 0);  // We assume that the function table is empty.
     add_function(&module->functions, 0, 0, NULL, NULL);  // Main/script function.
-    struct function *main_func =  get_function(&module->functions, 0);
-    compiler.block = &main_func->t_code;
+    compiler.function = get_function(&module->functions, 0);
     compile_expr(&compiler);
     emit_simple(&compiler, T_OP_RET);  // Return from main function.
     free_compiler(&compiler);
