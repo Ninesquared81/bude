@@ -14,6 +14,7 @@ struct generator {
     struct asm_block *assembly;
     struct module *module;
     int aux_count;
+    int loop_level;
 };
 
 
@@ -24,36 +25,48 @@ static void generate_header(struct generator *generator) {
     asm_write(assembly, "\n");
 }
 
-#define aux_push(generator, value)                              \
-    do {                                                        \
-        struct asm_block *assembly = generator->assembly;       \
-        asm_write_inst2(assembly, "mov", "[rsi]", value);       \
-        asm_write_inst2(assembly, "add", "rsi", "8");           \
-        generator->aux_count += 1;                              \
-    } while (0)
-
-
-#define aux_pop(generator, value)                               \
-    do {                                                        \
-        struct asm_block *assembly = generator->assembly;       \
-        asm_write_inst2(assembly, "sub", "rsi", "8");           \
-        asm_write_inst2(assembly, "mov", "value", "[rsi]");     \
-        generator->aux_count -= 1;                              \
-    } while (0)
-
-static void aux_to_stack(struct generator *generator) {
+static int aux_push(struct generator *generator, const char *value) {
     struct asm_block *assembly = generator->assembly;
-    asm_write_inst2(assembly, "sub", "rsi", "8");
-    asm_write_inst1(assembly, "push", "qword [rsi]");
-    generator->aux_count -= 1;
+    asm_write_inst2f(assembly, "mov", "[rsi]", "%s", value);
+    asm_write_inst2(assembly, "add", "rsi", "8");
+    return generator->aux_count++;
 }
 
 [[maybe_unused]]
-static void stack_to_aux(struct generator *generator) {
+static int aux_pop(struct generator *generator, const char *value) {
+    struct asm_block *assembly = generator->assembly;
+    asm_write_inst2(assembly, "sub", "rsi", "8");
+    asm_write_inst2f(assembly, "mov", "%s", "[rsi]", value);
+    return --generator->aux_count;
+}
+
+[[maybe_unused]]
+static int aux_to_stack(struct generator *generator) {
+    struct asm_block *assembly = generator->assembly;
+    asm_write_inst2(assembly, "sub", "rsi", "8");
+    asm_write_inst1(assembly, "push", "qword [rsi]");
+    return --generator->aux_count;
+}
+
+static int stack_to_aux(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_write_inst1(assembly, "pop", "qword [rsi]");
     asm_write_inst2(assembly, "add", "rsi", "8");
-    generator->aux_count += 1;
+    return generator->aux_count++;
+}
+
+static void aux_reserve(struct generator *generator, int space) {
+    assert(space >= 0);
+    if (space == 0) return;
+    asm_write_inst2f(generator->assembly, "add", "rsi", "%d", space * 8);
+    generator->aux_count += space;
+}
+
+static void aux_restore(struct generator *generator, int space) {
+    assert(space >= 0);
+    if (space == 0) return;
+    asm_write_inst2f(generator->assembly, "sub", "rsi", "%d", space * 8);
+    generator->aux_count -= space;
 }
 
 static void generate_pack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
@@ -256,8 +269,15 @@ static void generate_function_call(struct generator *generator, int func_index) 
 }
 
 static void generate_function_return(struct generator *generator) {
-    aux_to_stack(generator);
-    asm_write_inst0(generator->assembly, "ret");
+    struct asm_block *assembly = generator->assembly;
+    if (generator->loop_level > 0) {
+        // Restore old loop counter. Only needed when returning in a loop.
+        asm_write_inst2(assembly, "mov", "rdi", "[rbx+8]");
+    }
+    asm_write_inst2(assembly, "lea", "rsi", "[rbx]");
+    asm_write_inst2(assembly, "mov", "rbx", "[rbx]");
+    aux_to_stack(generator);  // Return address.
+    asm_write_inst0(assembly, "ret");
 }
 
 static void generate_function(struct generator *generator, int func_index) {
@@ -267,11 +287,17 @@ static void generate_function(struct generator *generator, int func_index) {
         asm_write_inst2c(assembly, OP, "[rsp]", "rdx", "LHS left on stack."); \
     } while (0)
 
+    generator->aux_count = 0;
+    generator->loop_level = 0;
     struct asm_block *assembly = generator->assembly;
-    asm_label(assembly, "func_%d", func_index);
-    asm_write_inst1c(assembly, "pop", "qword [rsi]", "Return address.");
-    asm_write_inst2(assembly, "add", "rsi", "8");
     struct function *function = get_function(&generator->module->functions, func_index);
+    asm_label(assembly, "func_%d", func_index);
+    // Layout of aux frame: [ret][base][... Loops ...][... aux ...]
+    //                            ^rbx                 ^rsi
+    stack_to_aux(generator);
+    aux_push(generator, "rbx");
+    asm_write_inst2(assembly, "lea", "rbx", "[rsi-8]");
+    aux_reserve(generator, function->max_for_loop_level);
     struct ir_block *block = &function->w_code;
     // Instructions.
     for (int ip = 0; ip < block->count; ++ip) {
@@ -565,12 +591,11 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
+            int old_offset = ++generator->loop_level * 8;  // +1 for previous aux base pointer.
             asm_write_inst1c(assembly, "pop", "rax", "Loop counter.");
             asm_write_inst2(assembly, "cmp", "rax", "0");
             asm_write_inst1f(assembly, "jle", ".addr_%d", skip_jump_addr);
-            asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
-                             "Push old loop counter onto loop stack.");
-            asm_write_inst2(assembly, "add", "rsi", "8");
+            asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdi", old_offset);
             asm_write_inst2c(assembly, "mov", "rdi", "rax", "Load loop counter.");
             break;
         }
@@ -578,25 +603,24 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
+            int old_offset = generator->loop_level-- * 8;  // +1 for previous aux base pointer.
             asm_write_inst1(assembly, "dec", "rdi");
             asm_write_inst2(assembly, "test", "rdi", "rdi");
             asm_write_inst1f(assembly, "jnz", ".addr_%d", loop_jump_addr);
-            asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
-            asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
+            // Restore previous loop counter.
+            asm_write_inst2f(assembly, "mov", "rdi", "[rbx%+d]", old_offset);
             break;
         }
         case W_OP_FOR_INC_START: {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
+            int old_offset = ++generator->loop_level * 8;  // +1 for previous aux base pointer.
             asm_write_inst1c(assembly, "pop", "rax", "Load loop target.");
             asm_write_inst2(assembly, "cmp", "rax", "0");
             asm_write_inst1f(assembly, "jle", ".addr_%d", skip_jump_addr);
-            asm_write_inst2c(assembly, "mov", "[rbx]", "rax", "Push loop target to aux.");
-            asm_write_inst2(assembly, "add", "rbx", "8");
-            asm_write_inst2c(assembly, "mov", "[rsi]", "rdi",
-                             "Push old loop counter onto loop stack.");
-            asm_write_inst2(assembly, "add", "rsi", "8");
+            aux_push(generator, "rax");  // Loop target.
+            asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdi", old_offset);
             asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Zero out loop counter.");
             break;
         }
@@ -604,25 +628,27 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
+            int old_offset = generator->loop_level-- * 8;  // +1 for previous aux base pointer.
             asm_write_inst1(assembly, "inc", "rdi");
-            asm_write_inst2(assembly, "cmp", "rdi", "[rbx-8]");
+            asm_write_inst2(assembly, "cmp", "rdi", "[rsi-8]");
             asm_write_inst1f(assembly, "jl", ".addr_%d", loop_jump_addr);
-            asm_write_inst2c(assembly, "sub", "rbx", "8", "Pop target.");
-            asm_write_inst2c(assembly, "sub", "rsi", "8", "Pop old loop counter into rdi.");
-            asm_write_inst2(assembly, "mov", "rdi", "[rsi]");
+            // Restore previous loop counter.
+            asm_write_inst2f(assembly, "mov", "rdi", "[rbx%+d]", old_offset);
+            aux_restore(generator, 1);  // Pop target from aux.
             break;
         }
         case W_OP_GET_LOOP_VAR: {
             ip += 2;
-            uint16_t offset = read_u16(block, ip - 1);
+            assert(generator->loop_level > 0);
+            uint16_t offset = read_u16(block, ip - 1);  // Offset from top of loop stack.
             if (offset == 0) {
                 // Current loop.
                 asm_write_inst1(assembly, "push", "rdi");
             }
             else {
                 // Outer loop.
-                asm_write_inst2cf(assembly, "mov", "rax", "[rsi - %d]",
-                                  "Offset of loop variable.", offset * 8);
+                int base_offset = generator->loop_level - offset;
+                asm_write_inst2f(assembly, "mov", "rax", "[rbx + %d]", base_offset);
                 asm_write_inst1(assembly, "push", "rax");
             }
             break;
@@ -1522,6 +1548,7 @@ enum generate_result generate(struct module *module, struct asm_block *assembly)
         .assembly = assembly,
         .module = module,
         .aux_count = 0,
+        .loop_level = 0,
     };
     generate_header(&generator);
     generate_code(&generator);
