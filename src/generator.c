@@ -40,7 +40,6 @@ static int aux_pop(struct generator *generator, const char *value) {
     return --generator->aux_count;
 }
 
-[[maybe_unused]]
 static int aux_to_stack(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_write_inst2(assembly, "sub", "rsi", "8");
