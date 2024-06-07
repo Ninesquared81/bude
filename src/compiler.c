@@ -639,10 +639,10 @@ static void compile_loop(struct compiler *compiler) {
      * +-> condition
      * | [do]
      * |   T_OP_JUMP_NCOND -+
-     * |   body           |
+     * |   body             |
      * +-- T_OP_JUMP        |
-     *   [end]            |
-     *     ... <----------+
+     *   [end]              |
+     *     ... <------------+
      */
 
     int loop_jump = condition_start - block->count - 1;  // Negative.
