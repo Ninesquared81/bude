@@ -1,0 +1,9 @@
+func int rec def
+    for i from do
+        i print
+        i 1 - rec
+    end
+end
+
+
+4 rec
