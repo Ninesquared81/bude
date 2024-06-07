@@ -126,7 +126,7 @@ negative infinity and the remainder is always non-negative.
 _i1_ _i2_ `/` &rarr; (_i1_ / _i2_) : Pop the top two stack elements and push the quotient from
 their division. Acts like `divmod pop` to pop the remainder.
 
-_i1_ _i2_ `%` &rarr; (_i1_ / _i2_) : Pop the top two stack elements and push the remainder from
+_i1_ _i2_ `%` &rarr; (_i1_ \% _i2_) : Pop the top two stack elements and push the remainder from
 their division. Acts like `divmod swap pop` to pop the quotient.
 
 ### Comparison operations
@@ -212,4 +212,3 @@ _R3_.
 `comp` <_comp-name_> `def` (<_field-name_> `->` <_field-type_>) &hellip; `end`
 
 `func` <_param-type_> &hellip; <_func-name_> [`->` <_ret-type_> &hellip;] _func-body_ `end`
-
