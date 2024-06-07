@@ -44,7 +44,7 @@ Hello, World!
 This assumes FASM has been installed and is in the PATH variable. Note that the
 actual output of FASM may vary.
 
-## Language Features
+## Language Overview
 
 Bude has a stack for storing 64-bit words. There are instructions to manipulate the stack.
 
