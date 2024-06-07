@@ -54,6 +54,7 @@ C type, these values always take up one full stack slot (64 bits). A C-like lang
 for the result expressions of some operations.
 
 Data:
+
 * _w_ &ndash; arbitrary stack word
 * _i_ &ndash; signed integer value
 * _p_ &ndash; pointer value
@@ -64,6 +65,7 @@ Data:
 * _T_ &ndash; type variable "T"
 
 Syntax:
+
 * <_symbol_> &ndash; syntactically required symbol
 * _section_ &ndash; syntactical section
 * [ _optional-section_ ] &ndash; optional syntactic section
@@ -91,72 +93,91 @@ unicode character.
 
 ### Field access operations
 
-_pk_ <_field-name_: _T_> &rarr; _pk_ _T_ : Push the specified field from the pack.
+_pk_ <_field-name_: _T_> &rarr; _pk_ _T_ :
+Push the specified field from the pack.
 
-_pk_ _T_ `<-` <_field-name_: _T_> &rarr; _pk_ : Pop the top stack value and use it to set the
-specified field of the pack underneath.
+_pk_ _T_ `<-` <_field-name_: _T_> &rarr; _pk_ :
+Pop the top stack value and use it to set the specified field of the pack underneath.
 
-_cmp_ <_field-name_: _T_> &rarr; _cmp_ _T_ : Push the specified field from the comp.
+_cmp_ <_field-name_: _T_> &rarr; _cmp_ _T_ :
+Push the specified field from the comp.
 
-_cmp_ _T_ `<-` <_field-name_: _T_> &rarr; _cmp_ : Pop the top stack value and use it to set the
-specified field of the comp underneath.
+_cmp_ _T_ `<-` <_field-name_: _T_> &rarr; _cmp_ :
+Pop the top stack value and use it to set the specified field of the comp underneath.
 
 ### Arithmetic operations
 
-_i1_ _i2_ `+` &rarr; (_i1_ + _i2_) : Pop the top two elements and push their sum.
+_i<sub>1</sub>_ _i<sub>2</sub>_ `+` &rarr;
+(_i<sub>1</sub>_ + _i<sub>2</sub>_) :
+Pop the top two elements and push their sum.
 
-_i1_ _i2_ `-` &rarr; (_i1_ - _i2_) : Pop the top two elements and push their difference.
+_i<sub>1</sub>_ _i<sub>2</sub>_ `-` &rarr; (_i<sub>1</sub>_ - _i<sub>2</sub>_) :
+Pop the top two elements and push their difference.
 
-_i1_ _i2_ `*` &rarr; (_i1_ \* _i2_) : Pop the top two elements and push their product.
+_i<sub>1</sub>_ _i<sub>2</sub>_ `*` &rarr;
+(_i<sub>1</sub>_ \* _i<sub>2</sub>_) :
+Pop the top two elements and push their product.
 
-_i1_ _i2_ `divmod` &rarr; (_i1_ / _i2_) (_i1_ \% _i2_) : Pop the top two elements and push the
-quotient and remainder from their division. The remainder is always non-negative
-(Euclidean division).
+_i<sub>1</sub>_ _i<sub>2</sub>_ `divmod` &rarr;
+(_i<sub>1</sub>_ / _i<sub>2</sub>_)
+(_i<sub>1</sub>_ \% _i<sub>2</sub>_) :
+Pop the top two elements and push the quotient and remainder from their division.
+The remainder is always non-negative (Euclidean division).
 
-_i1_ _i2_ `idivmod` &rarr; (_i1_ /<sub>trunc</sub> _i2_) (_i1_ \%<sub>trunc</sub> _i2_) :
-Pop the top two elements
-and push the quotient and remainder of their truncated divison. The quotient is rounded
-towards zero and the remainder can be negative.
+_i<sub>1</sub>_ _i<sub>2</sub>_ `idivmod` &rarr;
+(_i<sub>1</sub>_ /<sub>trunc</sub> _i<sub>2</sub>_)
+(_i<sub>1</sub>_ \%<sub>trunc</sub> _i<sub>2</sub>_) :
+Pop the top two elements and push the quotient and remainder of their truncated divison.
+The quotient is rounded towards zero and the remainder can be negative.
 
-_i1_ _i2_ `edivmod` &rarr; (_i1_ /<sub>euclid</sub> _i2_) (_i1_ \%<sub>euclid</sub> _i2_) :
-Pop the top two elements and
-push the quotient and remainder of their Euclidean division. The quotient is rounded towards
-negative infinity and the remainder is always non-negative.
+_i<sub>1</sub>_ _i<sub>2</sub>_ `edivmod` &rarr;
+(_i<sub>1</sub>_ /<sub>euclid</sub> _i<sub>2</sub>_)
+(_i<sub>1</sub>_ \%<sub>euclid</sub> _i<sub>2</sub>_) :
+Pop the top two elements and push the quotient and remainder of their Euclidean division.
+The quotient is rounded towards negative infinity and the remainder is always non-negative.
 
-_i1_ _i2_ `/` &rarr; (_i1_ / _i2_) : Pop the top two stack elements and push the quotient from
-their division. Acts like `divmod pop` to pop the remainder.
+_i<sub>1</sub>_ _i<sub>2</sub>_ `/` &rarr; (_i<sub>1</sub>_ / _i<sub>2</sub>_) :
+Pop the top two stack elements and push the quotient fromtheir division.
+Acts like `divmod pop` to pop the remainder.
 
-_i1_ _i2_ `%` &rarr; (_i1_ \% _i2_) : Pop the top two stack elements and push the remainder from
-their division. Acts like `divmod swap pop` to pop the quotient.
+_i<sub>1</sub>_ _i<sub>2</sub>_ `%` &rarr; (_i<sub>1</sub>_ \% _i<sub>2</sub>_) :
+Pop the top two stack elements and push the remainder from their division.
+Acts like `divmod swap pop` to pop the quotient.
 
 ### Comparison operations
 
-_i1_ _i2_ `<` &rarr; (_i1_ < _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ < _i2_
+_i<sub>1</sub>_ _i<sub>2</sub>_ `<` &rarr; (_i<sub>1</sub>_ < _i<sub>2</sub>_) :
+Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ < _i<sub>2</sub>_
 or 0 if not.
 
-_i1_ _i2_ `<=` &rarr; (_i1_ <= _i2_) : Pop _i2_ and _i1_ and push back 1 if  _i1_ &le; _i2_
+_i<sub>1</sub>_ _i<sub>2</sub>_ `<=` &rarr; (_i<sub>1</sub>_ <= _i<sub>2</sub>_) :
+Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if  _i<sub>1</sub>_ &le; _i<sub>2</sub>_
 or 0 if not.
 
-_i1_ _i2_ `=` &rarr; (_i1_ == _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ = _i2_
+_i<sub>1</sub>_ _i<sub>2</sub>_ `=` &rarr; (_i<sub>1</sub>_ == _i<sub>2</sub>_) :
+Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ = _i<sub>2</sub>_
 or 0 if not.
 
-_i1_ _i2_ `>=` &rarr; (_i1_ >= _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ &ge; _i2_
+_i<sub>1</sub>_ _i<sub>2</sub>_ `>=` &rarr; (_i<sub>1</sub>_ >= _i<sub>2</sub>_) :
+Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ &ge; _i<sub>2</sub>_
 or 0 if not.
 
-_i1_ _i2_ `>` &rarr; (_i1_ > _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ > _i2_
+_i<sub>1</sub>_ _i<sub>2</sub>_ `>` &rarr; (_i<sub>1</sub>_ > _i<sub>2</sub>_) :
+Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ > _i<sub>2</sub>_
 or 0 if not.
 
-_i1_ _i2_ `/=` &rarr; (_i1_ != _i2_) : Pop _i2_ and _i1_ and push back 1 if _i1_ &ne; _i2_
+_i<sub>1</sub>_ _i<sub>2</sub>_ `/=` &rarr; (_i<sub>1</sub>_ != _i<sub>2</sub>_) :
+Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ &ne; _i<sub>2</sub>_
 or 0 if not.
 
 ### Logical operations
 
-_w_ `not` &rarr; !_w_ : Replace the top element with its logical inverse (i.e. non-zero &rarr; 0,
-0 &rarr; 1).
+_w_ `not` &rarr; !_w_ :
+Replace the top element with its logical inverse (i.e. non-zero &rarr; 0, 0 &rarr; 1).
 
-_w1_ _w2_ `or` &rarr; (_w1_ or _w2_) : Drop _w1_ if it is equal to zero, else drop _w2_.
+_w<sub>1</sub>_ _w<sub>2</sub>_ `or` &rarr; (_w<sub>1</sub>_ or _w<sub>2</sub>_) : Drop _w<sub>1</sub>_ if it is equal to zero, else drop _w<sub>2</sub>_.
 
-_w1_ _w2_ `and` &rarr; (_w1_ and _w2_) : Drop _w1_ if it is non-zero, else drop _w2_.
+_w<sub>1</sub>_ _w<sub>2</sub>_ `and` &rarr; (_w<sub>1</sub>_ and _w<sub>2</sub>_) : Drop _w<sub>1</sub>_ if it is non-zero, else drop _w<sub>2</sub>_.
 
 ### Memory operations
 
@@ -164,25 +185,31 @@ _p_ `deref` &rarr; (byte \*_p_) : Pop the pointer _p_ and push the first byte it
 
 ### Stack manipulation
 
-_w1_ _w2_ `swap` &rarr; _w2_ _w1_ : Swap the top two elements on the stack.
+_w<sub>1</sub>_ _w<sub>2</sub>_ `swap` &rarr; _w<sub>2</sub>_ _w<sub>1</sub>_ :
+Swap the top two elements on the stack.
 
-_w1_ `dupe` &rarr; _w1_ _w1_ : Duplicate the top element on the stack.
+_w<sub>1</sub>_ `dupe` &rarr; _w<sub>1</sub>_ _w<sub>1</sub>_ :
+Duplicate the top element on the stack.
 
 ### Constructors
 
-_F1_ _F2_ _F3_ &hellip; <_pack-name_> &rarr; _pk_ : Construct a pack with the field types
-_F1_, _F2_, _F3_, &hellip;.
+_F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; <_pack-name_> &rarr; _pk_ :
+Construct a pack with the field types
+_F<sub>1</sub>_, _F<sub>2</sub>_, _F<sub>3</sub>_, &hellip;.
 
-_F1_ _F2_ _F3_ &hellip; <_comp-name_> &rarr; _pk_ : Construct a comp with the field types
-_F1_, _F2_, _F3_, &hellip;.
+_F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; <_comp-name_> &rarr; _pk_ :
+Construct a comp with the field types
+_F<sub>1</sub>_, _F<sub>2</sub>_, _F<sub>3</sub>_, &hellip;.
 
 ### Destructors
 
-_pk_ `unpack` &rarr; _F1_ _F2_ _F3_ &hellip; : Unpack the pack on the top of the stack into its
-fields with types _F1_, _F2_, _F3_, &hellip;.
+_pk_ `unpack` &rarr; _F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; :
+Unpack the pack on the top of the stack into its fields with types
+_F<sub>1</sub>_, _F<sub>2</sub>_, _F<sub>3</sub>_, &hellip;.
 
-_cmp_ `decomp` &rarr; _F1_ _F2_ _F3_ &hellip; : Decompose the comp on the top of the stack into
-its fields with types _F1_, _F2_, _F3_, &hellip;.
+_cmp_ `decomp` &rarr; _F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; :
+Decompose the comp on the top of the stack into its fields with types
+_F<sub>1</sub>_, _F<sub>2</sub>_, _F<sub>3</sub>_, &hellip;.
 
 ### Control flow constructs
 
@@ -199,9 +226,11 @@ times specified by _count_. The counting form (`for` <_loop-var_> `to` _count_ &
 specified, which can be accessed inside the loop. The value stored in the loop variable either
 starts at zero and counts up `to` _count_ or counts down to zero `from` _count_.
 
-_P1_ _P2_ _P3_ &hellip; <_func-name_> &rarr; _R1_ _R2_ _R3_ : Call the specified function which
-takes parameters with types _P1_, _P2_, _P3_, &hellip; and returns values with types _R1_, _R2_,
-_R3_.
+_P<sub>1</sub>_ _P<sub>2</sub>_ _P<sub>3</sub>_ &hellip; <_func-name_> &rarr;
+_R<sub>1</sub>_ _R<sub>2</sub>_ _R<sub>3</sub>_ :
+Call the specified function which takes parameters with types
+_P<sub>1</sub>_, _P<sub>2</sub>_, _P<sub>3</sub>_, &hellip; and returns values with types
+_R<sub>1</sub>_, _R<sub>2</sub>_, _R<sub>3</sub>_.
 
 `ret` : Return from the current function.
 
