@@ -61,6 +61,7 @@ static void aux_reserve(struct generator *generator, int space) {
     generator->aux_count += space;
 }
 
+[[maybe_unused]]
 static void aux_restore(struct generator *generator, int space) {
     assert(space >= 0);
     if (space == 0) return;
@@ -614,11 +615,13 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
-            int old_offset = ++generator->loop_level * 8;  // +1 for previous aux base pointer.
+            int old_offset = (generator->loop_level + 1)*8;  // +1 for previous aux base pointer.
+            generator->loop_level += 2;  // +2 to allow space for loop target.
+            int target_offset = generator->loop_level * 8;  // -1 for counter, +1 for base ptr.
             asm_write_inst1c(assembly, "pop", "rax", "Load loop target.");
             asm_write_inst2(assembly, "cmp", "rax", "0");
             asm_write_inst1f(assembly, "jle", ".addr_%d", skip_jump_addr);
-            aux_push(generator, "rax");  // Loop target.
+            asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rax", target_offset);
             asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdi", old_offset);
             asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Zero out loop counter.");
             break;
@@ -627,13 +630,14 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
-            int old_offset = generator->loop_level-- * 8;  // +1 for previous aux base pointer.
+            int target_offset = generator->loop_level * 8;  // -1 for counter, +1 for base ptr.
+            generator->loop_level -= 2;  // -2 to remove target.
+            int old_offset = (generator->loop_level + 1)*8;  // +1 for previous aux base pointer.
             asm_write_inst1(assembly, "inc", "rdi");
-            asm_write_inst2(assembly, "cmp", "rdi", "[rsi-8]");
+            asm_write_inst2f(assembly, "cmp", "rdi", "[rbx+%d]", target_offset);
             asm_write_inst1f(assembly, "jl", ".addr_%d", loop_jump_addr);
             // Restore previous loop counter.
             asm_write_inst2f(assembly, "mov", "rdi", "[rbx%+d]", old_offset);
-            aux_restore(generator, 1);  // Pop target from aux.
             break;
         }
         case W_OP_GET_LOOP_VAR: {

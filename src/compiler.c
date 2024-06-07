@@ -584,6 +584,7 @@ static void compile_for_loop(struct compiler *compiler) {
     struct ir_block *block = &compiler->function->t_code;
     enum t_opcode start_instruction = T_OP_FOR_DEC_START;
     enum t_opcode update_instruction = T_OP_FOR_DEC;
+    int loop_level_offset = 1;
     if (match(compiler, TOKEN_SYMBOL)) {
         struct symbol symbol = {
             .name = peek_previous(compiler).value,
@@ -595,6 +596,8 @@ static void compile_for_loop(struct compiler *compiler) {
         } else if (match(compiler, TOKEN_TO)) {
             start_instruction = T_OP_FOR_INC_START;
             update_instruction = T_OP_FOR_INC;
+            ++loop_level_offset;  // +1 for loop target.
+            ++symbol.loop_var.level;  // Store loop counter above target in loop stack.
             insert_symbol(&compiler->symbols, &symbol);
         }
         else {
@@ -604,7 +607,7 @@ static void compile_for_loop(struct compiler *compiler) {
     }
     compile_expr(compiler);  // Count.
     expect_consume(compiler, TOKEN_DO, "Expect `do` after `for` start.");
-    ++compiler->for_loop_level;
+    compiler->for_loop_level += loop_level_offset;
     if (compiler->for_loop_level > compiler->function->max_for_loop_level) {
         compiler->function->max_for_loop_level = compiler->for_loop_level;
     }
@@ -621,7 +624,7 @@ static void compile_for_loop(struct compiler *compiler) {
     patch_jump(compiler, offset, skip_jump);
     add_jump(block, block->count);
 
-    --compiler->for_loop_level;
+    compiler->for_loop_level -= loop_level_offset;
     expect_consume(compiler, TOKEN_END, "Expect `end` after `for` loop.");
 }
 
