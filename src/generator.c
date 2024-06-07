@@ -646,8 +646,8 @@ static void generate_function(struct generator *generator, int func_index) {
             }
             else {
                 // Outer loop.
-                int base_offset = generator->loop_level - offset;
-                asm_write_inst2f(assembly, "mov", "rax", "[rbx + %d]", base_offset);
+                int base_offset = generator->loop_level - offset + 1;  // +1 for base ptr.
+                asm_write_inst2f(assembly, "mov", "rax", "[rbx+%d]", base_offset * 8);
                 asm_write_inst1(assembly, "push", "rax");
             }
             break;
