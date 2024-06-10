@@ -241,3 +241,119 @@ _R<sub>1</sub>_, _R<sub>2</sub>_, _R<sub>3</sub>_.
 `comp` <_comp-name_> `def` (<_field-name_> `->` <_field-type_>) &hellip; `end`
 
 `func` <_param-type_> &hellip; <_func-name_> [`->` <_ret-type_> &hellip;] _func-body_ `end`
+
+## Language Features
+
+### Packs and Comps
+
+Bude stores data on the stack. Each value fits into one 64-bit stack slot.
+This makes things easier to work with, but what if we wanted to compose many "things" together
+while still treating it as one unit. We need some sorty of structural type, like `struct` in C.
+
+Luckily, Bude has us covered with not one, but two structural types. The first of these is the
+_pack_, which still takes up one stack slot but can have multiple non-overlapping fields inside.
+Each field is accessed by a corresponding name and can hold a value of a certain type.
+The syntax for defining a pack type is outlined above, but to give an example, let's say we want
+to store an RGBA value on the stack. Each channel is in the range 0-255, so 4 channels would
+only need 32 bits in total &ndash; much smaller than a stack slot. This is a good call
+for a pack. We define our pack as:
+
+```
+pack RGBA-Colour def
+    r -> u8
+    g -> u8
+    b -> u8
+    a -> u8
+end
+```
+Now we can construct an `RGBA-Colour` value using the symbol "`RGBA-Colour`" as a constructor:
+
+```
+70u8 130u8 180u8 255u8 RGBA-Colour  # Creates an RGBA colour (70, 130, 180, 255) (HTML SteelBlue)
+```
+We can extract a field from the newly-created pack by using its name as a getter:
+```
+g print  # prints 130
+```
+We can also set a field using the `<-` operator:
+```
+150 <- a
+a print   # prints 150
+```
+We can deconstruct a pack to release all its fields using the `unpack` instruction:
+```
+unpack
+print  # prints 150
+print  # prints 180
+print  # prints 130
+print  # prints 70
+```
+
+Packs are great and all, but what if we wanted to store, say, a 3-D vector? If we used 32-bit
+floats, we'd fill up our _pack_ after only 2 components, and for 64-bit floats, we'd fill it up
+after only one component. Luckily, Bude has another structural type available to us: the _comp_.
+_Comps_ allow us to _compose_ several stack words into a single unit. Syntactically, they work
+very similarly to _packs_. For our vector example:
+```
+comp Vec3D def
+    x -> f64
+    y -> f64
+    z -> f64
+end
+```
+We, again, have named fields. This time, each field correpsonds to a different stack slot within
+the comp. Like with _packs_, we can access fields by their name:
+```
+5.0 42.0 -0.5 Vec3D
+x print  # prints 5.0
+y 5 - <- y
+y print  # prints 37.0
+```
+As with _packs_, we have an instruction to deconstruct a comp. This time, it's called `decomp`
+(for decompose):
+```
+decomp
+print  # prints -0.5
+print  # prints 37.0
+print  # prints 5.0
+```
+### Functions
+
+Most programming languages have a concept of a function or procedure: a block of code that
+can be executed on demand and return to the callsite. Bude has functions, too. For an example,
+a function `hello` which prints the string `"Hello, World!"`:
+
+```
+func hello def
+    "Hello, World!\n" print
+end
+```
+The function is introduced by the keyword `func`. Then, we have the function's name followed by
+the keyword `def`, which marks the start of the function's body. This is then terminated by `end`,
+which is also where the function definition ends.
+
+Often, we want to transfer data to/from a function through parameters and return values. In Bude,
+arguments and return values are passed/left on the stack. Unlike functions in most programming
+languages, Bude functions can return multiple values. It's as simple as leaving multiple values
+on the stack at the end of the function. If we want our Bude function to receive parameters or
+leave return values, we must specify this with a function _signature_. The signature comes
+between the `func` and `def` delimiters and is an expansion on the simple name we used in the
+example above (in fact, in that example, "`hello`" _is_ the signature). The syntax for signatures
+is best illustrated with an example:
+
+```
+func int int diff-squares -> int
+    dupe * swap
+    dupe * swap
+    -
+end
+```
+This function returns the difference of the squares of the two integers passed. The signature
+starts with the parameter types (if any), followed by the function name. Return types are
+introduced by a right arrow `->` following the name. If there are no return types, the arrow is
+omitted. We can have multiple return values:
+```
+func first-five-primes -> int int int int int def
+    2 3 5 7 11
+end
+```
