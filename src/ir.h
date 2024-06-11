@@ -105,10 +105,14 @@
     X(T_OP_OR)                                                          \
     /* (T)PRINT -- Print the top element of the stack in a format surmised from its type. */ \
     X(T_OP_PRINT)                                                       \
+    /* OVER -- Copy the next element over the top element. */           \
+    X(T_OP_OVER)                                                        \
     /* PRINT_CHAR -- Print the top element of the stack as a character. */ \
     X(T_OP_PRINT_CHAR)                                                  \
     /* PRINT_INT -- Print the top element of the stack as a signed integer. */ \
     X(T_OP_PRINT_INT)                                                   \
+    /* ROT -- Rotate the top three stack elements. */                   \
+    X(T_OP_ROT)                                                         \
     /* SUB -- Subtract the top stack element from the next element. */  \
     X(T_OP_SUB)                                                         \
     /* SWAP -- Swap the top two stack elements. */                      \

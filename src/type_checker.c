@@ -1509,6 +1509,22 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_simple(checker, W_OP_OR);
             break;
         }
+        case T_OP_OVER: {
+            type_index b_type = ts_pop(checker);
+            type_index a_type = ts_pop(checker);
+            ts_push(checker, a_type);
+            ts_push(checker, b_type);
+            ts_push(checker, a_type);
+            const struct type_info *a_info = lookup_type(checker->types, a_type);
+            const struct type_info *b_info = lookup_type(checker->types, b_type);
+            assert(a_info);
+            assert(b_info);
+            int a_size = (a_info->kind == KIND_COMP) ? a_info->comp.word_count : 1;
+            int b_size = (b_info->kind == KIND_COMP) ? b_info->comp.word_count : 1;
+            // Treat (a b) as a comp containing a and b as subcomps.
+            emit_comp_subcomp(checker, W_OP_COMP_SUBCOMP_GET8, a_size + b_size, a_size);
+            break;
+        }
         case T_OP_PRINT: {
             type_index type = ts_pop(checker);
             emit_print_instruction(checker, type);
@@ -1532,6 +1548,26 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 type_error(checker, "invalid type for `OP_PRINT_INT`");
             }
             emit_simple(checker, W_OP_PRINT_INT);
+            break;
+        }
+        case T_OP_ROT: {
+            type_index c_type = ts_pop(checker);
+            type_index b_type = ts_pop(checker);
+            type_index a_type = ts_pop(checker);
+            ts_push(checker, b_type);
+            ts_push(checker, c_type);
+            ts_push(checker, a_type);
+            const struct type_info *a_info = lookup_type(checker->types, a_type);
+            const struct type_info *b_info = lookup_type(checker->types, b_type);
+            const struct type_info *c_info = lookup_type(checker->types, c_type);
+            assert(a_info);
+            assert(b_info);
+            assert(c_info);
+            int a_size = (a_info->kind == KIND_COMP) ? a_info->comp.word_count : 1;
+            int b_size = (b_info->kind == KIND_COMP) ? b_info->comp.word_count : 1;
+            int c_size = (c_info->kind == KIND_COMP) ? c_info->comp.word_count : 1;
+            // Treat (a b c) as two comps: {a} and {b c}.
+            emit_swap_comps(checker, a_size, b_size + c_size);
             break;
         }
         case T_OP_SUB: {

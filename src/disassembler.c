@@ -358,12 +358,16 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_NOT_EQUALS", block, offset);
     case T_OP_OR:
         return simple_instruction("T_OP_OR", block, offset);
+    case T_OP_OVER:
+        return simple_instruction("T_OP_OVER", block, offset);
     case T_OP_PRINT:
         return simple_instruction("T_OP_PRINT", block, offset);
     case T_OP_PRINT_CHAR:
         return simple_instruction("T_OP_PRINT_CHAR", block, offset);
     case T_OP_PRINT_INT:
         return simple_instruction("T_OP_PRINT_INT", block, offset);
+    case T_OP_ROT:
+        return simple_instruction("T_OP_ROT", block, offset);
     case T_OP_SUB:
         return simple_instruction("T_OP_SUB", block, offset);
     case T_OP_SWAP:
