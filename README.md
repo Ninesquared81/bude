@@ -191,6 +191,13 @@ Swap the top two elements on the stack.
 _w<sub>1</sub>_ `dupe` &rarr; _w<sub>1</sub>_ _w<sub>1</sub>_ :
 Duplicate the top element on the stack.
 
+_w<sub>1</sub>_ _w<sub>2</sub>_ `over` &rarr; _w<sub>1</sub>_ _w<sub>2</sub>_ _w<sub>1</sub>_ :
+Copy the next element over the top element.
+
+_w<sub>1</sub>_ _w<sub>2</sub>_ _w<sub>3</sub>_ `rot` &rarr;
+_w<sub>2</sub>_ _w<sub>3</sub>_ _w<sub>1</sub>_ :
+Rotate the top three stack elements.
+
 ### Constructors
 
 _F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; <_pack-name_> &rarr; _pk_ :
