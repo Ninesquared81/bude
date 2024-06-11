@@ -1258,7 +1258,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s8(block, ip + 2);
             ip += 2;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "[rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -1267,7 +1267,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s16(block, ip + 2);
             ip += 4;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "[rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -1276,7 +1276,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s32(block, ip + 2);
             ip += 8;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "[rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -1285,7 +1285,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s8(block, ip + 2);
             ip += 2;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "[rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -1294,7 +1294,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s16(block, ip + 2);
             ip += 4;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "[rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
@@ -1303,7 +1303,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s32(block, ip + 2);
             ip += 8;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "[rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", (offset - 1) * 8);
             }
             break;
         }
