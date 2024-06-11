@@ -1,0 +1,7 @@
+42 57 "Hi\n" rot
+print print print
+
+42 57 over print print print
+
+"Hey there\n" "Hello\n" over
+print print print
