@@ -249,6 +249,8 @@ _R<sub>1</sub>_, _R<sub>2</sub>_, _R<sub>3</sub>_.
 
 `func` <_param-type_> &hellip; <_func-name_> [`->` <_ret-type_> &hellip;] _func-body_ `end`
 
+`var` <_var-name_> `->` <_var-type_> &hellip; `end`
+
 ## Language Features
 
 ### Packs and Comps
