@@ -1,6 +1,13 @@
-var a -> int end
+var a -> int
+    b -> f64
+end
 
 42 <- a
 a print
 -5 <- a
 a print
+
+a to f64 <- b
+b print
+b .5 * <- b
+b print
