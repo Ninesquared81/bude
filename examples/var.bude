@@ -1,0 +1,6 @@
+var a -> int end
+
+42 <- a
+a print
+-5 <- a
+a print
