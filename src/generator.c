@@ -292,12 +292,12 @@ static void generate_function(struct generator *generator, int func_index) {
     struct asm_block *assembly = generator->assembly;
     struct function *function = get_function(&generator->module->functions, func_index);
     asm_label(assembly, "func_%d", func_index);
-    // Layout of aux frame: [ret][base][... Loops ...][... aux ...]
-    //                            ^rbx                 ^rsi
+    // Layout of aux frame: [ret][base][... Loops ...][... Locals ...][... aux ...]
+    //                            ^rbx                                 ^rsi
     stack_to_aux(generator);
     aux_push(generator, "rbx");
     asm_write_inst2(assembly, "lea", "rbx", "[rsi-8]");
-    aux_reserve(generator, function->max_for_loop_level);
+    aux_reserve(generator, function->max_for_loop_level + function->locals_size);
     struct ir_block *block = &function->w_code;
     // Instructions.
     for (int ip = 0; ip < block->count; ++ip) {
@@ -729,6 +729,26 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_LOCAL_GET: {
+            ip += 2;
+            int index = read_u16(block, ip - 1);
+            struct local *local = &function->locals.locals[index];
+            for (int i = 0; i < local->size; ++i) {
+                int offset = 1 + function->max_for_loop_level + local->offset + i;
+                asm_write_inst1f(assembly, "push", "qword [rbx+%d]", offset);
+            }
+            break;
+        }
+        case W_OP_LOCAL_SET: {
+            ip += 2;
+            int index = read_u16(block, ip - 1);
+            struct local *local = &function->locals.locals[index];
+            for (int i = local->size - 1; i >= 0; --i) {
+                int offset = 1 + function->max_for_loop_level + local->offset + i;
+                asm_write_inst1f(assembly, "pop", "qword [rbx+%d]", offset);
+            }
+            break;
+        }
         case W_OP_LOWER_SAME:
             asm_write_inst1(assembly, "pop", "rdx");  // RHS.
             asm_write_inst1(assembly, "pop", "rax");  // LHS.
