@@ -57,9 +57,11 @@ bool init_interpreter(struct interpreter *interpreter, struct module *module) {
     init_stack(interpreter->auxiliary_stack);
     init_stack(interpreter->loop_stack);
     init_stack(interpreter->call_stack);
+    // Needs to happen after aux has been initialised.
+    interpreter->locals = interpreter->auxiliary_stack->elements;
     // Dummy return address to simulate entry point code.
-    struct pair32 dummy_retinfo = {0, main_func->w_code.count};
-    push(interpreter->call_stack, pair32_to_u64(dummy_retinfo));
+    /* struct pair32 dummy_retinfo = {0, main_func->w_code.count}; */
+    /* push(interpreter->call_stack, pair32_to_u64(dummy_retinfo)); */
     return true;
 }
 
@@ -72,6 +74,7 @@ void free_interpreter(struct interpreter *interpreter) {
     interpreter->auxiliary_stack = NULL;
     interpreter->loop_stack = NULL;
     interpreter->call_stack = NULL;
+    interpreter->locals = NULL;
 }
 
 static void jump(struct ir_block *block, int offset, int *ip) {
@@ -127,10 +130,14 @@ static void call(struct interpreter *interpreter, int index, int *ip) {
     struct function *callee = get_function(&interpreter->module->functions, index);
     interpreter->block = &callee->w_code;
     interpreter->current_function = index;
+    push(interpreter->auxiliary_stack, (stack_word)interpreter->locals);
+    interpreter->locals = reserve(interpreter->auxiliary_stack, callee->locals_size);
     *ip = -1;  // -1 since ip will be incremented.
 }
 
 static int ret(struct interpreter *interpreter) {
+    restore(interpreter->auxiliary_stack, interpreter->locals);
+    interpreter->locals = (stack_word *)pop(interpreter->auxiliary_stack);
     struct pair32 retinfo = u64_to_pair32(pop(interpreter->call_stack));
     int index = retinfo.a;
     int ip = retinfo.b;
@@ -141,6 +148,7 @@ static int ret(struct interpreter *interpreter) {
 }
 
 enum interpret_result interpret(struct interpreter *interpreter) {
+    call(interpreter, 0, &(int){interpreter->block->count});
     for (int ip = 0; ip < interpreter->block->count; ++ip) {
         enum w_opcode instruction = interpreter->block->code[ip];
         switch (instruction) {
@@ -419,6 +427,24 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_HIGHER_THAN: BIN_OP(>, interpreter->main_stack); break;
         case W_OP_LESS_EQUALS: IBIN_OP(<=, interpreter->main_stack); break;
         case W_OP_LESS_THAN: IBIN_OP(<, interpreter->main_stack); break;
+        case W_OP_LOCAL_GET: {
+            ip += 2;
+            uint16_t index = read_u16(interpreter->block, ip - 1);
+            struct function *function = \
+                get_function(&interpreter->module->functions, interpreter->current_function);
+            struct local local = function->locals.locals[index];
+            push_all(interpreter->main_stack, local.size, &interpreter->locals[local.offset]);
+            break;
+        }
+        case W_OP_LOCAL_SET: {
+            ip += 2;
+            uint16_t index = read_u16(interpreter->block, ip - 1);
+            struct function *function = \
+                get_function(&interpreter->module->functions, interpreter->current_function);
+            struct local local = function->locals.locals[index];
+            pop_all(interpreter->main_stack, local.size, &interpreter->locals[local.offset]);
+            break;
+        }
         case W_OP_LOWER_SAME: BIN_OP(<=, interpreter->main_stack); break;
         case W_OP_LOWER_THAN: BIN_OP(<, interpreter->main_stack); break;
         case W_OP_MULT: BIN_OP(*, interpreter->main_stack); break;

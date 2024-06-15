@@ -30,4 +30,7 @@ stack_word peek_nth(struct stack *stack, uint32_t n);
 const stack_word *peekn(struct stack *stack, int n);
 void set_nth(struct stack *stack, int n, stack_word value);
 
+stack_word *reserve(struct stack *stack, int count);
+int restore(struct stack *stack, stack_word *start);
+
 #endif

@@ -18,6 +18,7 @@ struct interpreter {
     struct stack *auxiliary_stack;
     struct stack *loop_stack;
     struct stack *call_stack;
+    stack_word *locals;
     struct module *module;
     int current_function;
 };

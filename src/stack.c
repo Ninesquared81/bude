@@ -89,5 +89,23 @@ void set_nth(struct stack *stack, int n, stack_word value) {
         exit(1);
     }
     assert(n > 0);
-    stack->top[-1 - n] = value; 
+    stack->top[-1 - n] = value;
+}
+
+stack_word *reserve(struct stack *stack, int count) {
+    if (&stack->elements[STACK_SIZE] - stack->top < count) {
+        fprintf(stderr, "Stack overflow in reserve()\n");
+        exit(1);
+    }
+    assert(count > 0);
+    stack_word *start = stack->top;
+    stack->top += count;
+    return start;
+}
+
+int restore(struct stack *stack, stack_word *start) {
+    assert(stack->elements <= start && start <= stack->top);
+    int size = stack->top - start;
+    stack->top = start;
+    return size;
 }
