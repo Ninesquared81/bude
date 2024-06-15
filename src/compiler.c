@@ -960,13 +960,34 @@ static void compile_to_conversion(struct compiler *compiler) {
     }
 }
 
+static void compile_var(struct compiler *compiler) {
+    while (!is_at_end(compiler) && !check(compiler, TOKEN_END)) {
+        expect_consume(compiler, TOKEN_SYMBOL, "Expect variable name.");
+        struct string_view name = peek_previous(compiler).value;
+        expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `<-` after variable name.");
+        struct token type_token = advance(compiler);
+        type_index type = parse_type(compiler, &type_token);
+        if (type == TYPE_ERROR) {
+            parse_error(compiler, "Invalid type '%"PRI_SV"'.", SV_FMT(type_token.value));
+            exit(1);
+        }
+        int var_index = add_local(compiler->function, type);
+        struct symbol symbol = {
+            .name = name,
+            .type = SYM_VAR,
+            .var.var = var_index,
+        };
+        insert_symbol(&compiler->symbols, &symbol);
+    }
+    expect_consume(compiler, TOKEN_END, "Expect `end` after `var` block.");
+}
+
 static void compile_assignment(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `<-`");
     struct string_view name = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &name);
     if (symbol == NULL) {
-        assert(name.length < (size_t)INT_MAX);
-        compile_error(compiler, "Unknown symbol '%*s'", (int)name.length, name.start);
+        compile_error(compiler, "Unknown symbol '"PRI_SV"'", SV_FMT(name));
         exit(1);
     }
     switch (symbol->type) {
@@ -977,6 +998,9 @@ static void compile_assignment(struct compiler *compiler) {
     case SYM_COMP_FIELD:
         emit_comp_field(compiler, T_OP_COMP_FIELD_SET8, symbol->comp_field.comp,
                         symbol->comp_field.field_offset);
+        break;
+    case SYM_VAR:
+        emit_immediate_u16(compiler, T_OP_LOCAL_SET, symbol->var.var);
         break;
     default:
         parse_error(compiler, "Incorrect symbol type for `<-`.");
@@ -1107,6 +1131,11 @@ static void compile_function_symbol(struct compiler *compiler, struct symbol *sy
     emit_immediate_uv(compiler, T_OP_CALL8, index);
 }
 
+static void compile_var_symbol(struct compiler *compiler, struct symbol *symbol) {
+    int var_index = symbol->var.var;
+    emit_immediate_u16(compiler, T_OP_LOCAL_GET, var_index);
+}
+
 static void compile_symbol(struct compiler *compiler) {
     struct string_view symbol_text = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
@@ -1132,6 +1161,9 @@ static void compile_symbol(struct compiler *compiler) {
         break;
     case SYM_FUNCTION:
         compile_function_symbol(compiler, symbol);
+        break;
+    case SYM_VAR:
+        compile_var_symbol(compiler, symbol);
         break;
     }
 }
@@ -1275,6 +1307,9 @@ static void compile_expr(struct compiler *compiler) {
         }
         else if (match(compiler, TOKEN_TO)) {
             compile_to_conversion(compiler);
+        }
+        else if (match(compiler, TOKEN_VAR)) {
+            compile_var(compiler);
         }
         else if (match(compiler, TOKEN_WHILE)) {
             compile_loop(compiler);

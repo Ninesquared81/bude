@@ -17,6 +17,7 @@ enum symbol_type {
     SYM_PACK_FIELD,
     SYM_COMP_FIELD,
     SYM_FUNCTION,
+    SYM_VAR,
 };
 
 struct symbol {
@@ -43,6 +44,9 @@ struct symbol {
         struct {
             int index;
         } function;
+        struct {
+            int var;
+        } var;
     };
 };
 

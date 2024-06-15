@@ -95,6 +95,10 @@
     /* LESS_THAN -- Pop top two stack elements and push 1 if next element is less than the \
        top element, or 0 if not. */                                     \
     X(T_OP_LESS_THAN)                                                   \
+    /* LOCAL_GET Idx_u16 -- Get the local variable with the given index. */ \
+    X(T_OP_LOCAL_GET)                                                   \
+    /* LOCAL_SET Idx_u16 -- Set the local variable with the given index. */ \
+    X(T_OP_LOCAL_SET)                                                   \
     /* MULT -- Multiply the top two stack elements. */                  \
     X(T_OP_MULT)                                                        \
     /* NOT -- Logical not operation of the top stack element. */        \
@@ -280,6 +284,10 @@
     /* LESS_THAN -- Pop top two (signed) stack elements and push 1 if next element is less than the \
        top element, or 0 if not. */                                     \
     X(W_OP_LESS_THAN)                                                   \
+    /* LOCAL_GET Idx_u16 -- Get the local variable with the given index. */ \
+    X(W_OP_LOCAL_GET)                                                   \
+    /* LOCAL_SET Idx_u16 -- Set the local variable with the given index. */ \
+    X(W_OP_LOCAL_SET)                                                   \
     /* LOWER_SAME -- Pop top two (unsigned) stack elements and push 1 if next element is lower or the \
        same as the top element, or 0 if not. */                         \
     X(W_OP_LOWER_SAME)                                                  \
