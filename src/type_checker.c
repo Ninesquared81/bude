@@ -540,32 +540,36 @@ static void emit_immediate_sv(struct type_checker *checker, enum w_opcode instru
     emit_immediate_uv(checker, instruction8, s64_to_u64(arg));
 }
 
-static void copy_immediate_u8(struct type_checker *checker, enum w_opcode instruction) {
+static uint8_t copy_immediate_u8(struct type_checker *checker, enum w_opcode instruction) {
     uint8_t value = read_u8(checker->in_block, checker->ip + 1);
     write_immediate_u8(checker->out_block, instruction, value,
                        &checker->in_block->locations[checker->ip]);
     checker->ip += 1;
+    return value;
 }
 
-static void copy_immediate_u16(struct type_checker *checker, enum w_opcode instruction) {
+static uint16_t copy_immediate_u16(struct type_checker *checker, enum w_opcode instruction) {
     uint16_t value = read_u16(checker->in_block, checker->ip + 1);
     write_immediate_u16(checker->out_block, instruction, value,
                         &checker->in_block->locations[checker->ip]);
     checker->ip += 2;
+    return value;
 }
 
-static void copy_immediate_u32(struct type_checker *checker, enum w_opcode instruction) {
+static uint32_t copy_immediate_u32(struct type_checker *checker, enum w_opcode instruction) {
     uint32_t value = read_u32(checker->in_block, checker->ip + 1);
     write_immediate_u32(checker->out_block, instruction, value,
                         &checker->in_block->locations[checker->ip]);
     checker->ip += 4;
+    return value;
 }
 
-static void copy_immediate_u64(struct type_checker *checker, enum w_opcode instruction) {
+static uint64_t copy_immediate_u64(struct type_checker *checker, enum w_opcode instruction) {
     uint64_t value = read_u64(checker->in_block, checker->ip + 1);
     write_immediate_u64(checker->out_block, instruction, value,
                         &checker->in_block->locations[checker->ip]);
     checker->ip += 8;
+    return value;
 }
 
 static void copy_jump_instruction(struct type_checker *checker, enum w_opcode instruction) {
@@ -1082,10 +1086,26 @@ static void check_function_return(struct type_checker *checker, struct function 
     }
 }
 
+static int get_locals_size(struct type_checker *checker, struct local_table *locals) {
+    int size = 0;
+    for (int i = 0; i < locals->count; ++i) {
+        struct local *local = &locals->locals[i];
+        // TODO: extract this into a 'type_word_count()' function.
+        const struct type_info *info = lookup_type(checker->types, local->type);
+        assert(info);
+        int local_size = (info->kind == KIND_COMP) ? info->comp.word_count : 1;
+        local->size = local_size;
+        local->offset = size;
+        size += local_size;
+    }
+    return size;
+}
+
 static struct function *start_function(struct type_checker *checker, int func_index) {
     /* NOTE: there is no corresponding `end_function()` function since all the cleanup
        happens at the start of the next function (or at the end of all functions). */
     struct function *function = get_function(&checker->module->functions, func_index);
+    function->locals_size = get_locals_size(checker, &function->locals);
     checker->in_block = &function->t_code;
     checker->out_block = &function->w_code;
     reset_type_checker_states(&checker->states, &checker->in_block->jumps);
@@ -1441,6 +1461,16 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 : W_OP_LOWER_THAN;
             emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
+            break;
+        }
+        case T_OP_LOCAL_GET: {
+            int index = copy_immediate_u16(checker, W_OP_LOCAL_GET);
+            ts_push(checker, function->locals.locals[index].type);
+            break;
+        }
+        case T_OP_LOCAL_SET: {
+            int index = copy_immediate_u16(checker, W_OP_LOCAL_SET);
+            expect_type(checker, function->locals.locals[index].type);
             break;
         }
         case T_OP_MULT: {
