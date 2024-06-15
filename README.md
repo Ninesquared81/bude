@@ -183,6 +183,11 @@ _w<sub>1</sub>_ _w<sub>2</sub>_ `and` &rarr; (_w<sub>1</sub>_ and _w<sub>2</sub>
 
 _p_ `deref` &rarr; (byte \*_p_) : Pop the pointer _p_ and push the first byte it points to.
 
+<_var-name_: _T_> &rarr; _T_ : Push the specified local variable.
+
+_T_ `<-` <_var-name_: _T_> &rarr; &varnothing; : Pop the top stack value and use it to set the
+specified local variable.
+
 ### Stack manipulation
 
 _w<sub>1</sub>_ _w<sub>2</sub>_ `swap` &rarr; _w<sub>2</sub>_ _w<sub>1</sub>_ :
