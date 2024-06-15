@@ -17,7 +17,7 @@ void reset_stack(struct stack *stack) {
 
 void push(struct stack *stack, stack_word value) {
     if (stack->top == &stack->elements[STACK_SIZE-1]) {
-        fprintf(stderr, "Stack overflow\n");
+        fprintf(stderr, "Stack overflow in push()\n");
         exit(1);
     }
     *stack->top++ = value;
@@ -25,7 +25,7 @@ void push(struct stack *stack, stack_word value) {
 
 stack_word pop(struct stack *stack) {
     if (stack->top == &stack->elements[0]) {
-        fprintf(stderr, "Stack underflow\n");
+        fprintf(stderr, "Stack underflow in pop()\n");
         exit(1);
     }
     return *--stack->top;
@@ -34,7 +34,7 @@ stack_word pop(struct stack *stack) {
 void popn(struct stack *stack, int n) {
     assert(n > 0);
     if (stack->top - stack->elements < n) {
-        fprintf(stderr, "Stack underflow");
+        fprintf(stderr, "Stack underflow in popn()\n");
         exit(1);
     }
     stack->top -= n;
@@ -42,7 +42,7 @@ void popn(struct stack *stack, int n) {
 
 void push_all(struct stack *stack, size_t n, const stack_word values[n]) {
     if (&stack->elements[STACK_SIZE] - stack->top <= (int64_t)n) {
-        fprintf(stderr, "Stack overflow\n");
+        fprintf(stderr, "Stack overflow in push_all()\n");
         exit(1);
     }
     memcpy(stack->top, values, sizeof(stack_word[n]));
@@ -51,7 +51,7 @@ void push_all(struct stack *stack, size_t n, const stack_word values[n]) {
 
 void pop_all(struct stack *stack, size_t n, stack_word buffer[n]) {
     if (stack->top - stack->elements < (int64_t)n) {
-        fprintf(stderr, "Stack underflow\n");
+        fprintf(stderr, "Stack underflow in pop_all()\n");
         exit(1);
     }
     memcpy(buffer, stack->top - n, sizeof(stack_word[n]));
@@ -60,7 +60,7 @@ void pop_all(struct stack *stack, size_t n, stack_word buffer[n]) {
 
 stack_word peek(struct stack *stack) {
     if (stack->top == &stack->elements[0]) {
-        fprintf(stderr, "Stack underflow\n");
+        fprintf(stderr, "Stack underflow in peek()\n");
         exit(1);
     }
     return stack->top[-1];
@@ -68,7 +68,7 @@ stack_word peek(struct stack *stack) {
 
 stack_word peek_nth(struct stack *stack, uint32_t n) {
     if (stack->top - stack->elements <= (int64_t)n) {
-        fprintf(stderr, "Stack underflow\n");
+        fprintf(stderr, "Stack underflow in peek_nth()\n");
         exit(1);
     }
     return stack->top[-1 - (int64_t)n];
@@ -76,7 +76,7 @@ stack_word peek_nth(struct stack *stack, uint32_t n) {
 
 const stack_word *peekn(struct stack *stack, int n) {
     if (stack->top - stack->elements < n) {
-        fprintf(stderr, "Stack underflow\n");
+        fprintf(stderr, "Stack underflow in peekn()\n");
         exit(1);
     }
     assert(n > 0);
@@ -85,7 +85,7 @@ const stack_word *peekn(struct stack *stack, int n) {
 
 void set_nth(struct stack *stack, int n, stack_word value) {
     if (stack->top - stack->elements < n) {
-        fprintf(stderr, "Stack underflow\n");
+        fprintf(stderr, "Stack underflow in set_nth()\n");
         exit(1);
     }
     assert(n > 0);
