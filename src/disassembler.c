@@ -350,6 +350,10 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_LESS_EQUALS", block, offset);
     case T_OP_LESS_THAN:
         return simple_instruction("T_OP_LESS_THAN", block, offset);
+    case T_OP_LOCAL_GET:
+        return immediate_u16_instruction("T_OP_LOCAL_GET", block, offset);
+    case T_OP_LOCAL_SET:
+        return immediate_u16_instruction("T_OP_LOCAL_SET", block, offset);
     case T_OP_MULT:
         return simple_instruction("T_OP_MULT", block, offset);
     case T_OP_NOT:
@@ -593,6 +597,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_LESS_EQUALS", block, offset);
     case W_OP_LESS_THAN:
         return simple_instruction("W_OP_LESS_THAN", block, offset);
+    case W_OP_LOCAL_GET:
+        return immediate_u16_instruction("W_OP_LOCAL_GET", block, offset);
+    case W_OP_LOCAL_SET:
+        return immediate_u16_instruction("W_OP_LOCAL_SET", block, offset);
     case W_OP_LOWER_SAME:
         return simple_instruction("W_OP_LOWER_SAME", block, offset);
     case W_OP_LOWER_THAN:
