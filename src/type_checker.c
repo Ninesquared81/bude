@@ -1369,13 +1369,12 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index type = ts_pop(checker);
             ts_push(checker, type);
             ts_push(checker, type);
-            const struct type_info *info = lookup_type(checker->types, type);
-            assert(info != NULL && "Unknown type");
-            if (info->kind != KIND_COMP) {
+            int word_count = type_word_count(checker->types, type);
+            if (word_count == 1) {
                 emit_simple(checker, W_OP_DUPE);
             }
             else {
-                emit_immediate_sv(checker, W_OP_DUPEN8, info->comp.word_count);
+                emit_immediate_sv(checker, W_OP_DUPEN8, word_count);
             }
             break;
         }
@@ -1642,12 +1641,12 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index lhs_type = ts_pop(checker);
             ts_push(checker, rhs_type);
             ts_push(checker, lhs_type);
-            if (!is_comp(checker->types, lhs_type) && !is_comp(checker->types, rhs_type)) {
+            int lhs_size = type_word_count(checker->types, lhs_type);
+            int rhs_size = type_word_count(checker->types, rhs_type);
+            if (lhs_size == 1 && rhs_size == 1) {
                 emit_simple(checker, W_OP_SWAP);
             }
             else {
-                int lhs_size = type_word_count(checker->types, lhs_type);
-                int rhs_size = type_word_count(checker->types, rhs_type);
                 emit_swap_comps(checker, lhs_size, rhs_size);
             }
             break;
