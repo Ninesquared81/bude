@@ -97,7 +97,7 @@ stack_word *reserve(struct stack *stack, int count) {
         fprintf(stderr, "Stack overflow in reserve()\n");
         exit(1);
     }
-    assert(count > 0);
+    assert(count >= 0);
     stack_word *start = stack->top;
     stack->top += count;
     return start;
