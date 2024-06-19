@@ -1090,10 +1090,7 @@ static int get_locals_size(struct type_checker *checker, struct local_table *loc
     int size = 0;
     for (int i = 0; i < locals->count; ++i) {
         struct local *local = &locals->locals[i];
-        // TODO: extract this into a 'type_word_count()' function.
-        const struct type_info *info = lookup_type(checker->types, local->type);
-        assert(info);
-        int local_size = (info->kind == KIND_COMP) ? info->comp.word_count : 1;
+        int local_size = type_word_count(checker->types, local->type);
         local->size = local_size;
         local->offset = size;
         size += local_size;
@@ -1545,13 +1542,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             ts_push(checker, a_type);
             ts_push(checker, b_type);
             ts_push(checker, a_type);
-            const struct type_info *a_info = lookup_type(checker->types, a_type);
-            const struct type_info *b_info = lookup_type(checker->types, b_type);
-            assert(a_info);
-            assert(b_info);
-            int a_size = (a_info->kind == KIND_COMP) ? a_info->comp.word_count : 1;
-            int b_size = (b_info->kind == KIND_COMP) ? b_info->comp.word_count : 1;
             // Treat (a b) as a comp containing a and b as subcomps.
+            int a_size = type_word_count(checker->types, a_type);
+            int b_size = type_word_count(checker->types, b_type);
             emit_comp_subcomp(checker, W_OP_COMP_SUBCOMP_GET8, a_size + b_size, a_size);
             break;
         }
@@ -1587,15 +1580,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             ts_push(checker, b_type);
             ts_push(checker, c_type);
             ts_push(checker, a_type);
-            const struct type_info *a_info = lookup_type(checker->types, a_type);
-            const struct type_info *b_info = lookup_type(checker->types, b_type);
-            const struct type_info *c_info = lookup_type(checker->types, c_type);
-            assert(a_info);
-            assert(b_info);
-            assert(c_info);
-            int a_size = (a_info->kind == KIND_COMP) ? a_info->comp.word_count : 1;
-            int b_size = (b_info->kind == KIND_COMP) ? b_info->comp.word_count : 1;
-            int c_size = (c_info->kind == KIND_COMP) ? c_info->comp.word_count : 1;
+            int a_size = type_word_count(checker->types, a_type);
+            int b_size = type_word_count(checker->types, b_type);
+            int c_size = type_word_count(checker->types, c_type);
             // Treat (a b c) as two comps: {a} and {b c}.
             emit_swap_comps(checker, a_size, b_size + c_size);
             break;
@@ -1659,12 +1646,8 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 emit_simple(checker, W_OP_SWAP);
             }
             else {
-                const struct type_info *lhs_info = lookup_type(checker->types, lhs_type);
-                const struct type_info *rhs_info = lookup_type(checker->types, rhs_type);
-                assert(lhs_info != NULL);
-                assert(rhs_info != NULL);
-                int lhs_size = (lhs_info->kind == KIND_COMP) ? lhs_info->comp.word_count : 1;
-                int rhs_size = (rhs_info->kind == KIND_COMP) ? rhs_info->comp.word_count : 1;
+                int lhs_size = type_word_count(checker->types, lhs_type);
+                int rhs_size = type_word_count(checker->types, rhs_type);
                 emit_swap_comps(checker, lhs_size, rhs_size);
             }
             break;

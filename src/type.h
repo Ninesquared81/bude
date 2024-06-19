@@ -99,6 +99,7 @@ struct type_table {
 
 struct string_view type_name(struct type_table *table, type_index type);
 size_t type_size(struct type_table *table, type_index type);
+size_t type_word_count(struct type_table *table, type_index type);
 
 bool is_pack(struct type_table *table, type_index type);
 bool is_comp(struct type_table *table, type_index type);

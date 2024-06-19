@@ -80,6 +80,14 @@ size_t type_size(struct type_table *table, type_index type) {
     }
 }
 
+size_t type_word_count(struct type_table *table, type_index type) {
+    if (!is_comp(table, type)) return 1;
+    const struct type_info *info = lookup_type(table, type);
+    assert(info);
+    assert(info->kind == KIND_COMP);
+    return info->comp.word_count;
+}
+
 bool is_integral(type_index type) {
     switch (type) {
     case TYPE_WORD:
