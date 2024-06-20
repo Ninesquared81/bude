@@ -3,6 +3,7 @@
 #include <inttypes.h>
 
 #include "asm.h"
+#include "ext_function.h"
 #include "function.h"
 #include "generator.h"
 #include "ir.h"
@@ -261,6 +262,45 @@ static void generate_swap_comps(struct generator *generator, int lhs_size, int r
         save_block(assembly, 0, rhs_size);
         shift_block_up(assembly, lhs_size, rhs_size);
         restore_block(assembly, lhs_size, rhs_size);
+    }
+}
+
+static void generate_external_call(struct generator *generator, struct ext_function *external) {
+    int param_count = external->sig.param_count;
+    int offset = param_count - 4;
+    asm_write_inst2f(generator->assembly, "lea", "rbp", "[rsp+%d]", param_count);
+    /* It turns out switch fallthorugh is useful in some rare cases. */
+    switch (param_count) {
+    case 4:
+        asm_write_inst2f(generator->assembly, "mov", "r9", "[rsp+%d]", 8 * offset++);
+        /* Fallthrough */
+    case 3:
+        asm_write_inst2f(generator->assembly, "mov", "r8", "[rsp+%d]", 8 * offset++);
+        /* Fallthrough */
+    case 2:
+        asm_write_inst2f(generator->assembly, "mov", "rdx", "[rsp+%d]", 8 * offset++);
+        /* Fallthrough */
+    case 1:
+        asm_write_inst2f(generator->assembly, "mov", "rcx", "[rsp+%d]", 8 * offset++);
+        break;
+    }
+    // Other args left on stack.
+
+    asm_write_inst2(generator->assembly, "and", "spl", "0F0h");
+    asm_write_inst2(generator->assembly, "sub", "rsp", "32");
+    asm_wirte_inst1f(generator->assembly, "call", "%"PRI_SV, SV_FMT(external->name));
+    asm_write_inst2(generator->assembly, "mov", "rsp", "rbp");
+    if (external->sig.ret_count > 0) {
+        // External functions have either 0 or 1 return value(s), no more.
+        assert(external->sig.ret_count == 1);
+        type_index ret_type = external->sig.rets[0];
+        if (ret_type == TYPE_F64) {
+            asm_write_inst2(generator->assembly, "movq", "rax", "xmm0");
+        }
+        else if (ret_type == TYPE_F32) {
+            asm_write_inst2(generator->assembly, "movd", "eax", "xmm0");
+        }
+        asm_write_inst1(generator->assembly, "push", "rax");
     }
 }
 
