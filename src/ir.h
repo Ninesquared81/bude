@@ -185,6 +185,11 @@
     X(T_OP_CALL8)                                                       \
     X(T_OP_CALL16)                                                      \
     X(T_OP_CALL32)                                                      \
+    /* EXTCALLn Idx_un -- Call the external function with the given index in the external
+       functions table */                                               \
+    X(T_OP_EXTCALL8)                                                    \
+    X(T_OP_EXTCALL16)                                                   \
+    X(T_OP_EXTCALL32)                                                   \
     /* RET -- Return from the current function. */                      \
     X(T_OP_RET)
 
@@ -420,6 +425,11 @@
     X(W_OP_CALL8)                                                       \
     X(W_OP_CALL16)                                                      \
     X(W_OP_CALL32)                                                      \
+    /* EXTCALLn Idx_un -- Call the external function with the given index in the external
+       functions table */                                               \
+    X(W_OP_EXTCALL8)                                                    \
+    X(W_OP_EXTCALL16)                                                   \
+    X(W_OP_EXTCALL32)                                                   \
     /* RET -- Return from the current function. */                      \
     X(W_OP_RET)
 
