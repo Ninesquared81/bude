@@ -20,7 +20,6 @@
         (da)->capacity = init_size;                                     \
         (da)->count = 0;                                                \
         (da)->items = allocate_array(init_size, sizeof (da)->items[0]); \
-        CHECK_ALLOCATION((da)->items);                                  \
     } while (0)
 
 #define GROW_DARRAY(da)                                                 \
@@ -32,7 +31,6 @@
         void *new_items =                                               \
             reallocate_array((da)->items, old_capacity * size,          \
                              new_capacity * size, size);                \
-        CHECK_ALLOCATION(new_items);                                    \
         (da)->items = new_items;                                        \
     } while (0)
 
