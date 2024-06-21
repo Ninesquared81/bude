@@ -93,7 +93,7 @@ const char *kind_name(enum type_kind kind);
 struct type_table {
     int capacity;
     int count;
-    struct type_info *infos;
+    struct type_info *items;
     struct region *extra_info;
 };
 

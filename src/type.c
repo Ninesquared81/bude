@@ -164,7 +164,7 @@ static void init_builtin_types(struct type_table *types) {
         TYPE_WORD,
     };
     static int string_offsets[] = {2, 1};
-    types->infos[types->count++] = (struct type_info) {
+    types->items[types->count++] = (struct type_info) {
         .kind = KIND_COMP,
         .comp = {
             .field_count = 2,
@@ -180,47 +180,35 @@ static void init_builtin_types(struct type_table *types) {
 void init_type_table(struct type_table *types) {
     types->capacity = TYPE_TABLE_INIT_SIZE;
     types->count = 0;
-    types->infos = allocate_array(TYPE_TABLE_INIT_SIZE, sizeof types->infos[0]);
+    types->items = allocate_array(TYPE_TABLE_INIT_SIZE, sizeof types->items[0]);
     types->extra_info = new_region(TYPE_TABLE_REGION_SIZE);
     init_builtin_types(types);
 }
 
 void free_type_table(struct type_table *types) {
-    free_array(types->infos, types->capacity, sizeof types->infos[0]);
-    types->infos = NULL;
+    free_array(types->items, types->capacity, sizeof types->items[0]);
+    types->items = NULL;
     types->capacity = 0;
     types->count = 0;
 }
 
-static void grow_type_table(struct type_table *types) {
-    int old_capacity = types->capacity;
-    int new_capacity = (old_capacity > 0)
-        ? old_capacity + old_capacity/2
-        : TYPE_TABLE_INIT_SIZE;
-    types->infos = reallocate_array(types->infos, old_capacity, new_capacity,
-                                    sizeof *types->infos);
-    types->capacity = new_capacity;
-}
-
 type_index new_type(struct type_table *types, struct string_view *name) {
-    if (types->count + 1 > types->capacity) {
-        grow_type_table(types);
-    }
-    int index = types->count++;
-    struct type_info *info = &types->infos[index];
-    info->kind = KIND_UNINIT;
-    info->name = copy_view_in_region(name, types->extra_info);
+    struct type_info info = {
+        .kind = KIND_UNINIT,
+        .name = copy_view_in_region(name, types->extra_info),
+    };
+    DARRAY_APPEND(types, info);
     // Offset to get valid index again (see below).
-    return index + SIMPLE_TYPE_COUNT;
+    return types->count - 1 + SIMPLE_TYPE_COUNT;
 }
 
 void init_type(struct type_table *types, type_index type, const struct type_info *info) {
     assert(info != NULL);
     assert(!IS_SIMPLE_TYPE(type));
     int index = type - SIMPLE_TYPE_COUNT;
-    struct string_view name = types->infos[index].name;
-    types->infos[index] = *info;
-    types->infos[index].name = name;
+    struct string_view name = types->items[index].name;
+    types->items[index] = *info;
+    types->items[index].name = name;
 }
 
 const struct type_info *lookup_type(const struct type_table *types, type_index type) {
@@ -233,7 +221,7 @@ const struct type_info *lookup_type(const struct type_table *types, type_index t
     if (IS_SIMPLE_TYPE(type)) return &basic;
     int index = type - SIMPLE_TYPE_COUNT;
     if (index < 0 || index >= types->count) return NULL;
-    return &types->infos[index];
+    return &types->items[index];
 }
 
 void *alloc_extra(struct type_table *types, size_t size) {
