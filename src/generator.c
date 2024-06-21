@@ -1592,7 +1592,7 @@ static void generate_constants(struct generator *generator) {
     for (int i = 0; i < strings->count; ++i) {
         asm_label(assembly, "str%u", i);
         asm_write(assembly, "\tdb\t");
-        asm_write_string(assembly, strings->views[i].start);
+        asm_write_string(assembly, strings->items[i].start);
         asm_write(assembly, "\n\n");
     }
 }

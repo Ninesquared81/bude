@@ -7,7 +7,7 @@
 
 void display_bytecode(struct module *module, FILE *f) {
     for (int i = 0; i < module->strings.count; ++i) {
-        struct string_view *sv = &module->strings.views[i];
+        struct string_view *sv = &module->strings.items[i];
         fprintf(f, "str_%d:\n\t\"", i);
         for (const char *p = sv->start; p < SV_END(*sv); ++p) {
             char c = *p;
@@ -81,7 +81,7 @@ int write_bytecode(struct module *module, FILE *f) {
     /* DATA */
     /* STRING-TABLE */
     for (int i = 0; i < module->strings.count; ++i) {
-        struct string_view *sv = &module->strings.views[i];
+        struct string_view *sv = &module->strings.items[i];
         uint32_t length = sv->length;
         if (fwrite(&length, sizeof length, 1, f) != 1) return errno;
         if (fprintf(f, "%"PRI_SV, SV_FMT(*sv)) != (int)sv->length) return errno;

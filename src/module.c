@@ -14,16 +14,11 @@
 
 
 static void init_string_table(struct string_table *table) {
-    table->views = allocate_array(STRING_TABLE_INIT_SIZE, sizeof *table->views);
-    table->capacity = STRING_TABLE_INIT_SIZE;
-    table->count = 0;
+    INIT_DARRAY(table, STRING_TABLE_INIT_SIZE);
 }
 
 static void free_string_table(struct string_table *table) {
-    free_array(table->views, table->capacity, sizeof *table->views);
-    table->views = NULL;
-    table->capacity = 0;
-    table->count = 0;
+    FREE_DARRAY(table);
 }
 
 void init_module(struct module *module, const char *filename) {
@@ -43,28 +38,16 @@ void free_module(struct module *module) {
     module->region = NULL;
 }
 
-static void grow_string_table(struct string_table *table) {
-    size_t old_capacity = table->capacity;
-    size_t new_capacity = old_capacity + old_capacity/2;
-    assert(new_capacity > 0);
-    table->views = reallocate_array(table->views, old_capacity, new_capacity,
-                                      sizeof table->views[0]);
-    table->capacity = new_capacity;
-}
-
 int write_string(struct module *module, struct string_builder *builder) {
     struct string_view view = build_string_in_region(builder, module->region);
     CHECK_ALLOCATION(view.start);
     struct string_table *table = &module->strings;
-    if (table->count + 1 > table->capacity) {
-        grow_string_table(table);
-    }
-    table->views[table->count++] = view;
+    DARRAY_APPEND(table, view);
     return table->count - 1;
 }
 
 struct string_view *read_string(struct module *module, int index) {
     assert(index >= 0);
     assert(index < module->strings.count);
-    return &module->strings.views[index];
+    return &module->strings.items[index];
 }

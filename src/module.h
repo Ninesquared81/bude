@@ -12,7 +12,7 @@
 struct string_table {
     int capacity;
     int count;
-    struct string_view *views;
+    struct string_view *items;
 };
 
 struct module {
