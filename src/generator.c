@@ -288,7 +288,7 @@ static void generate_external_call(struct generator *generator, struct ext_funct
 
     asm_write_inst2(generator->assembly, "and", "spl", "0F0h");
     asm_write_inst2(generator->assembly, "sub", "rsp", "32");
-    asm_wirte_inst1f(generator->assembly, "call", "%"PRI_SV, SV_FMT(external->name));
+    asm_write_inst1f(generator->assembly, "call", "%"PRI_SV, SV_FMT(external->name));
     asm_write_inst2(generator->assembly, "mov", "rsp", "rbp");
     if (external->sig.ret_count > 0) {
         // External functions have either 0 or 1 return value(s), no more.
