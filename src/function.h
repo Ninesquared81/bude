@@ -24,7 +24,7 @@ struct local {
 struct local_table {
     int capacity;
     int count;
-    struct local *locals;
+    struct local *items;
 };
 
 struct function {
@@ -39,7 +39,7 @@ struct function {
 struct function_table {
     int count;
     int capacity;
-    struct function *functions;
+    struct function *items;
     struct region *region;
 };
 

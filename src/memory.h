@@ -15,7 +15,7 @@
 
 #define DARRAY_INIT_SIZE 8
 
-#define DARRAY_INIT(da, init_size)                                      \
+#define INIT_DARRAY(da, init_size)                                      \
     do {                                                                \
         (da)->capacity = init_size;                                     \
         (da)->count = 0;                                                \
@@ -23,7 +23,7 @@
         CHECK_ALLOCATION((da)->items);                                  \
     } while (0)
 
-#define DARRAY_GROW(da)                                                 \
+#define GROW_DARRAY(da)                                                 \
     do {                                                                \
         int old_capacity = (da)->capacity;                              \
         int new_capacity = old_capacity + old_capacity/2;               \
@@ -39,12 +39,12 @@
 #define DARRAY_APPEND(da, item)                 \
     do {                                        \
         if ((da)->count + 1 > (da)->capacity) { \
-            DARRAY_GROW(da);                    \
+            GROW_DARRAY(da);                    \
         }                                       \
         (da)->items[(da)->count++] = item;      \
     } while (0)
 
-#define DARRAY_FREE(da)                                                 \
+#define FREE_DARRAY(da)                                                 \
     do {                                                                \
         free_array((da)->items, (da)->capacity, sizeof (da)->items[0]); \
         (da)->items = NULL;                                             \

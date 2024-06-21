@@ -1089,7 +1089,7 @@ static void check_function_return(struct type_checker *checker, struct function 
 static int get_locals_size(struct type_checker *checker, struct local_table *locals) {
     int size = 0;
     for (int i = 0; i < locals->count; ++i) {
-        struct local *local = &locals->locals[i];
+        struct local *local = &locals->items[i];
         int local_size = type_word_count(checker->types, local->type);
         local->size = local_size;
         local->offset = size;
@@ -1461,12 +1461,12 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         }
         case T_OP_LOCAL_GET: {
             int index = copy_immediate_u16(checker, W_OP_LOCAL_GET);
-            ts_push(checker, function->locals.locals[index].type);
+            ts_push(checker, function->locals.items[index].type);
             break;
         }
         case T_OP_LOCAL_SET: {
             int index = copy_immediate_u16(checker, W_OP_LOCAL_SET);
-            expect_type(checker, function->locals.locals[index].type);
+            expect_type(checker, function->locals.items[index].type);
             break;
         }
         case T_OP_MULT: {

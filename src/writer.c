@@ -35,7 +35,7 @@ void display_bytecode(struct module *module, FILE *f) {
     }
 #define BYTECODE_COLUMN_COUNT 16
     for (int i = 0; i < module->functions.count; ++i) {
-        struct function *function = &module->functions.functions[i];
+        struct function *function = &module->functions.items[i];
         struct ir_block *block = &function->w_code;
         fprintf(f,"func_%d:\n\t", i);
         int line_count = block->count / BYTECODE_COLUMN_COUNT;
@@ -57,7 +57,7 @@ void display_bytecode(struct module *module, FILE *f) {
 }
 
 int write_bytecode(struct module *module, FILE *f) {
-    /* Structure: 
+    /* Structure:
      * HEADER
      *   magic-number:`BudeBWF` version-number:char[] `\n`
      * DATA-INFO
@@ -88,11 +88,10 @@ int write_bytecode(struct module *module, FILE *f) {
     }
     /* FUNCTION-TABLE */
     for (int i = 0; i < module->functions.count; ++i) {
-        struct function *function = &module->functions.functions[i];
+        struct function *function = &module->functions.items[i];
         struct ir_block *block = &function->w_code;
         if (fwrite(&block->count, sizeof block->count, 1, f) != 1) return errno;
         if (fwrite(block->code, 1, block->count, f) != (size_t)block->count) return errno;
     }
     return 0;
 }
-

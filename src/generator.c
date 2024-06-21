@@ -772,7 +772,7 @@ static void generate_function(struct generator *generator, int func_index) {
         case W_OP_LOCAL_GET: {
             ip += 2;
             int index = read_u16(block, ip - 1);
-            struct local *local = &function->locals.locals[index];
+            struct local *local = &function->locals.items[index];
             for (int i = 0; i < local->size; ++i) {
                 int offset = 1 + function->max_for_loop_level + local->offset + i;
                 asm_write_inst1f(assembly, "push", "qword [rbx+%d]", offset);
@@ -782,7 +782,7 @@ static void generate_function(struct generator *generator, int func_index) {
         case W_OP_LOCAL_SET: {
             ip += 2;
             int index = read_u16(block, ip - 1);
-            struct local *local = &function->locals.locals[index];
+            struct local *local = &function->locals.items[index];
             for (int i = local->size - 1; i >= 0; --i) {
                 int offset = 1 + function->max_for_loop_level + local->offset + i;
                 asm_write_inst1f(assembly, "pop", "qword [rbx+%d]", offset);

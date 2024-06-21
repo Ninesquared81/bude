@@ -432,7 +432,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             uint16_t index = read_u16(interpreter->block, ip - 1);
             struct function *function = \
                 get_function(&interpreter->module->functions, interpreter->current_function);
-            struct local local = function->locals.locals[index];
+            struct local local = function->locals.items[index];
             push_all(interpreter->main_stack, local.size, &interpreter->locals[local.offset]);
             break;
         }
@@ -441,7 +441,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             uint16_t index = read_u16(interpreter->block, ip - 1);
             struct function *function = \
                 get_function(&interpreter->module->functions, interpreter->current_function);
-            struct local local = function->locals.locals[index];
+            struct local local = function->locals.items[index];
             pop_all(interpreter->main_stack, local.size, &interpreter->locals[local.offset]);
             break;
         }
