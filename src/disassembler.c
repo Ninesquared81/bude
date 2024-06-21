@@ -482,6 +482,12 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return immediate_u16_instruction("T_OP_CALL16", block, offset);
     case T_OP_CALL32:
         return immediate_u32_instruction("T_OP_CALL32", block, offset);
+    case T_OP_EXTCALL8:
+        return immediate_u8_instruction("T_OP_EXTCALL8", block, offset);
+    case T_OP_EXTCALL16:
+        return immediate_u16_instruction("T_OP_EXTCALL16", block, offset);
+    case T_OP_EXTCALL32:
+        return immediate_u32_instruction("T_OP_EXTCALL32", block, offset);
     case T_OP_RET:
         return simple_instruction("T_OP_RET", block, offset);
     }
@@ -759,6 +765,12 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return immediate_u16_instruction("W_OP_CALL16", block, offset);
     case W_OP_CALL32:
         return immediate_u32_instruction("W_OP_CALL32", block, offset);
+    case W_OP_EXTCALL8:
+        return immediate_u8_instruction("W_OP_EXTCALL8", block, offset);
+    case W_OP_EXTCALL16:
+        return immediate_u16_instruction("W_OP_EXTCALL16", block, offset);
+    case W_OP_EXTCALL32:
+        return immediate_u32_instruction("W_OP_EXTCALL32", block, offset);
     case W_OP_RET:
         return simple_instruction("W_OP_RET", block, offset);
     }
