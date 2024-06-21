@@ -141,7 +141,7 @@ static void reset_type_checker_states(struct type_checker_states *states,
         CHECK_ALLOCATION(states->wir_dests);
         states->wir_srcs  = region_calloc(states->region, states->size, sizeof *states->wir_srcs);
         CHECK_ALLOCATION(states->wir_srcs);
-        memcpy(states->ips, jumps->dests, states->size * sizeof states->ips[0]);
+        memcpy(states->ips, jumps->items, states->size * sizeof states->ips[0]);
     }
     else {
         states->states = NULL;

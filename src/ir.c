@@ -87,16 +87,11 @@ void free_block(struct ir_block *block) {
 }
 
 void init_jump_info_table(struct jump_info_table *table) {
-    table->dests = NULL;
-    table->capacity = 0;
-    table->count = 0;
+    INIT_DARRAY(table, JUMP_INFO_TABLE_INIT_SIZE);
 }
 
 void free_jump_info_table(struct jump_info_table *table) {
-    free(table->dests);
-    table->dests = NULL;
-    table->capacity = 0;
-    table->count = 0;
+    FREE_DARRAY(table);
 }
 
 static void grow_block(struct ir_block *block) {
@@ -107,17 +102,6 @@ static void grow_block(struct ir_block *block) {
     block->locations = reallocate_array(block->locations, old_capacity, new_capacity,
                                         sizeof block->locations[0]);
     block->capacity = new_capacity;
-}
-
-static void grow_jump_info_table(struct jump_info_table *table) {
-    int old_capacity = table->capacity;
-    int new_capacity = (old_capacity > 0)
-        ? old_capacity + old_capacity/2
-        : JUMP_INFO_TABLE_INIT_SIZE;
-
-    table->dests = reallocate_array(table->dests, old_capacity, new_capacity,
-                                    sizeof table->dests[0]);
-    table->capacity = new_capacity;
 }
 
 void write_simple(struct ir_block *block, opcode instruction, struct location *location) {
@@ -362,10 +346,10 @@ static int binary_search(struct jump_info_table *jumps, int dest) {
     int lo = 0;
     while (hi > lo) {
         int mid = lo + (hi - lo) / 2;
-        if (jumps->dests[mid] == dest) {
+        if (jumps->items[mid] == dest) {
             return mid;
         }
-        if (jumps->dests[mid] < dest) {
+        if (jumps->items[mid] < dest) {
             lo = mid + 1;
         }
         else {
@@ -378,20 +362,20 @@ static int binary_search(struct jump_info_table *jumps, int dest) {
 int add_jump(struct ir_block *block, int dest) {
     struct jump_info_table *jumps = &block->jumps;
     if (jumps->count + 1 > jumps->capacity) {
-        grow_jump_info_table(jumps);
+        GROW_DARRAY(jumps);
     }
     // Usually, we add elements in order, so first see if we can just add it on the end.
     // Also, we handle the empty case here as well.
-    if (jumps->count == 0 || jumps->dests[jumps->count - 1] < dest) {
-        jumps->dests[jumps->count++] = dest;
+    if (jumps->count == 0 || jumps->items[jumps->count - 1] < dest) {
+        jumps->items[jumps->count++] = dest;
         return jumps->count - 1;
     }
     // Binary insert.
     int index = binary_search(jumps, dest);
     size_t shift = jumps->count - index;
-    memmove(&jumps->dests[index + 1], &jumps->dests[index], shift * sizeof jumps->dests[0]);
+    memmove(&jumps->items[index + 1], &jumps->items[index], shift * sizeof jumps->items[0]);
     ++jumps->count;
-    jumps->dests[index] = dest;
+    jumps->items[index] = dest;
     return index;
 }
 
@@ -400,7 +384,7 @@ int find_jump(struct ir_block *block, int dest) {
     struct jump_info_table *jumps = &block->jumps;
     int index = binary_search(jumps, dest);
     // -1: search failed.
-    return (index < jumps->count && jumps->dests[index] == dest) ? index : -1;
+    return (index < jumps->count && jumps->items[index] == dest) ? index : -1;
 }
 
 bool is_jump_dest(struct ir_block *block, int dest) {

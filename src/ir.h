@@ -453,7 +453,7 @@ enum ir_instruction_set {
 struct jump_info_table {
     int capacity;
     int count;
-    int *dests;
+    int *items;
 };
 
 struct ir_block {
