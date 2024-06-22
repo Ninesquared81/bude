@@ -86,12 +86,12 @@ void free_block(struct ir_block *block) {
     free_jump_info_table(&block->jumps);
 }
 
-void init_jump_info_table(struct jump_info_table *table) {
-    INIT_DARRAY(table, JUMP_INFO_TABLE_INIT_SIZE);
+void init_jump_info_table(struct jump_info_table *jumps) {
+    INIT_DARRAY(jumps, JUMP_INFO_TABLE_INIT_SIZE);
 }
 
-void free_jump_info_table(struct jump_info_table *table) {
-    FREE_DARRAY(table);
+void free_jump_info_table(struct jump_info_table *jumps) {
+    FREE_DARRAY(jumps);
 }
 
 static void grow_block(struct ir_block *block) {

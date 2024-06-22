@@ -13,12 +13,12 @@
 #endif
 
 
-static void init_string_table(struct string_table *table) {
-    INIT_DARRAY(table, STRING_TABLE_INIT_SIZE);
+static void init_string_table(struct string_table *strings) {
+    INIT_DARRAY(strings, STRING_TABLE_INIT_SIZE);
 }
 
-static void free_string_table(struct string_table *table) {
-    FREE_DARRAY(table);
+static void free_string_table(struct string_table *strings) {
+    FREE_DARRAY(strings);
 }
 
 void init_module(struct module *module, const char *filename) {
@@ -41,9 +41,9 @@ void free_module(struct module *module) {
 int write_string(struct module *module, struct string_builder *builder) {
     struct string_view view = build_string_in_region(builder, module->region);
     CHECK_ALLOCATION(view.start);
-    struct string_table *table = &module->strings;
-    DARRAY_APPEND(table, view);
-    return table->count - 1;
+    struct string_table *strings = &module->strings;
+    DARRAY_APPEND(strings, view);
+    return strings->count - 1;
 }
 
 struct string_view *read_string(struct module *module, int index) {

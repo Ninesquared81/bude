@@ -487,8 +487,8 @@ bool is_w_jump(enum w_opcode instruction);
 
 void init_block(struct ir_block *block, enum ir_instruction_set instruction_set);
 void free_block(struct ir_block *block);
-void init_jump_info_table(struct jump_info_table *table);
-void free_jump_info_table(struct jump_info_table *table);
+void init_jump_info_table(struct jump_info_table *jumps);
+void free_jump_info_table(struct jump_info_table *jumps);
 
 void copy_metadata(struct ir_block *restrict dest, struct ir_block *restrict src);
 

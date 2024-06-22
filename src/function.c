@@ -6,12 +6,12 @@
 
 #define LOCALS_INIT_SIZE 32
 
-static void init_local_table(struct local_table *table) {
-    INIT_DARRAY(table, LOCALS_INIT_SIZE);
+static void init_local_table(struct local_table *locals) {
+    INIT_DARRAY(locals, LOCALS_INIT_SIZE);
 }
 
-static void free_local_table(struct local_table *table) {
-    INIT_DARRAY(table, LOCALS_INIT_SIZE);
+static void free_local_table(struct local_table *locals) {
+    INIT_DARRAY(locals, LOCALS_INIT_SIZE);
 }
 
 void init_function_table(struct function_table *functions) {
@@ -39,12 +39,12 @@ int add_local(struct function *function, type_index type) {
     return locals->count - 1;
 }
 
-static int insert_function(struct function_table *table, struct function *function) {
-    DARRAY_APPEND(table, *function);
-    return table->count - 1;
+static int insert_function(struct function_table *functions, struct function *function) {
+    DARRAY_APPEND(functions, *function);
+    return functions->count - 1;
 }
 
-int add_function(struct function_table *table, int param_count, int ret_count,
+int add_function(struct function_table *functions, int param_count, int ret_count,
                  type_index params[param_count], type_index rets[ret_count]) {
     assert(param_count >= 0);
     assert(ret_count >= 0);
@@ -52,9 +52,9 @@ int add_function(struct function_table *table, int param_count, int ret_count,
     init_block(&function.t_code, IR_TYPED);
     init_block(&function.w_code, IR_WORD_ORIENTED);
     init_local_table(&function.locals);
-    return insert_function(table, &function);
+    return insert_function(functions, &function);
 }
 
-struct function *get_function(struct function_table *table, int index) {
-    return &table->items[index];
+struct function *get_function(struct function_table *functions, int index) {
+    return &functions->items[index];
 }
