@@ -265,6 +265,7 @@ static void generate_swap_comps(struct generator *generator, int lhs_size, int r
     }
 }
 
+[[maybe_unused]]  // Temporary to shut up compiler.
 static void generate_external_call(struct generator *generator, struct ext_function *external) {
     int param_count = external->sig.param_count;
     int offset = param_count - 4;
@@ -1385,6 +1386,11 @@ static void generate_function(struct generator *generator, int func_index) {
             generate_function_call(generator, func_index);
             break;
         }
+        case W_OP_EXTCALL8:
+        case W_OP_EXTCALL16:
+        case W_OP_EXTCALL32:
+            assert(false && "Not implemented");
+            break;
         case W_OP_RET:
             generate_function_return(generator);
             break;

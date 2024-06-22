@@ -1973,6 +1973,11 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_immediate_u32(checker, W_OP_CALL32, index);
             break;
         }
+        case T_OP_EXTCALL8:
+        case T_OP_EXTCALL16:
+        case T_OP_EXTCALL32:
+            assert(false && "Not implemented");
+            break;
         case T_OP_RET:
             check_function_return(checker, function);
             check_unreachable(checker);

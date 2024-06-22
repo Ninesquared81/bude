@@ -1150,6 +1150,11 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             call(interpreter, index, &ip);
             break;
         }
+        case W_OP_EXTCALL8:
+        case W_OP_EXTCALL16:
+        case W_OP_EXTCALL32:
+            assert(false && "Not implemented");
+            break;
         case W_OP_RET:
             ip = ret(interpreter);
             break;
