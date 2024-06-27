@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ext_function.h"
 #include "function.h"
 #include "string_builder.h"
 #include "string_view.h"
@@ -16,6 +17,7 @@ struct string_table {
 };
 
 struct module {
+    struct external_table externals;
     struct function_table functions;
     struct string_table strings;
     struct type_table types;

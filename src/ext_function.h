@@ -17,4 +17,16 @@ struct ext_function {
     enum calling_convention call_conv;
 };
 
+struct external_table {
+    int capacity;
+    int count;
+    struct ext_function *items;
+};
+
+void init_external_table(struct external_table *externals);
+void free_external_table(struct external_table *externals);
+
+int add_external(struct external_table *externals, struct ext_function *external);
+struct ext_function *get_external(struct external_table *externals, int index);
+
 #endif
