@@ -265,7 +265,13 @@ static void generate_swap_comps(struct generator *generator, int lhs_size, int r
     }
 }
 
-static void generate_external_call(struct generator *generator, struct ext_function *external) {
+static void generate_external_call_bude(struct generator *generator,
+                                        struct ext_function *external) {
+    asm_write_inst1f(generator->assembly, "call", "%"PRI_SV, SV_FMT(external->name));
+}
+
+static void generate_external_call_ms_x64(struct generator *generator,
+                                          struct ext_function *external) {
     int param_count = external->sig.param_count;
     int offset = param_count - 4;
     asm_write_inst2f(generator->assembly, "lea", "rbp", "[rsp+%d]", param_count);
@@ -302,6 +308,30 @@ static void generate_external_call(struct generator *generator, struct ext_funct
         }
         asm_write_inst1(generator->assembly, "push", "rax");
     }
+}
+
+static void generate_external_call_sysv_amd64(struct generator *generator,
+                                              struct ext_function *external) {
+    // TODO: implement this.
+    (void)generator, (void)external;
+    assert(0 && "Not implemented");
+}
+
+static void generate_external_call(struct generator *generator, struct ext_function *external) {
+    typedef void (*extcall_generator)(struct generator *generator, struct ext_function *external);
+    static extcall_generator dispatch_table[] = {
+        [CC_BUDE] = generate_external_call_bude,
+#if defined(_WIN32)
+        [CC_NATIVE] = generate_external_call_ms_x64,
+#elif defined(__linux__)
+        [CC_NATIVE] = generate_external_call_sysv_amd64,
+#else
+        [CC_NATIVE] = NULL,
+#endif
+        [CC_MS_X64] = generate_external_call_ms_x64,
+        [CC_SYSV_AMD64] = generate_external_call_sysv_amd64,
+    };
+    dispatch_table[external->call_conv](generator, external);
 }
 
 static void generate_function_call(struct generator *generator, int func_index) {
