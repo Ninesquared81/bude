@@ -15,6 +15,7 @@ struct ext_function {
     struct signature sig;
     struct string_view name;
     enum calling_convention call_conv;
+    int lib_index;
 };
 
 struct external_table {
@@ -23,10 +24,28 @@ struct external_table {
     struct ext_function *items;
 };
 
+struct ext_library {
+    struct ext_library *next;
+    struct string_view filename;
+    int start;  // Starting index within external table.
+    int count;  // Number of external functions in this library.
+};
+
+struct ext_lib_table {
+    int capacity;
+    int count;
+    struct ext_library *items;
+};
+
 void init_external_table(struct external_table *externals);
 void free_external_table(struct external_table *externals);
 
+void init_ext_lib_table(struct ext_lib_table *libraries);
+void free_ext_lib_table(struct ext_lib_table *libraries);
+
 int add_external(struct external_table *externals, struct ext_function *external);
 struct ext_function *get_external(struct external_table *externals, int index);
+
+void register_external(struct ext_library *library, int index, struct region *region);
 
 #endif
