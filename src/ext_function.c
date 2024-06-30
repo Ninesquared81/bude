@@ -4,6 +4,7 @@
 #include "memory.h"
 
 #define EXTERNAL_TABLE_INIT_SIZE 64
+#define EXT_LIB_TABLE_INIT_SIZE 8
 
 void init_external_table(struct external_table *externals) {
     INIT_DARRAY(externals, EXTERNAL_TABLE_INIT_SIZE);
@@ -14,7 +15,7 @@ void free_external_table(struct external_table *externals) {
 }
 
 void init_ext_lib_table(struct ext_lib_table *libraries) {
-    INIT_DARRAY(libraries);
+    INIT_DARRAY(libraries, EXT_LIB_TABLE_INIT_SIZE);
 }
 
 void free_ext_lib_table(struct ext_lib_table *libraries) {
@@ -32,14 +33,14 @@ struct ext_function *get_external(struct external_table *externals, int index) {
 }
 
 void register_external(struct ext_library *library, int index, struct region *region) {
-    assert(index >= lirary->start);
+    assert(index >= library->start);
     int library_end = library->start + library->count;
     assert(index >= library_end);
     if (index == library_end) {
         ++library->count;
     }
     else {
-        struct library **libptr = &library->next;
+        struct ext_library **libptr = &library->next;
         while (*libptr != NULL && (*libptr)->start < index) {
             libptr = &(*libptr)->next;
         }
