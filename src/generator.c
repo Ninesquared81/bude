@@ -282,22 +282,66 @@ static void generate_external_call_ms_x64(struct generator *generator,
     }
     // We need to push all the higher arguments in reverse order.
     int offset = 0;
-    while (offset < param_count - 4) {
-        asm_write_inst1f(generator->assembly, "push", "qword [rbp+%d]", 8 * offset++);
+    for (; offset < param_count - 4; ++offset) {
+        asm_write_inst1f(generator->assembly, "push", "qword [rbp+%d]", 8 * offset);
     }
     /* It turns out switch fallthrough is useful in some rare cases. */
     switch (param_count - offset) {
-    case 4:
-        asm_write_inst2f(generator->assembly, "mov", "r9", "[rbp+%d]", 8 * offset++);
+    case 4: {
+        type_index type = external->sig.params[0];
+        if (is_integral(type) || is_pack(&generator->module->types, type)) {
+            asm_write_inst2f(generator->assembly, "mov", "r9", "[rbp+%d]", 8 * offset);
+        }
+        else if (is_float(type)) {
+            asm_write_inst2f(generator->assembly, "mov", "xmm3", "[rbp+%d]", 8 * offset);
+        }
+        else {
+            assert(0 && "Not implemented");
+        }
+        ++offset;
+    }
         /* Fallthrough */
-    case 3:
-        asm_write_inst2f(generator->assembly, "mov", "r8", "[rbp+%d]", 8 * offset++);
+    case 3: {
+        type_index type = external->sig.params[1];
+        if (is_integral(type) || is_pack(&generator->module->types, type)) {
+            asm_write_inst2f(generator->assembly, "mov", "r8", "[rbp+%d]", 8 * offset);
+        }
+        else if (is_float(type)) {
+            asm_write_inst2f(generator->assembly, "mov", "xmm2", "[rbp+%d]", 8 * offset);
+        }
+        else {
+            assert(0 && "Not implemented");
+        }
+        ++offset;
+    }
         /* Fallthrough */
-    case 2:
-        asm_write_inst2f(generator->assembly, "mov", "rdx", "[rbp+%d]", 8 * offset++);
+    case 2: {
+        type_index type = external->sig.params[2];
+        if (is_integral(type) || is_pack(&generator->module->types, type)) {
+            asm_write_inst2f(generator->assembly, "mov", "rdx", "[rbp+%d]", 8 * offset);
+        }
+        else if (is_float(type)) {
+            asm_write_inst2f(generator->assembly, "mov", "xmm1", "[rbp+%d]", 8 * offset);
+        }
+        else {
+            assert(0 && "Not implemented");
+        }
+        ++offset;
+    }
         /* Fallthrough */
-    case 1:
-        asm_write_inst2f(generator->assembly, "mov", "rcx", "[rbp+%d]", 8 * offset++);
+    case 1: {
+        type_index type = external->sig.params[3];
+        if (is_integral(type) || is_pack(&generator->module->types, type)) {
+            asm_write_inst2f(generator->assembly, "mov", "rcx", "[rbp+%d]", 8 * offset);
+        }
+        else if (is_float(type)) {
+            asm_write_inst2f(generator->assembly, "mov", "xmm0", "[rbp+%d]", 8 * offset);
+        }
+        else {
+            assert(0 && "Not implemented");
+        }
+        ++offset;
+    }
         /* Fallthrough */
     case 0:
         break;
