@@ -270,98 +270,136 @@ static void generate_external_call_bude(struct generator *generator,
     asm_write_inst1f(generator->assembly, "call", "%["PRI_SV"]", SV_FMT(external->name));
 }
 
+static int move_comp_to_aux(struct generator *generator, type_index type, int end_offset) {
+    int word_count = type_word_count(&generator->module->types, type);
+    for (int i = 0; i < word_count; ++i) {
+        int field_offset = end_offset + word_count - i + 1;
+        asm_write_inst2f(generator->assembly, "mov", "rax", "[rbp+%d]", field_offset * 8);
+        asm_write_inst2f(generator->assembly, "mov", "[rsi+%d]", "rax", i * 8);
+    }
+    asm_write_inst2f(generator->assembly, "add", "rsi", "%d", word_count * 8);
+    return word_count;
+}
+
 static void generate_external_call_ms_x64(struct generator *generator,
                                           struct ext_function *external) {
     int param_count = external->sig.param_count;
+    type_index *params = external->sig.params;
+    struct type_table *types = &generator->module->types;
+    struct asm_block *assembly = generator->assembly;
+    type_index ret_type = (external->sig.ret_count > 0) ? external->sig.rets[0] : TYPE_ERROR;
     assert(param_count >= 0);
-    asm_write_inst2(generator->assembly, "lea", "rbp", "[rsp]");
-    asm_write_inst2(generator->assembly, "and", "spl", "0F0h");
+    asm_write_inst2(assembly, "lea", "rbp", "[rsp]");
+    asm_write_inst2(assembly, "and", "spl", "0F0h");
     if (param_count > 4 && param_count % 2 == 1) {
         // Odd number of parameters; extra push to (mis)align stack.
-        asm_write_inst1(generator->assembly, "push", "rax");
+        asm_write_inst1(assembly, "push", "rax");
     }
     // We need to push all the higher arguments in reverse order.
     int offset = 0;
-    for (; offset < param_count - 4; ++offset) {
-        asm_write_inst1f(generator->assembly, "push", "qword [rbp+%d]", 8 * offset);
-    }
-    /* It turns out switch fallthrough is useful in some rare cases. */
-    switch (param_count - offset) {
-    case 4: {
-        type_index type = external->sig.params[0];
-        if (is_integral(type) || is_pack(&generator->module->types, type)) {
-            asm_write_inst2f(generator->assembly, "mov", "r9", "[rbp+%d]", 8 * offset);
-        }
-        else if (is_float(type)) {
-            asm_write_inst2f(generator->assembly, "mov", "xmm3", "[rbp+%d]", 8 * offset);
+    bool overlong_ret = type_word_count(types, ret_type) > 1;
+    for (; offset < param_count - 4 + overlong_ret; ++offset) {
+        type_index type = params[offset + 4];
+        if (!is_comp(types, type)) {
+            asm_write_inst1f(assembly, "push", "qword [rbp+%d]", 8 * offset);
         }
         else {
-            assert(0 && "Not implemented");
+            int word_count = move_comp_to_aux(generator, type, offset);
+            asm_write_inst2f(assembly, "lea", "rax", "[rsi-%d]", 8 * word_count);
+            asm_write_inst1(assembly, "push", "rax");  // Pointer to start of comp.
+        }
+    }
+    /* It turns out switch fallthrough is useful in some rare cases. */
+    switch (param_count - offset + overlong_ret) {
+    case 4: {
+        type_index type = params[3 - overlong_ret];
+        if (is_integral(type) || is_pack(types, type)) {
+            asm_write_inst2f(assembly, "mov", "r9", "[rbp+%d]", 8 * offset);
+        }
+        else if (is_float(type)) {
+            asm_write_inst2f(assembly, "mov", "xmm3", "[rbp+%d]", 8 * offset);
+        }
+        else {
+            int word_count = move_comp_to_aux(generator, type, offset);
+            asm_write_inst2f(assembly, "lea", "r9", "[rsi-%d]", 8 * word_count);
         }
         ++offset;
     }
         /* Fallthrough */
     case 3: {
-        type_index type = external->sig.params[1];
-        if (is_integral(type) || is_pack(&generator->module->types, type)) {
-            asm_write_inst2f(generator->assembly, "mov", "r8", "[rbp+%d]", 8 * offset);
+        type_index type = params[2 - overlong_ret];
+        if (is_integral(type) || is_pack(types, type)) {
+            asm_write_inst2f(assembly, "mov", "r8", "[rbp+%d]", 8 * offset);
         }
         else if (is_float(type)) {
-            asm_write_inst2f(generator->assembly, "mov", "xmm2", "[rbp+%d]", 8 * offset);
+            asm_write_inst2f(assembly, "mov", "xmm2", "[rbp+%d]", 8 * offset);
         }
         else {
-            assert(0 && "Not implemented");
+            int word_count = move_comp_to_aux(generator, type, offset);
+            asm_write_inst2f(assembly, "lea", "r8", "[rsi-%d]", 8 * word_count);
         }
         ++offset;
     }
         /* Fallthrough */
     case 2: {
-        type_index type = external->sig.params[2];
-        if (is_integral(type) || is_pack(&generator->module->types, type)) {
-            asm_write_inst2f(generator->assembly, "mov", "rdx", "[rbp+%d]", 8 * offset);
+        type_index type = params[1 - overlong_ret];
+        if (is_integral(type) || is_pack(types, type)) {
+            asm_write_inst2f(assembly, "mov", "rdx", "[rbp+%d]", 8 * offset);
         }
         else if (is_float(type)) {
-            asm_write_inst2f(generator->assembly, "mov", "xmm1", "[rbp+%d]", 8 * offset);
+            asm_write_inst2f(assembly, "mov", "xmm1", "[rbp+%d]", 8 * offset);
         }
         else {
-            assert(0 && "Not implemented");
+            int word_count = move_comp_to_aux(generator, type, offset);
+            asm_write_inst2f(assembly, "lea", "rdx", "[rsi-%d]", 8 * word_count);
         }
         ++offset;
     }
         /* Fallthrough */
-    case 1: {
-        type_index type = external->sig.params[3];
-        if (is_integral(type) || is_pack(&generator->module->types, type)) {
-            asm_write_inst2f(generator->assembly, "mov", "rcx", "[rbp+%d]", 8 * offset);
-        }
-        else if (is_float(type)) {
-            asm_write_inst2f(generator->assembly, "mov", "xmm0", "[rbp+%d]", 8 * offset);
+    case 1:
+        if (!overlong_ret) {
+            type_index type = params[0];
+            if (is_integral(type) || is_pack(types, type)) {
+                asm_write_inst2f(assembly, "mov", "rcx", "[rbp+%d]", 8 * offset);
+            }
+            else if (is_float(type)) {
+                asm_write_inst2f(assembly, "mov", "xmm0", "[rbp+%d]", 8 * offset);
+            }
+            else {
+                int word_count = move_comp_to_aux(generator, type, offset);
+                asm_write_inst2f(assembly, "lea", "rcx", "[rsi-%d]", 8 * word_count);
+            }
         }
         else {
-            assert(0 && "Not implemented");
+            int word_count = type_word_count(types, ret_type);
+            asm_write_inst2(assembly, "lea", "rcx", "[rsi]");  // Reserve space on aux.
+            asm_write_inst2f(assembly, "add", "rsi", "%d", 8 * word_count);
         }
-        ++offset;
-    }
-        /* Fallthrough */
+        break;
     case 0:
         break;
     default:
         assert(0 && "Unreachable");
     }
-    asm_write_inst2(generator->assembly, "sub", "rsp", "32");  // Shadow space.
-    asm_write_inst1f(generator->assembly, "call", "[%"PRI_SV"]", SV_FMT(external->name));
-    asm_write_inst2f(generator->assembly, "lea", "rsp", "[rbp+%d]", param_count);
-    if (external->sig.ret_count > 0) {
+    asm_write_inst2(assembly, "sub", "rsp", "32");  // Shadow space.
+    asm_write_inst1f(assembly, "call", "[%"PRI_SV"]", SV_FMT(external->name));
+    asm_write_inst2f(assembly, "lea", "rsp", "[rbp+%d]", param_count);
+    if (overlong_ret) {
+        int word_count = type_word_count(types, ret_type);
+        for (int i = 0; i < word_count; ++i) {
+            asm_write_inst1f(assembly, "push", "qword [rax+%d]", i * 8);
+        }
+    }
+    else if (external->sig.ret_count > 0) {
         // External functions have either 0 or 1 return value(s), no more.
         assert(external->sig.ret_count == 1);
-        type_index ret_type = external->sig.rets[0];
         if (ret_type == TYPE_F64) {
-            asm_write_inst2(generator->assembly, "movq", "rax", "xmm0");
+            asm_write_inst2(assembly, "movq", "rax", "xmm0");
         }
         else if (ret_type == TYPE_F32) {
-            asm_write_inst2(generator->assembly, "movd", "eax", "xmm0");
+            asm_write_inst2(assembly, "movd", "eax", "xmm0");
         }
-        asm_write_inst1(generator->assembly, "push", "rax");
+        asm_write_inst1(assembly, "push", "rax");
     }
 }
 
