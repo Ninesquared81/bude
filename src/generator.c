@@ -273,29 +273,40 @@ static void generate_external_call_bude(struct generator *generator,
 static void generate_external_call_ms_x64(struct generator *generator,
                                           struct ext_function *external) {
     int param_count = external->sig.param_count;
-    int offset = param_count - 4;
-    asm_write_inst2f(generator->assembly, "lea", "rbp", "[rsp+%d]", param_count);
-    /* It turns out switch fallthorugh is useful in some rare cases. */
-    switch (param_count) {
+    assert(param_count >= 0);
+    asm_write_inst2(generator->assembly, "lea", "rbp", "[rsp]");
+    asm_write_inst2(generator->assembly, "and", "spl", "0F0h");
+    if (param_count > 4 && param_count % 2 == 1) {
+        // Odd number of parameters; extra push to (mis)align stack.
+        asm_write_inst1(generator->assembly, "push", "rax");
+    }
+    // We need to push all the higher arguments in reverse order.
+    int offset = 0;
+    while (offset < param_count - 4) {
+        asm_write_inst1f(generator->assembly, "push", "qword [rbp+%d]", 8 * offset++);
+    }
+    /* It turns out switch fallthrough is useful in some rare cases. */
+    switch (param_count - offset) {
     case 4:
-        asm_write_inst2f(generator->assembly, "mov", "r9", "[rsp+%d]", 8 * offset++);
+        asm_write_inst2f(generator->assembly, "mov", "r9", "[rbp+%d]", 8 * offset++);
         /* Fallthrough */
     case 3:
-        asm_write_inst2f(generator->assembly, "mov", "r8", "[rsp+%d]", 8 * offset++);
+        asm_write_inst2f(generator->assembly, "mov", "r8", "[rbp+%d]", 8 * offset++);
         /* Fallthrough */
     case 2:
-        asm_write_inst2f(generator->assembly, "mov", "rdx", "[rsp+%d]", 8 * offset++);
+        asm_write_inst2f(generator->assembly, "mov", "rdx", "[rbp+%d]", 8 * offset++);
         /* Fallthrough */
     case 1:
-        asm_write_inst2f(generator->assembly, "mov", "rcx", "[rsp+%d]", 8 * offset++);
+        asm_write_inst2f(generator->assembly, "mov", "rcx", "[rbp+%d]", 8 * offset++);
+        /* Fallthrough */
+    case 0:
         break;
+    default:
+        assert(0 && "Unreachable");
     }
-    // Other args left on stack.
-
-    asm_write_inst2(generator->assembly, "and", "spl", "0F0h");
-    asm_write_inst2(generator->assembly, "sub", "rsp", "32");
+    asm_write_inst2(generator->assembly, "sub", "rsp", "32");  // Shadow space.
     asm_write_inst1f(generator->assembly, "call", "[%"PRI_SV"]", SV_FMT(external->name));
-    asm_write_inst2(generator->assembly, "mov", "rsp", "rbp");
+    asm_write_inst2f(generator->assembly, "lea", "rsp", "[rbp+%d]", param_count);
     if (external->sig.ret_count > 0) {
         // External functions have either 0 or 1 return value(s), no more.
         assert(external->sig.ret_count == 1);
