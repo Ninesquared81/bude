@@ -14,7 +14,6 @@
 struct generator {
     struct asm_block *assembly;
     struct module *module;
-    int aux_count;
     int loop_level;
 };
 
@@ -26,40 +25,35 @@ static void generate_header(struct generator *generator) {
     asm_write(assembly, "\n");
 }
 
-static int aux_push(struct generator *generator, const char *value) {
+static void aux_push(struct generator *generator, const char *value) {
     struct asm_block *assembly = generator->assembly;
     asm_write_inst2f(assembly, "mov", "[rsi]", "%s", value);
     asm_write_inst2(assembly, "add", "rsi", "8");
-    return generator->aux_count++;
 }
 
 [[maybe_unused]]
-static int aux_pop(struct generator *generator, const char *value) {
+static void aux_pop(struct generator *generator, const char *value) {
     struct asm_block *assembly = generator->assembly;
     asm_write_inst2(assembly, "sub", "rsi", "8");
     asm_write_inst2f(assembly, "mov", "%s", "[rsi]", value);
-    return --generator->aux_count;
 }
 
-static int aux_to_stack(struct generator *generator) {
+static void aux_to_stack(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_write_inst2(assembly, "sub", "rsi", "8");
     asm_write_inst1(assembly, "push", "qword [rsi]");
-    return --generator->aux_count;
 }
 
-static int stack_to_aux(struct generator *generator) {
+static void stack_to_aux(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_write_inst1(assembly, "pop", "qword [rsi]");
     asm_write_inst2(assembly, "add", "rsi", "8");
-    return generator->aux_count++;
 }
 
 static void aux_reserve(struct generator *generator, int space) {
     assert(space >= 0);
     if (space == 0) return;
     asm_write_inst2f(generator->assembly, "add", "rsi", "%d", space * 8);
-    generator->aux_count += space;
 }
 
 [[maybe_unused]]
@@ -67,7 +61,6 @@ static void aux_restore(struct generator *generator, int space) {
     assert(space >= 0);
     if (space == 0) return;
     asm_write_inst2f(generator->assembly, "sub", "rsi", "%d", space * 8);
-    generator->aux_count -= space;
 }
 
 static void generate_pack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
@@ -450,7 +443,6 @@ static void generate_function(struct generator *generator, int func_index) {
         asm_write_inst2c(assembly, OP, "[rsp]", "rdx", "LHS left on stack."); \
     } while (0)
 
-    generator->aux_count = 0;
     generator->loop_level = 0;
     struct asm_block *assembly = generator->assembly;
     struct function *function = get_function(&generator->module->functions, func_index);
@@ -1757,7 +1749,6 @@ enum generate_result generate(struct module *module, struct asm_block *assembly)
     struct generator generator = {
         .assembly = assembly,
         .module = module,
-        .aux_count = 0,
         .loop_level = 0,
     };
     generate_header(&generator);
