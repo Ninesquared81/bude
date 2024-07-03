@@ -229,10 +229,10 @@ static int move_comp_to_aux(struct generator *generator, type_index type, int en
     int word_count = type_word_count(&generator->module->types, type);
     for (int i = 0; i < word_count; ++i) {
         int field_offset = end_offset + word_count - i + 1;
-        asm_write_inst2f(generator->assembly, "mov", "rax", "[rbp+%d]", field_offset * 8);
-        asm_write_inst2f(generator->assembly, "mov", "[rsi+%d]", "rax", i * 8);
+        asm_write_inst2f(generator->assembly, "mov", "rax", "[rbp+%d]", 8 * field_offset);
+        asm_write_inst2f(generator->assembly, "mov", "[rsi+%d]", "rax", 8 * i);
     }
-    asm_write_inst2f(generator->assembly, "add", "rsi", "%d", word_count * 8);
+    asm_write_inst2f(generator->assembly, "add", "rsi", "%d", 8 * word_count);
     return word_count;
 }
 
@@ -350,7 +350,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         int word_count = type_word_count(types, ret_type);
         aux_alloc_count += word_count;
         for (int i = 0; i < word_count; ++i) {
-            asm_write_inst1f(assembly, "push", "qword [rax+%d]", i * 8);
+            asm_write_inst1f(assembly, "push", "qword [rax+%d]", 8 * i);
         }
     }
     else if (external->sig.ret_count > 0) {
