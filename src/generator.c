@@ -416,7 +416,7 @@ static void generate_function(struct generator *generator, int func_index) {
     asm_write_inst2(assembly, "mov", "[rsi+8]", "rbx");
     asm_write_inst2(assembly, "lea", "rbx", "[rsi+8]");
     asm_write_inst2f(assembly, "add", "rsi", "%d",
-                     16 + function->max_for_loop_level + function->locals_size);
+                     8 * (2 + function->max_for_loop_level + function->locals_size));
     struct ir_block *block = &function->w_code;
     // Instructions.
     for (int ip = 0; ip < block->count; ++ip) {
