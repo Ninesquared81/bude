@@ -252,6 +252,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
     }
     // We need to push all the higher arguments in reverse order.
     int offset = 0;
+    int aux_alloc_count = 0;  // Number of words temporarily allocated on aux.
     bool overlong_ret = type_word_count(types, ret_type) > 1;
     for (; offset < param_count - 4 + overlong_ret; ++offset) {
         type_index type = params[offset + 4];
@@ -260,6 +261,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         }
         else {
             int word_count = move_comp_to_aux(generator, type, offset);
+            aux_alloc_count += word_count;
             asm_write_inst2f(assembly, "lea", "rax", "[rsi-%d]", 8 * word_count);
             asm_write_inst1(assembly, "push", "rax");  // Pointer to start of comp.
         }
@@ -276,6 +278,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         }
         else {
             int word_count = move_comp_to_aux(generator, type, offset);
+            aux_alloc_count += word_count;
             asm_write_inst2f(assembly, "lea", "r9", "[rsi-%d]", 8 * word_count);
         }
         ++offset;
@@ -291,6 +294,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         }
         else {
             int word_count = move_comp_to_aux(generator, type, offset);
+            aux_alloc_count += word_count;
             asm_write_inst2f(assembly, "lea", "r8", "[rsi-%d]", 8 * word_count);
         }
         ++offset;
@@ -306,6 +310,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         }
         else {
             int word_count = move_comp_to_aux(generator, type, offset);
+            aux_alloc_count += word_count;
             asm_write_inst2f(assembly, "lea", "rdx", "[rsi-%d]", 8 * word_count);
         }
         ++offset;
@@ -322,11 +327,13 @@ static void generate_external_call_ms_x64(struct generator *generator,
             }
             else {
                 int word_count = move_comp_to_aux(generator, type, offset);
+                aux_alloc_count += word_count;
                 asm_write_inst2f(assembly, "lea", "rcx", "[rsi-%d]", 8 * word_count);
             }
         }
         else {
             int word_count = type_word_count(types, ret_type);
+            aux_alloc_count += word_count;
             asm_write_inst2(assembly, "lea", "rcx", "[rsi]");  // Reserve space on aux.
             asm_write_inst2f(assembly, "add", "rsi", "%d", 8 * word_count);
         }
@@ -341,6 +348,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
     asm_write_inst2f(assembly, "lea", "rsp", "[rbp+%d]", param_count);
     if (overlong_ret) {
         int word_count = type_word_count(types, ret_type);
+        aux_alloc_count += word_count;
         for (int i = 0; i < word_count; ++i) {
             asm_write_inst1f(assembly, "push", "qword [rax+%d]", i * 8);
         }
@@ -355,6 +363,9 @@ static void generate_external_call_ms_x64(struct generator *generator,
             asm_write_inst2(assembly, "movd", "eax", "xmm0");
         }
         asm_write_inst1(assembly, "push", "rax");
+    }
+    if (aux_alloc_count > 0) {
+        asm_write_inst2f(assembly, "sub", "rsi", "%d", 8 * aux_alloc_count);
     }
 }
 
