@@ -25,44 +25,6 @@ static void generate_header(struct generator *generator) {
     asm_write(assembly, "\n");
 }
 
-static void aux_push(struct generator *generator, const char *value) {
-    struct asm_block *assembly = generator->assembly;
-    asm_write_inst2f(assembly, "mov", "[rsi]", "%s", value);
-    asm_write_inst2(assembly, "add", "rsi", "8");
-}
-
-[[maybe_unused]]
-static void aux_pop(struct generator *generator, const char *value) {
-    struct asm_block *assembly = generator->assembly;
-    asm_write_inst2(assembly, "sub", "rsi", "8");
-    asm_write_inst2f(assembly, "mov", "%s", "[rsi]", value);
-}
-
-static void aux_to_stack(struct generator *generator) {
-    struct asm_block *assembly = generator->assembly;
-    asm_write_inst2(assembly, "sub", "rsi", "8");
-    asm_write_inst1(assembly, "push", "qword [rsi]");
-}
-
-static void stack_to_aux(struct generator *generator) {
-    struct asm_block *assembly = generator->assembly;
-    asm_write_inst1(assembly, "pop", "qword [rsi]");
-    asm_write_inst2(assembly, "add", "rsi", "8");
-}
-
-static void aux_reserve(struct generator *generator, int space) {
-    assert(space >= 0);
-    if (space == 0) return;
-    asm_write_inst2f(generator->assembly, "add", "rsi", "%d", space * 8);
-}
-
-[[maybe_unused]]
-static void aux_restore(struct generator *generator, int space) {
-    assert(space >= 0);
-    if (space == 0) return;
-    asm_write_inst2f(generator->assembly, "sub", "rsi", "%d", space * 8);
-}
-
 static void generate_pack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
     assert(n > 0);
     struct asm_block *assembly = generator->assembly;
@@ -432,7 +394,8 @@ static void generate_function_return(struct generator *generator) {
     }
     asm_write_inst2(assembly, "lea", "rsi", "[rbx]");
     asm_write_inst2(assembly, "mov", "rbx", "[rbx]");
-    aux_to_stack(generator);  // Return address.
+    asm_write_inst2(assembly, "sub", "rsi", "8");
+    asm_write_inst1(assembly, "push", "qword [rsi]");
     asm_write_inst0(assembly, "ret");
 }
 
@@ -449,10 +412,11 @@ static void generate_function(struct generator *generator, int func_index) {
     asm_label(assembly, "func_%d", func_index);
     // Layout of aux frame: [ret][base][... Loops ...][... Locals ...][... aux ...]
     //                            ^rbx                                 ^rsi
-    stack_to_aux(generator);
-    aux_push(generator, "rbx");
-    asm_write_inst2(assembly, "lea", "rbx", "[rsi-8]");
-    aux_reserve(generator, function->max_for_loop_level + function->locals_size);
+    asm_write_inst1(assembly, "pop", "qword [rsi]");
+    asm_write_inst2(assembly, "mov", "[rsi+8]", "rbx");
+    asm_write_inst2(assembly, "lea", "rbx", "[rsi+8]");
+    asm_write_inst2f(assembly, "add", "rsi", "%d",
+                     16 + function->max_for_loop_level + function->locals_size);
     struct ir_block *block = &function->w_code;
     // Instructions.
     for (int ip = 0; ip < block->count; ++ip) {
