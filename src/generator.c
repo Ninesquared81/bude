@@ -28,9 +28,9 @@ static void generate_header(struct generator *generator) {
 static void generate_pack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
     assert(n > 0);
     struct asm_block *assembly = generator->assembly;
-    int offset = (n - 1) * 8 + sizes[0];
+    int offset = 8 * (n - 1) + sizes[0];
     for (int i = 1; i < n; ++i) {
-        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", (n - i - 1) * 8);
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * (n - i - 1));
         int size = sizes[i];
         switch (size) {
         case 1:
@@ -50,7 +50,7 @@ static void generate_pack_instruction(struct generator *generator, int n, uint8_
         }
         offset += size;
     }
-    asm_write_inst2f(assembly, "add", "rsp", "%d", (n - 1) * 8);
+    asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * (n - 1));
 }
 
 static void generate_unpack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
@@ -147,7 +147,7 @@ static void generate_pack_field_set(struct generator *generator, int offset, int
 
 static void shift_block_down(struct asm_block *assembly, int size, int count) {
     for (int i = size - 1; i >= 0; --i) {
-        int read_offset = i * 8;
+        int read_offset = 8 * i;
         int write_offset = read_offset + 8 * count;
         asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
         asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
@@ -156,7 +156,7 @@ static void shift_block_down(struct asm_block *assembly, int size, int count) {
 
 static void shift_block_up(struct asm_block *assembly, int size, int count) {
     for (int i = 0; i < size; ++i) {
-        int write_offset = i * 8;
+        int write_offset = 8 * i;
         int read_offset = write_offset + 8 * count;
         asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
         asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
@@ -165,8 +165,8 @@ static void shift_block_up(struct asm_block *assembly, int size, int count) {
 
 static void save_block(struct asm_block *assembly, int start_offset, int size) {
     for (int i = 0; i < size; ++i) {
-        int read_offset = (start_offset + i) * 8;
-        int write_offset = (size - i) * 8;
+        int read_offset = 8 * (start_offset + i);
+        int write_offset = 8 * (size - i);
         asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
         asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", write_offset);
     }
@@ -174,8 +174,8 @@ static void save_block(struct asm_block *assembly, int start_offset, int size) {
 
 static void restore_block(struct asm_block *assembly, int start_offset, int size) {
     for (int i = 0; i < size; ++ i) {
-        int read_offset = (size - i) * 8;
-        int write_offset = (start_offset + i) * 8;
+        int read_offset = 8 * (size - i);
+        int write_offset = 8 * (start_offset + i);
         asm_write_inst2f(assembly, "mov", "rax", "[rsp-%d]", read_offset);
         asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
     }
@@ -198,8 +198,8 @@ static void generate_swap_comps(struct generator *generator, int lhs_size, int r
     else if (lhs_size == rhs_size) {
         // Special case: lhs = rhs (i.e. non-overlapping).
         for (int i = 0; i < rhs_size; ++i) {
-            int lhs_offset = (i + rhs_size) * 8;
-            int rhs_offset = i * 8;
+            int lhs_offset = 8 * (i + rhs_size);
+            int rhs_offset = 8 * i;
             asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", rhs_offset);
             asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", lhs_offset);
             asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", rhs_offset);
@@ -679,30 +679,30 @@ static void generate_function(struct generator *generator, int func_index) {
             int8_t n = read_s8(block, ip + 1);
             ip += 1;
             for (int i = 0; i < n; ++i) {
-                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", i * 8);
-                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", (n - i) * 8);
+                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * i);
+                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", 8 * (n - i));
             }
-            asm_write_inst2f(assembly, "sub", "rsp", "%d", n * 8);
+            asm_write_inst2f(assembly, "sub", "rsp", "%d", 8 * n);
             break;
         }
         case W_OP_DUPEN16: {
             int16_t n = read_s16(block, ip + 1);
             ip += 2;
             for (int i = 0; i < n; ++i) {
-                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", i * 8);
-                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", (n - i) * 8);
+                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * i);
+                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", 8 * (n - i));
             }
-            asm_write_inst2f(assembly, "sub", "rsp", "%d", n * 8);
+            asm_write_inst2f(assembly, "sub", "rsp", "%d", 8 * n);
             break;
         }
         case W_OP_DUPEN32: {
             int32_t n = read_s32(block, ip + 1);
             ip += 4;
             for (int i = 0; i < n; ++i) {
-                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", i * 8);
-                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", (n - i) * 8);
+                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * i);
+                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", 8 * (n - i));
             }
-            asm_write_inst2f(assembly, "sub", "rsp", "%d", n * 8);
+            asm_write_inst2f(assembly, "sub", "rsp", "%d", 8 * n);
             break;
         }
         case W_OP_EQUALS:
@@ -721,7 +721,7 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
-            int old_offset = ++generator->loop_level * 8;  // +1 for previous aux base pointer.
+            int old_offset = 8 * ++generator->loop_level;  // +1 for previous aux base pointer.
             asm_write_inst1c(assembly, "pop", "rax", "Loop counter.");
             asm_write_inst2(assembly, "cmp", "rax", "0");
             asm_write_inst1f(assembly, "jle", ".addr_%d", skip_jump_addr);
@@ -733,7 +733,7 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
-            int old_offset = generator->loop_level-- * 8;  // +1 for previous aux base pointer.
+            int old_offset = 8 * generator->loop_level--;  // +1 for previous aux base pointer.
             asm_write_inst1(assembly, "dec", "rdi");
             asm_write_inst2(assembly, "test", "rdi", "rdi");
             asm_write_inst1f(assembly, "jnz", ".addr_%d", loop_jump_addr);
@@ -747,7 +747,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int skip_jump_addr = ip - 1 + skip_jump;
             int old_offset = (generator->loop_level + 1)*8;  // +1 for previous aux base pointer.
             generator->loop_level += 2;  // +2 to allow space for loop target.
-            int target_offset = generator->loop_level * 8;  // -1 for counter, +1 for base ptr.
+            int target_offset = 8 * generator->loop_level;  // -1 for counter, +1 for base ptr.
             asm_write_inst1c(assembly, "pop", "rax", "Load loop target.");
             asm_write_inst2(assembly, "cmp", "rax", "0");
             asm_write_inst1f(assembly, "jle", ".addr_%d", skip_jump_addr);
@@ -760,9 +760,9 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t loop_jump = read_s16(block, ip - 1);
             int loop_jump_addr = ip - 1 + loop_jump;
-            int target_offset = generator->loop_level * 8;  // -1 for counter, +1 for base ptr.
+            int target_offset = 8 * generator->loop_level;  // -1 for counter, +1 for base ptr.
             generator->loop_level -= 2;  // -2 to remove target.
-            int old_offset = (generator->loop_level + 1)*8;  // +1 for previous aux base pointer.
+            int old_offset = 8*(generator->loop_level + 1);  // +1 for previous aux base pointer.
             asm_write_inst1(assembly, "inc", "rdi");
             asm_write_inst2f(assembly, "cmp", "rdi", "[rbx+%d]", target_offset);
             asm_write_inst1f(assembly, "jl", ".addr_%d", loop_jump_addr);
@@ -781,7 +781,7 @@ static void generate_function(struct generator *generator, int func_index) {
             else {
                 // Outer loop.
                 int base_offset = generator->loop_level - offset + 1;  // +1 for base ptr.
-                asm_write_inst2f(assembly, "mov", "rax", "[rbx+%d]", base_offset * 8);
+                asm_write_inst2f(assembly, "mov", "rax", "[rbx+%d]", 8 * base_offset);
                 asm_write_inst1(assembly, "push", "rax");
             }
             break;
@@ -1360,19 +1360,19 @@ static void generate_function(struct generator *generator, int func_index) {
         case W_OP_COMP_FIELD_GET8: {
             int offset = read_s8(block, ip + 1);
             ip += 1;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
             break;
         }
         case W_OP_COMP_FIELD_GET16: {
             int offset = read_s16(block, ip + 1);
             ip += 2;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
             break;
         }
         case W_OP_COMP_FIELD_GET32: {
             int offset = read_s32(block, ip + 1);
             ip += 4;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
+            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
             break;
         }
         case W_OP_PACK_FIELD_SET: {
@@ -1386,21 +1386,21 @@ static void generate_function(struct generator *generator, int func_index) {
             int offset = read_s8(block, ip + 1);
             ip += 1;
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", (offset - 1) * 8);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (offset - 1));
             break;
         }
         case W_OP_COMP_FIELD_SET16: {
             int offset = read_s16(block, ip + 1);
             ip += 2;
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", (offset - 1) * 8);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (offset - 1));
             break;
         }
         case W_OP_COMP_FIELD_SET32: {
             int offset = read_s32(block, ip + 1);
             ip += 4;
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", (offset - 1) * 8);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (offset - 1));
             break;
         }
         case W_OP_COMP_SUBCOMP_GET8: {
@@ -1408,7 +1408,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s8(block, ip + 2);
             ip += 2;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
             }
             break;
         }
@@ -1417,7 +1417,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s16(block, ip + 2);
             ip += 4;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
             }
             break;
         }
@@ -1426,7 +1426,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s32(block, ip + 2);
             ip += 8;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
             }
             break;
         }
@@ -1435,7 +1435,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s8(block, ip + 2);
             ip += 2;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
             }
             break;
         }
@@ -1444,7 +1444,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s16(block, ip + 2);
             ip += 4;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
             }
             break;
         }
@@ -1453,7 +1453,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int size = read_s32(block, ip + 2);
             ip += 8;
             for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", (offset - 1) * 8);
+                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
             }
             break;
         }
