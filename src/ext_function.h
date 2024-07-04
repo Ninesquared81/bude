@@ -25,10 +25,10 @@ struct external_table {
 };
 
 struct ext_library {
-    struct ext_library *next;
+    int capacity;
+    int count;
+    int *items;  // Array of external function indices in this library.
     struct string_view filename;
-    int start;  // Starting index within external table.
-    int count;  // Number of external functions in this library.
 };
 
 struct ext_lib_table {
@@ -43,9 +43,8 @@ void free_external_table(struct external_table *externals);
 void init_ext_lib_table(struct ext_lib_table *libraries);
 void free_ext_lib_table(struct ext_lib_table *libraries);
 
-int add_external(struct external_table *externals, struct ext_function *external);
+int add_external(struct external_table *externals, struct ext_library *library,
+                 struct ext_function *external);
 struct ext_function *get_external(struct external_table *externals, int index);
-
-void register_external(struct ext_library *library, int index, struct region *region);
 
 #endif
