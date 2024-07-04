@@ -18,6 +18,7 @@ struct string_table {
 
 struct module {
     struct external_table externals;
+    struct ext_lib_table ext_libraries;
     struct function_table functions;
     struct string_table strings;
     struct type_table types;

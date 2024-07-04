@@ -26,6 +26,7 @@ void init_module(struct module *module, const char *filename) {
     module->region = new_region(MODULE_REGION_SIZE);
     CHECK_ALLOCATION(module->region);
     init_external_table(&module->externals);
+    init_ext_lib_table(&module->ext_libraries);
     init_function_table(&module->functions);
     init_string_table(&module->strings);
     init_type_table(&module->types);
@@ -33,6 +34,7 @@ void init_module(struct module *module, const char *filename) {
 
 void free_module(struct module *module) {
     free_external_table(&module->externals);
+    free_ext_lib_table(&module->ext_libraries);
     free_function_table(&module->functions);
     free_string_table(&module->strings);
     free_type_table(&module->types);
