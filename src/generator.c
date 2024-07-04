@@ -1673,6 +1673,11 @@ static void generate_imports(struct generator *generator) {
     asm_write(assembly, "  library\\\n");
     asm_write(assembly, "\tkernel, 'kernel32.dll',\\\n");
     asm_write(assembly, "\tmsvcrt, 'msvcrt.dll'\n");
+    struct ext_lib_table *libraries = &generator->module->ext_libraries;
+    for (int i = 0; i < libraries->count; ++i) {
+        struct ext_library *lib = &libraries->items[i];
+        asm_write(assembly, "\textlib_%d, '%"PRI_SV"'", i, SV_FMT(lib->filename));
+    }
     asm_write(assembly, "\n");
     asm_write(assembly, "  import msvcrt,\\\n");
     asm_write(assembly, "\tprintf, 'printf'\n");
@@ -1680,6 +1685,18 @@ static void generate_imports(struct generator *generator) {
     asm_write(assembly, "  import kernel,\\\n");
     asm_write(assembly, "\tExitProcess, 'ExitProcess'\n");
     asm_write(assembly, "\n");
+    for (int i = 0; i < libraries->count; ++i) {
+        struct ext_library *lib = &libraries->items[i];
+        assert(lib->count > 0);
+        asm_write(assembly, "  import extlib_%d", i);
+        for (int j = 0; j < lib->count; ++j) {
+            int ext_index = lib->items[j];
+            struct ext_function *external = &generator->module->externals.items[ext_index];
+            asm_write(assembly, ",\\\n\t%"PRI_SV", '%"PRI_SV"'",
+                      SV_FMT(external->name), SV_FMT(external->name));
+        }
+        asm_write(assembly, "\n\n");
+    }
 }
 
 static void generate_constants(struct generator *generator) {
