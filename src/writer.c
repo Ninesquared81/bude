@@ -57,6 +57,10 @@ void display_bytecode(struct module *module, FILE *f) {
 }
 
 int write_bytecode(struct module *module, FILE *f) {
+    write_bytecode(module, f, BWF_version_number);
+}
+
+int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     /* Structure:
      * HEADER
      *   magic-number:`BudeBWF` version-number:char[] `\n`
@@ -72,7 +76,7 @@ int write_bytecode(struct module *module, FILE *f) {
      *     ...
      */
     /* HEADER */
-    fprintf(f, "BudeBWFv%d\n", BWF_version_number);
+    fprintf(f, "BudeBWFv%d\n", version_number);
     /* DATA-INFO */
     int32_t string_count = module->strings.count;
     int32_t function_count = module->functions.count;
