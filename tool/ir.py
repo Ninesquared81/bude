@@ -116,6 +116,9 @@ class Opcode(enum.IntEnum):
     CALL8 = enum.auto()
     CALL16 = enum.auto()
     CALL32 = enum.auto()
+    EXTCALL8 = enum.auto()
+    EXTCALL16 = enum.auto()
+    EXTCALL32 = enum.auto()
     RET = enum.auto()
 
 
@@ -308,6 +311,9 @@ class Block:
         Opcode.CALL8:              (read_u8,),
         Opcode.CALL16:             (read_u16,),
         Opcode.CALL32:             (read_u32,),
+        Opcode.EXTCALL8:           (read_u8,),
+        Opcode.EXTCALL16:          (read_u16,),
+        Opcode.EXTCALL32:          (read_u32,),
         Opcode.RET:                (),
     }
 
