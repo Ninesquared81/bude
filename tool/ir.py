@@ -275,6 +275,12 @@ class Block:
             ip += size
         return ip, Instruction(op, *operands)
 
+    @staticmethod
+    def encode(ins: Instruction) -> bytes:
+        result = ins.op.to_bytes()
+        for operand in operands:
+            result += operand.to_bytes(byteorder="little")
+        return result
 
     INSTRUCTION_TABLE: dict[Opcode, tuple[type(Operand), ...]] = {
         Opcode.NOP:                (),
