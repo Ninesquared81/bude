@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import abc
 import enum
 from typing import Callable, Iterator
 
@@ -122,9 +123,109 @@ class Opcode(enum.IntEnum):
     RET = enum.auto()
 
 
+class Operand(abc.ABC, int):
+    """Abstract base class for operands with a type and fixed size."""
+    def to_bytes(self, /, byteorder="big") -> bytes:
+        return super().to_bytes(length=self.size(), byteorder=byteorder, signed=self.issigned())
+
+    @classmethod
+    def from_bytes(cls, src: bytes, byteorder="big") -> bytes:
+        return super().from_bytes(src, byteorder=byteorder, signed=cls.issigned())
+
+    @staticmethod
+    @abc.abstractmethod
+    def size() -> int:
+        """Return the size (in bytes) of the operand."""
+
+    @staticmethod
+    @abc.abstractmethod
+    def issigned() -> bool:
+        """Return whether the operand is signed."""
+
+
+class U8(Operand):
+    @staticmethod
+    def size() -> int:
+        return 1
+
+    @staticmethod
+    def issigned() -> int:
+        return False
+
+
+class U16(Operand):
+    @staticmethod
+    def size() -> int:
+        return 2
+
+    @staticmethod
+    def issigned() -> int:
+        return False
+
+
+class U32(Operand):
+    @staticmethod
+    def size() -> int:
+        return 4
+
+    @staticmethod
+    def issigned() -> int:
+        return False
+
+
+class U64(Operand):
+    @staticmethod
+    def size() -> int:
+        return 8
+
+    @staticmethod
+    def issigned() -> int:
+        return False
+
+
+class S8(Operand):
+    @staticmethod
+    def size() -> int:
+        return 1
+
+    @staticmethod
+    def issigned() -> int:
+        return True
+
+
+class S16(Operand):
+    @staticmethod
+    def size() -> int:
+        return 2
+
+    @staticmethod
+    def issigned() -> int:
+        return True
+
+
+class S32(Operand):
+    @staticmethod
+    def size() -> int:
+        return 4
+
+    @staticmethod
+    def issigned() -> int:
+        return True
+
+
+class S64(Operand):
+    @staticmethod
+    def size() -> int:
+        return 8
+
+    @staticmethod
+    def issigned() -> int:
+        return True
+
+
 class Instruction:
     """Opcode coupled with its operands, if any."""
-    def __init__(self, op: Opcode, *operands: int) -> None:
+    def __init__(self, op: Opcode, *operands: Operand) -> None:
         self.op = op
         self.operands = operands
 
@@ -157,38 +258,6 @@ class Block:
             ip, instruction = self.decode(ip)
             yield instruction
 
-    def read_u8(self, ip: int) -> tuple[int, int]:
-        """Read an unsigned 8-bit operand from self starting at ip."""
-        return ip + 1, int.from_bytes(self.code[ip:ip+1], "little")
-
-    def read_u16(self, ip: int) -> tuple[int, int]:
-        """Read an unsigned 16-bit operand from self starting at ip."""
-        return ip + 2, int.from_bytes(self.code[ip:ip+2], "little")
-
-    def read_u32(self, ip: int) -> tuple[int, int]:
-        """Read an unsigned 32-bit operand from self starting at ip."""
-        return ip + 4, int.from_bytes(self.code[ip:ip+4], "little")
-
-    def read_u64(self, ip: int) -> tuple[int, int]:
-        """Read an unsigned 64-bit operand from self starting at ip."""
-        return ip + 8, int.from_bytes(self.code[ip:ip+8], "little")
-
-    def read_s8(self, ip: int) -> tuple[int, int]:
-        """Read a signed 8-bit operand from self starting at ip."""
-        return ip + 1, int.from_bytes(self.code[ip:ip+1], "little", signed=True)
-
-    def read_s16(self, ip: int) -> tuple[int, int]:
-        """Read a signed 16-bit operand from self starting at ip."""
-        return ip + 2, int.from_bytes(self.code[ip:ip+2], "little", signed=True)
-
-    def read_s32(self, ip: int) -> tuple[int, int]:
-        """Read a signed 32-bit operand from self starting at ip."""
-        return ip + 4, int.from_bytes(self.code[ip:ip+4], "little", signed=True)
-
-    def read_s64(self, ip: int) -> tuple[int, int]:
-        """Read a signed 64-bit operand from self starting at ip."""
-        return ip + 8, int.from_bytes(self.code[ip:ip+8], "little", signed=True)
-
     def decode(self, ip: int) -> tuple[int, Instruction]:
         """Decode an instruction from self starting at ip.
 
@@ -197,34 +266,36 @@ class Block:
         which comprises an opcode and a tuple of operands.
         """
         op = Opcode(self.code[ip])
-        operand_readers = self.INSTRUCTION_TABLE[op]
+        operand_types = self.INSTRUCTION_TABLE[op]
         operands = []
         ip += 1
-        for opreader in operand_readers:
-            ip, operand = opreader(self, ip)
-            operands.append(operand)
+        for operand_type in operand_types:
+            size = operand_type.size()
+            operands.append(operand_type.from_bytes(self.code[ip:ip+size], byteorder="little"))
+            ip += size
         return ip, Instruction(op, *operands)
 
-    INSTRUCTION_TABLE: dict[Opcode, tuple[Callable[[Block, int], tuple[int, int]], ...]] = {
+
+    INSTRUCTION_TABLE: dict[Opcode, tuple[type(Operand), ...]] = {
         Opcode.NOP:                (),
-        Opcode.PUSH8:              (read_u8,),
-        Opcode.PUSH16:             (read_u16,),
-        Opcode.PUSH32:             (read_u32,),
-        Opcode.PUSH64:             (read_u64,),
-        Opcode.PUSH_INT8:          (read_s8,),
-        Opcode.PUSH_INT16:         (read_s16,),
-        Opcode.PUSH_INT32:         (read_s32,),
-        Opcode.PUSH_INT64:         (read_s64,),
-        Opcode.PUSH_CHAR8:         (read_u8,),
-        Opcode.PUSH_CHAR16:        (read_u16,),
-        Opcode.PUSH_CHAR32:        (read_u32,),
-        Opcode.LOAD_STRING8:       (read_u8,),
-        Opcode.LOAD_STRING16:      (read_u16,),
-        Opcode.LOAD_STRING32:      (read_u32,),
+        Opcode.PUSH8:              (U8,),
+        Opcode.PUSH16:             (U16,),
+        Opcode.PUSH32:             (U32,),
+        Opcode.PUSH64:             (U64,),
+        Opcode.PUSH_INT8:          (S8,),
+        Opcode.PUSH_INT16:         (S16,),
+        Opcode.PUSH_INT32:         (S32,),
+        Opcode.PUSH_INT64:         (S64,),
+        Opcode.PUSH_CHAR8:         (U8,),
+        Opcode.PUSH_CHAR16:        (U16,),
+        Opcode.PUSH_CHAR32:        (U32,),
+        Opcode.LOAD_STRING8:       (U8,),
+        Opcode.LOAD_STRING16:      (U16,),
+        Opcode.LOAD_STRING32:      (U32,),
         Opcode.POP:                (),
-        Opcode.POPN8:              (read_s8,),
-        Opcode.POPN16:             (read_s16,),
-        Opcode.POPN32:             (read_s32,),
+        Opcode.POPN8:              (S8,),
+        Opcode.POPN16:             (S16,),
+        Opcode.POPN32:             (S32,),
         Opcode.ADD:                (),
         Opcode.AND:                (),
         Opcode.DEREF:              (),
@@ -232,23 +303,23 @@ class Block:
         Opcode.IDIVMOD:            (),
         Opcode.EDIVMOD:            (),
         Opcode.DUPE:               (),
-        Opcode.DUPEN8:             (read_s8,),
-        Opcode.DUPEN16:            (read_s16,),
-        Opcode.DUPEN32:            (read_s32,),
+        Opcode.DUPEN8:             (S8,),
+        Opcode.DUPEN16:            (S16,),
+        Opcode.DUPEN32:            (S32,),
         Opcode.EQUALS:             (),
         Opcode.EXIT:               (),
-        Opcode.FOR_DEC_START:      (read_s16,),
-        Opcode.FOR_DEC:            (read_s16,),
-        Opcode.FOR_INC_START:      (read_s16,),
-        Opcode.FOR_INC:            (read_s16,),
-        Opcode.GET_LOOP_VAR:       (read_u16,),
+        Opcode.FOR_DEC_START:      (S16,),
+        Opcode.FOR_DEC:            (S16,),
+        Opcode.FOR_INC_START:      (S16,),
+        Opcode.FOR_INC:            (S16,),
+        Opcode.GET_LOOP_VAR:       (U16,),
         Opcode.GREATER_EQUALS:     (),
         Opcode.GREATER_THAN:       (),
         Opcode.HIGHER_SAME:        (),
         Opcode.HIGHER_THAN:        (),
-        Opcode.JUMP:               (read_s16,),
-        Opcode.JUMP_COND:          (read_s16,),
-        Opcode.JUMP_NCOND:         (read_s16,),
+        Opcode.JUMP:               (S16,),
+        Opcode.JUMP_COND:          (S16,),
+        Opcode.JUMP_NCOND:         (S16,),
         Opcode.LESS_EQUALS:        (),
         Opcode.LESS_THAN:          (),
         Opcode.LOWER_SAME:         (),
@@ -263,9 +334,9 @@ class Block:
         Opcode.PRINT_STRING:       (),
         Opcode.SUB:                (),
         Opcode.SWAP:               (),
-        Opcode.SWAP_COMPS8:        (read_s8,  read_s8),
-        Opcode.SWAP_COMPS16:       (read_s16, read_s16),
-        Opcode.SWAP_COMPS32:       (read_s32, read_s32),
+        Opcode.SWAP_COMPS8:        (S8,  S8),
+        Opcode.SWAP_COMPS16:       (S16, S16),
+        Opcode.SWAP_COMPS32:       (S32, S32),
         Opcode.SX8:                (),
         Opcode.SX8L:               (),
         Opcode.SX16:               (),
@@ -278,42 +349,42 @@ class Block:
         Opcode.ZX16L:              (),
         Opcode.ZX32:               (),
         Opcode.ZX32L:              (),
-        Opcode.PACK1:              (read_u8,) * 1,
-        Opcode.PACK2:              (read_u8,) * 2,
-        Opcode.PACK3:              (read_u8,) * 3,
-        Opcode.PACK4:              (read_u8,) * 4,
-        Opcode.PACK5:              (read_u8,) * 5,
-        Opcode.PACK6:              (read_u8,) * 6,
-        Opcode.PACK7:              (read_u8,) * 7,
-        Opcode.PACK8:              (read_u8,) * 8,
-        Opcode.UNPACK1:            (read_u8,) * 1,
-        Opcode.UNPACK2:            (read_u8,) * 2,
-        Opcode.UNPACK3:            (read_u8,) * 3,
-        Opcode.UNPACK4:            (read_u8,) * 4,
-        Opcode.UNPACK5:            (read_u8,) * 5,
-        Opcode.UNPACK6:            (read_u8,) * 6,
-        Opcode.UNPACK7:            (read_u8,) * 7,
-        Opcode.UNPACK8:            (read_u8,) * 8,
-        Opcode.PACK_FIELD_GET:     (read_u8,),
-        Opcode.COMP_FIELD_GET8:    (read_u8,),
-        Opcode.COMP_FIELD_GET16:   (read_u16,),
-        Opcode.COMP_FIELD_GET32:   (read_u32,),
-        Opcode.PACK_FIELD_SET:     (read_u8,),
-        Opcode.COMP_FIELD_SET8:    (read_u8,),
-        Opcode.COMP_FIELD_SET16:   (read_u16,),
-        Opcode.COMP_FIELD_SET32:   (read_u32,),
-        Opcode.COMP_SUBCOMP_GET8:  (read_u8,  read_u8),
-        Opcode.COMP_SUBCOMP_GET16: (read_u16, read_u16),
-        Opcode.COMP_SUBCOMP_GET32: (read_u32, read_u32),
-        Opcode.COMP_SUBCOMP_SET8:  (read_u8,  read_u8),
-        Opcode.COMP_SUBCOMP_SET16: (read_u16, read_u16),
-        Opcode.COMP_SUBCOMP_SET32: (read_u32, read_u32),
-        Opcode.CALL8:              (read_u8,),
-        Opcode.CALL16:             (read_u16,),
-        Opcode.CALL32:             (read_u32,),
-        Opcode.EXTCALL8:           (read_u8,),
-        Opcode.EXTCALL16:          (read_u16,),
-        Opcode.EXTCALL32:          (read_u32,),
+        Opcode.PACK1:              (U8,) * 1,
+        Opcode.PACK2:              (U8,) * 2,
+        Opcode.PACK3:              (U8,) * 3,
+        Opcode.PACK4:              (U8,) * 4,
+        Opcode.PACK5:              (U8,) * 5,
+        Opcode.PACK6:              (U8,) * 6,
+        Opcode.PACK7:              (U8,) * 7,
+        Opcode.PACK8:              (U8,) * 8,
+        Opcode.UNPACK1:            (U8,) * 1,
+        Opcode.UNPACK2:            (U8,) * 2,
+        Opcode.UNPACK3:            (U8,) * 3,
+        Opcode.UNPACK4:            (U8,) * 4,
+        Opcode.UNPACK5:            (U8,) * 5,
+        Opcode.UNPACK6:            (U8,) * 6,
+        Opcode.UNPACK7:            (U8,) * 7,
+        Opcode.UNPACK8:            (U8,) * 8,
+        Opcode.PACK_FIELD_GET:     (U8,),
+        Opcode.COMP_FIELD_GET8:    (U8,),
+        Opcode.COMP_FIELD_GET16:   (U16,),
+        Opcode.COMP_FIELD_GET32:   (U32,),
+        Opcode.PACK_FIELD_SET:     (U8,),
+        Opcode.COMP_FIELD_SET8:    (U8,),
+        Opcode.COMP_FIELD_SET16:   (U16,),
+        Opcode.COMP_FIELD_SET32:   (U32,),
+        Opcode.COMP_SUBCOMP_GET8:  (U8,  U8),
+        Opcode.COMP_SUBCOMP_GET16: (U16, U16),
+        Opcode.COMP_SUBCOMP_GET32: (U32, U32),
+        Opcode.COMP_SUBCOMP_SET8:  (U8,  U8),
+        Opcode.COMP_SUBCOMP_SET16: (U16, U16),
+        Opcode.COMP_SUBCOMP_SET32: (U32, U32),
+        Opcode.CALL8:              (U8,),
+        Opcode.CALL16:             (U16,),
+        Opcode.CALL32:             (U32,),
+        Opcode.EXTCALL8:           (U8,),
+        Opcode.EXTCALL16:          (U16,),
+        Opcode.EXTCALL32:          (U32,),
         Opcode.RET:                (),
     }
 
