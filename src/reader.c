@@ -14,7 +14,10 @@
 
 static int parse_header(FILE *f) {
     static char header_buffer[1024] = {0};
-    fgets(header_buffer, sizeof header_buffer, f);
+    if (fgets(header_buffer, sizeof header_buffer, f) == NULL) {
+        perror("Failed to read header line");
+        return -1;
+    }
     int version_number = -1;
     if (sscanf(header_buffer, "BudeBWFv%d", &version_number) != 1) {
         fprintf(stderr, "Invalid BudeBWF header\n");
@@ -65,6 +68,10 @@ struct module read_bytecode(const char *filename) {
     struct module module;
     init_module(&module, filename);
     FILE *f = fopen(filename, "rb");
+    if (f == NULL) {
+        perror("Failed to open file");
+        exit(1);
+    }
     int version_number = parse_header(f);
     if (version_number <= 0) goto error;  // Error parsing header.
     int string_count = 0;
