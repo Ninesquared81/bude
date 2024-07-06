@@ -57,7 +57,7 @@ void display_bytecode(struct module *module, FILE *f) {
 }
 
 int write_bytecode(struct module *module, FILE *f) {
-    write_bytecode(module, f, BWF_version_number);
+    return write_bytecode_ex(module, f, BWF_version_number);
 }
 
 int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
