@@ -278,7 +278,7 @@ class Block:
     @staticmethod
     def encode(ins: Instruction) -> bytes:
         result = ins.op.to_bytes()
-        for operand in operands:
+        for operand in ins.operands:
             result += operand.to_bytes(byteorder="little")
         return result
 
