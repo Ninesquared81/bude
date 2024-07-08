@@ -80,11 +80,11 @@ int main(int argc, char *argv[]) {
         .strings = {
             .capacity = string_count,
             .count = string_count,
-            .views = strings},
+            .items = strings},
         .functions = {
             .count = function_count,
             .capacity = function_count,
-            .functions = functions,
+            .items = functions,
         },
         .region = region,
         .filename = argv[1],
