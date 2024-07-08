@@ -407,3 +407,13 @@ class Module:
         """Construct a Module directly from a BudeBWF file."""
         strings, function_bytes = reader.read_bytecode(filename)
         return cls(strings, [Block(func) for func in function_bytes])
+
+    def pprint(self, file=sys.stdout) -> None:
+        print("STRINGS", file=file)
+        for i, string in enumerate(self.strings):
+            print(f"{i: 4}: {string!r}", file=file)
+        print("FUNCTIONS", file=file)
+        for i, function in enumerate(self.functions):
+            print(f"{i: 4}: ", file=file, end="")
+            print("\n      ".join(str(ins) for ins in function), file=file, end="")
+            print("", file=file)
