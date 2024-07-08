@@ -232,7 +232,7 @@ class Instruction:
         self.operands = operands
 
     def __repr__(self) -> str:
-        return f"{type(self)}({', '.join(map(repr, (self.op, *self.operands)))})"
+        return f"{type(self).__name__}({', '.join(map(repr, (self.op, *self.operands)))})"
 
     def __str__(self) -> str:
         return f"({' '.join((self.op.name, *map(str, self.operands)))})"
