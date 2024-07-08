@@ -12,6 +12,9 @@
 #include "string_view.h"
 
 
+#define BWF_version_number 1
+
+
 static int parse_header(FILE *f) {
     static char header_buffer[1024] = {0};
     if (fgets(header_buffer, sizeof header_buffer, f) == NULL) {
@@ -74,6 +77,10 @@ struct module read_bytecode(const char *filename) {
     }
     int version_number = parse_header(f);
     if (version_number <= 0) goto error;  // Error parsing header.
+    if (version_number > BWF_version_number) {
+        fprintf(stderr, "BWF version number %d not supported.\n", version_number);
+        goto error;
+    }
     int string_count = 0;
     int function_count = 0;
     if (!parse_data_info(f, version_number, &string_count, &function_count)) goto error;
