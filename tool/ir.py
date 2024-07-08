@@ -5,6 +5,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 import enum
+import sys
 from typing import Callable, Iterator
 
 import reader
