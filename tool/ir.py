@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+import dataclasses
 import enum
 from typing import Callable, Iterator
 
@@ -395,12 +396,12 @@ class Block:
     }
 
 
+@dataclasses.dataclass
 class Module:
     """A Bude 'Module' object which contains a list of strings and functions."""
 
-    def __init__(self, strings: list[str], functions: list[Block]) -> None:
-        self.strings = strings
-        self.functions = functions
+    strings: list[str]
+    functions: list[Block]
 
     @classmethod
     def from_file(cls, filename: str) -> Self:
