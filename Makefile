@@ -13,9 +13,12 @@ deps = $(patsubst bin/%.o,$(DEPDIR)/%.d,$(objects))
 
 out = bin/bude
 
-.PHONY: all
+.PHONY: all test
 
 all: $(out)
+
+test:
+	$(MAKE) -C test
 
 bin/%.o : src/%.c $(DEPDIR)/%.d | $(DEPDIR)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
