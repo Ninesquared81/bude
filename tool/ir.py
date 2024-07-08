@@ -419,3 +419,26 @@ class Module:
             print(f"{i: 4}: ", file=file, end="")
             print("\n      ".join(str(ins) for ins in function), file=file, end="")
             print("", file=file)
+
+
+class ModuleBuilder:
+    def __init__(self, module: Module | None = None) -> None:
+        self.strings = []
+        self.functions = [bytearray()]
+        if module is not None:
+            self.strings[:] = module.strings
+            self.functions[:] = (function.code for function in functions)
+
+    def add_string(self, string: str) -> int:
+        self.strings.append(string)
+        return len(self.strings) - 1
+
+    def add_instruction(self, ins: Instruction) -> None:
+        self.functions[-1].extend(Block.encode(ins))
+
+    def new_function(self) -> int:
+        self.functions.append(bytearray())
+        return len(self.functions) - 1
+
+    def build(self) -> Module:
+        return Module(self.strings[:], [Block(bytes(function)) for function in self.functions])
