@@ -8,13 +8,14 @@ import sys
 import ir
 
 
-CURRENT_VERSION_NUMBER = 2
+CURRENT_VERSION_NUMBER = 3
 
 
 def get_field_count(version_number: int) -> int:
     field_counts = {
         1: 2,
         2: 2,
+        3: 2,
     }
     return field_counts[version_number]
 
@@ -39,7 +40,13 @@ def write_data(module: ir.Module, version_number: int) -> bytes:
         output.extend(len(string).to_bytes(length=4, byteorder="little"))
         output.extend(string.encode())
     for function in module.functions:
-        output.extend(len(function.code).to_bytes(length=4, byteorder="little", signed=True))
+        size = len(function.code)
+        if version_number >= 3:
+            entry_size = size + 4
+            output.extend(entry_size.to_bytes(length=4, byteorder="little", signed=True))
+        else:
+            entry_size = size
+        output.extend(size.to_bytes(length=4, byteorder="little", signed=True))
         output.extend(function.code)
     return bytes(output)
 
@@ -51,6 +58,7 @@ def write_bytecode(module: ir.Module, version_number: int = CURRENT_VERSION_NUMB
     output += write_data_info(module, version_number)
     output += write_data(module, version_number)
     return bytes(output)
+
 
 def parse_instruction(src: str) -> ir.Instruction:
     src = src.strip()

@@ -13,7 +13,7 @@
 #include "string_view.h"
 
 
-#define reader_version_number 2
+#define reader_version_number 3
 
 
 static int parse_header(FILE *f) {
@@ -32,6 +32,7 @@ static int parse_header(FILE *f) {
 
 static bool parse_data_info(FILE *f, int version_number, int *string_count, int *function_count) {
     int32_t field_count = 2;
+    long start_pos = ftell(f);
     if (version_number >= 2) {
         // Read data-field-count field
         if (fread(&field_count, sizeof field_count, 1, f) != 1) return false;
@@ -40,11 +41,18 @@ static bool parse_data_info(FILE *f, int version_number, int *string_count, int 
             return false;
         }
     }
-    return fread(string_count, sizeof *string_count, 1, f) == 1
-        && fread(function_count, sizeof *function_count, 1, f) == 1;
+    if (fread(string_count, sizeof *string_count, 1, f) != 1) return false;
+    if (fread(function_count, sizeof *function_count, 1, f) != 1) return false;
+    long bytes_left = start_pos + (field_count + 1)*4 - ftell(f);
+    assert(bytes_left >= 0);
+    if (bytes_left > 0) {
+        fprintf(stderr, "Warning: extra fields not read\n.");
+        if (fseek(f, bytes_left, SEEK_CUR) != 0) return false;
+    }
+    return true;
 }
 
-static bool parse_data(FILE *f, int string_count, int function_count,
+static bool parse_data(FILE *f, int version_number, int string_count, int function_count,
                        struct string_view strings[string_count],
                        struct function functions[function_count],
                        struct region *region) {
@@ -57,11 +65,23 @@ static bool parse_data(FILE *f, int string_count, int function_count,
         strings[i] = (struct string_view) {.length = size, .start = string};
     }
     for (int i = 0; i < function_count; ++i) {
+        long start_pos = ftell(f);
+        int32_t entry_size = 0;
+        if (version_number >= 3) {
+            if (fread(&entry_size, sizeof entry_size, 1, f) != 1) return false;
+        }
         int32_t size = 0;
         if (fread(&size, sizeof size, 1, f) != 1) return false;
+        if (entry_size == 0) entry_size = size;
+        if (size < 0) return false;
         uint8_t *code = allocate_array(size, 1);
         struct location *locations = allocate_array(size, sizeof *locations);
         if (fread(code, 1, size, f) != (size_t)size) return false;
+        long bytes_left = (start_pos + entry_size + 4) - ftell(f);
+        assert(bytes_left >= 0);
+        if (bytes_left > 0) {
+            if (fseek(f, bytes_left, SEEK_CUR) != 0) return false;
+        }
         // NOTE: We set all other field to 0/NULL since we don't care about them.
         functions[i] = (struct function) {
             .w_code = {
@@ -105,7 +125,7 @@ struct module read_bytecode(const char *filename) {
         function_table->capacity = function_count;
     }
     function_table->count = function_count;
-    if (!parse_data(f, string_count, function_count, string_table->items,
+    if (!parse_data(f, version_number, string_count, function_count, string_table->items,
                     function_table->items, module.region)) goto error;
     fclose(f);
     return module;

@@ -4,7 +4,7 @@
 #include "module.h"
 #include "writer.h"
 
-#define writer_version_number 2
+#define writer_version_number 3
 
 
 void display_bytecode(struct module *module, FILE *f) {
@@ -62,6 +62,19 @@ int write_bytecode(struct module *module, FILE *f) {
     return write_bytecode_ex(module, f, BWF_version_number);
 }
 
+static int write_function_entry(struct module *module, struct function *function,
+                                FILE *f, int version_number) {
+    (void)module;
+    struct ir_block *block = &function->w_code;
+    int32_t entry_size = get_function_entry_size(block->count, version_number);
+    if (version_number >= 3) {
+        if (fwrite(&entry_size, sizeof entry_size, 1, f) != 1) return errno;
+    }
+    if (fwrite(&block->count, sizeof block->count, 1, f) != 1) return errno;
+    if (fwrite(block->code, 1, block->count, f) != (size_t)block->count) return errno;
+    return 0;
+}
+
 int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     /* HEADER */
     fprintf(f, "BudeBWFv%d\n", version_number);
@@ -85,9 +98,8 @@ int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     /* FUNCTION-TABLE */
     for (int i = 0; i < module->functions.count; ++i) {
         struct function *function = &module->functions.items[i];
-        struct ir_block *block = &function->w_code;
-        if (fwrite(&block->count, sizeof block->count, 1, f) != 1) return errno;
-        if (fwrite(block->code, 1, block->count, f) != (size_t)block->count) return errno;
+        int ret = write_function_entry(module, function, f, version_number);
+        if (ret != 0) return ret;
     }
     if (version_number < 3) return 0;
     // Version 3+ fields here...
