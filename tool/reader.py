@@ -6,6 +6,10 @@ import argparse
 import sys
 
 
+CURRENT_VERSION_NUMBER = 2
+
+
+
 class ParseError(Exception):
     """Exception signalling an error in parsing a BudeBWF file."""
 
@@ -14,14 +18,22 @@ def read_bytecode(filename: str) -> tuple[list[str], list[bytes]]:
     """Read bytecode in file and return a list of strings and functions."""
     with open(filename, "rb") as f:
         header_line = f.readline().decode()
-        magic_number, _, version_number = header_line.partition("v")
+        magic_number, _, version_number_string = header_line.partition("v")
         if magic_number != "BudeBWF":
             raise ParseError("Invalid file")
-        version_number = version_number.rstrip()
-        if not version_number.isdigit():
-            raise ParseError("Invalid version number")
-        if int(version_number) > 1:
+        try:
+            version_number = int(version_number_string.rstrip())
+        except ValueError:
+            raise ParseError(f"Invalid version number: {version_number_string!r}")
+        if version_number <= 0:
+            raise ParseError(f"Invalid version number: {version_number}")
+        if version_number > CURRENT_VERSION_NUMBER:
             raise ParseError(f"Unsupported BudeBWF version: {version_number}")
+        field_count = 2
+        if version_number >= 2:
+            field_count = int.from_bytes(f.read(4), "little", signed=True)
+            if field_count < 2:
+                raise ParseError(f"`data-info-field-count` must be at least 2, not {field_count}")
         string_count = int.from_bytes(f.read(4), "little", signed=True)
         function_count = int.from_bytes(f.read(4), "little", signed=True)
         strings = []

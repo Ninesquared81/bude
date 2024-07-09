@@ -31,7 +31,15 @@ static int parse_header(FILE *f) {
 }
 
 static bool parse_data_info(FILE *f, int version_number, int *string_count, int *function_count) {
-    if (version_number > 1) return false;
+    int32_t field_count = 2;
+    if (version_number >= 2) {
+        // Read data-field-count field
+        if (fread(&field_count, sizeof field_count, 1, f) != 1) return false;
+        if (field_count < 2) {
+            fprintf(stderr, "Bad `data-info-field-count`: %d.\n", field_count);
+            return false;
+        }
+    }
     return fread(string_count, sizeof *string_count, 1, f) == 1
         && fread(function_count, sizeof *function_count, 1, f) == 1;
 }

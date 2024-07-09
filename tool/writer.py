@@ -8,7 +8,15 @@ import sys
 import ir
 
 
-CURRENT_VERSION_NUMBER = 1
+CURRENT_VERSION_NUMBER = 2
+
+
+def get_field_count(version_number: int) -> int:
+    field_counts = {
+        1: 2,
+        2: 2,
+    }
+    return field_counts[version_number]
 
 
 def write_header(version_number: int) -> bytes:
@@ -17,6 +25,9 @@ def write_header(version_number: int) -> bytes:
 
 def write_data_info(module: ir.Module, version_number: int) -> bytes:
     output = bytearray()
+    field_count = get_field_count(version_number)
+    if version_number >= 2:
+        output.extend(field_count.to_bytes(length=4, byteorder="little", signed=True))
     output.extend(len(module.strings).to_bytes(length=4, byteorder="little", signed=True))
     output.extend(len(module.functions).to_bytes(length=4, byteorder="little", signed=True))
     return bytes(output)

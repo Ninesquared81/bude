@@ -66,6 +66,10 @@ int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     /* HEADER */
     fprintf(f, "BudeBWFv%d\n", version_number);
     /* DATA-INFO */
+    int32_t field_count = get_field_count(version_number);
+    if (version_number >= 2) {
+        if (fwrite(&field_count, sizeof field_count, 1, f) != 1) return errno;
+    }
     int32_t string_count = module->strings.count;
     int32_t function_count = module->functions.count;
     if (fwrite(&string_count, sizeof string_count, 1, f) != 1) return errno;
@@ -85,5 +89,7 @@ int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
         if (fwrite(&block->count, sizeof block->count, 1, f) != 1) return errno;
         if (fwrite(block->code, 1, block->count, f) != (size_t)block->count) return errno;
     }
+    if (version_number < 3) return 0;
+    // Version 3+ fields here...
     return 0;
 }
