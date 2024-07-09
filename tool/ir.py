@@ -23,6 +23,8 @@ class Opcode(enum.IntEnum):
     PUSH_INT16 = enum.auto()
     PUSH_INT32 = enum.auto()
     PUSH_INT64 = enum.auto()
+    PUSH_FLOAT32 = enum.auto()
+    PUSH_FLOAT64 = enum.auto()
     PUSH_CHAR8 = enum.auto()
     PUSH_CHAR16 = enum.auto()
     PUSH_CHAR32 = enum.auto()
@@ -34,8 +36,12 @@ class Opcode(enum.IntEnum):
     POPN16 = enum.auto()
     POPN32 = enum.auto()
     ADD = enum.auto()
+    ADDF32 = enum.auto()
+    ADDF64 = enum.auto()
     AND = enum.auto()
     DEREF = enum.auto()
+    DIVF32 = enum.auto()
+    DIVF64 = enum.auto()
     DIVMOD = enum.auto()
     IDIVMOD = enum.auto()
     EDIVMOD = enum.auto()
@@ -59,17 +65,24 @@ class Opcode(enum.IntEnum):
     JUMP_NCOND = enum.auto()
     LESS_EQUALS = enum.auto()
     LESS_THAN = enum.auto()
+    LOCAL_GET = enum.auto()
+    LOCAL_SET = enum.auto()
     LOWER_SAME = enum.auto()
     LOWER_THAN = enum.auto()
     MULT = enum.auto()
+    MULTF32 = enum.auto()
+    MULTF64 = enum.auto()
     NOT = enum.auto()
     NOT_EQUALS = enum.auto()
     OR = enum.auto()
     PRINT = enum.auto()
     PRINT_CHAR = enum.auto()
+    PRINT_FLOAT = enum.auto()
     PRINT_INT = enum.auto()
     PRINT_STRING = enum.auto()
     SUB = enum.auto()
+    SUBF32 = enum.auto()
+    SUBF64 = enum.auto()
     SWAP = enum.auto()
     SWAP_COMPS8 = enum.auto()
     SWAP_COMPS16 = enum.auto()
@@ -86,6 +99,20 @@ class Opcode(enum.IntEnum):
     ZX16L = enum.auto()
     ZX32 = enum.auto()
     ZX32L = enum.auto()
+    FPROM = enum.auto()
+    FPROML = enum.auto()
+    FDEM = enum.auto()
+    ICONVF32 = enum.auto()
+    ICONVF32L = enum.auto()
+    ICONVF64 = enum.auto()
+    ICONVF64L = enum.auto()
+    FCONVI32 = enum.auto()
+    FCONVI64 = enum.auto()
+    ICONVC32 = enum.auto()
+    CHAR_8CONV32 = enum.auto()
+    CHAR_32CONV8 = enum.auto()
+    CHAR_16CONV32 = enum.auto()
+    CHAR_32CONV16 = enum.auto()
     PACK1 = enum.auto()
     PACK2 = enum.auto()
     PACK3 = enum.auto()
@@ -294,6 +321,8 @@ class Block:
         Opcode.PUSH_INT16:         (S16,),
         Opcode.PUSH_INT32:         (S32,),
         Opcode.PUSH_INT64:         (S64,),
+        Opcode.PUSH_FLOAT32:       (U32,),
+        Opcode.PUSH_FLOAT64:       (U64,),
         Opcode.PUSH_CHAR8:         (U8,),
         Opcode.PUSH_CHAR16:        (U16,),
         Opcode.PUSH_CHAR32:        (U32,),
@@ -305,8 +334,12 @@ class Block:
         Opcode.POPN16:             (S16,),
         Opcode.POPN32:             (S32,),
         Opcode.ADD:                (),
+        Opcode.ADDF32:             (),
+        Opcode.ADDF64:             (),
         Opcode.AND:                (),
         Opcode.DEREF:              (),
+        Opcode.DIVF32:             (),
+        Opcode.DIVF64:             (),
         Opcode.DIVMOD:             (),
         Opcode.IDIVMOD:            (),
         Opcode.EDIVMOD:            (),
@@ -330,17 +363,24 @@ class Block:
         Opcode.JUMP_NCOND:         (S16,),
         Opcode.LESS_EQUALS:        (),
         Opcode.LESS_THAN:          (),
+        Opcode.LOCAL_GET:          (U16,),
+        Opcode.LOCAL_SET:          (U16,),
         Opcode.LOWER_SAME:         (),
         Opcode.LOWER_THAN:         (),
         Opcode.MULT:               (),
+        Opcode.MULTF32:            (),
+        Opcode.MULTF64:            (),
         Opcode.NOT:                (),
         Opcode.NOT_EQUALS:         (),
         Opcode.OR:                 (),
         Opcode.PRINT:              (),
         Opcode.PRINT_CHAR:         (),
+        Opcode.PRINT_FLOAT:        (),
         Opcode.PRINT_INT:          (),
         Opcode.PRINT_STRING:       (),
         Opcode.SUB:                (),
+        Opcode.SUBF32:             (),
+        Opcode.SUBF64:             (),
         Opcode.SWAP:               (),
         Opcode.SWAP_COMPS8:        (S8,  S8),
         Opcode.SWAP_COMPS16:       (S16, S16),
@@ -357,6 +397,20 @@ class Block:
         Opcode.ZX16L:              (),
         Opcode.ZX32:               (),
         Opcode.ZX32L:              (),
+        Opcode.FPROM:              (),
+        Opcode.FPROML:             (),
+        Opcode.FDEM:               (),
+        Opcode.ICONVF32:           (),
+        Opcode.ICONVF32L:          (),
+        Opcode.ICONVF64:           (),
+        Opcode.ICONVF64L:          (),
+        Opcode.FCONVI32:           (),
+        Opcode.FCONVI64:           (),
+        Opcode.ICONVC32:           (),
+        Opcode.CHAR_8CONV32:       (),
+        Opcode.CHAR_32CONV8:       (),
+        Opcode.CHAR_16CONV32:      (),
+        Opcode.CHAR_32CONV16:      (),
         Opcode.PACK1:              (U8,) * 1,
         Opcode.PACK2:              (U8,) * 2,
         Opcode.PACK3:              (U8,) * 3,
