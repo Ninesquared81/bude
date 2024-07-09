@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -Wall -g -D__USE_MINGW_STDIO=1
+CFLAGS = -Wall -g -D__USE_MINGW_ANSI_STDIO=1
 
 .PHONY: all
 
