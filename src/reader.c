@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "bwf.h"
 #include "ir.h"
 #include "function.h"
 #include "location.h"
@@ -12,7 +13,7 @@
 #include "string_view.h"
 
 
-#define BWF_version_number 1
+#define reader_version_number 2
 
 
 static int parse_header(FILE *f) {
@@ -77,7 +78,7 @@ struct module read_bytecode(const char *filename) {
     }
     int version_number = parse_header(f);
     if (version_number <= 0) goto error;  // Error parsing header.
-    if (version_number > BWF_version_number) {
+    if (version_number > reader_version_number) {
         fprintf(stderr, "BWF version number %d not supported.\n", version_number);
         goto error;
     }

@@ -1,9 +1,11 @@
 #include <stdio.h>
 
+#include "bwf.h"
 #include "module.h"
 #include "writer.h"
 
-#define BWF_version_number 1
+#define writer_version_number 2
+
 
 void display_bytecode(struct module *module, FILE *f) {
     for (int i = 0; i < module->strings.count; ++i) {
@@ -61,20 +63,6 @@ int write_bytecode(struct module *module, FILE *f) {
 }
 
 int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
-    /* Structure:
-     * HEADER
-     *   magic-number:`BudeBWF` version-number:char[] `\n`
-     * DATA-INFO
-     *   string-count:s32
-     *   function-count:s32
-     * DATA
-     *   STRING-TABLE
-     *     size:u32 contents:byte[]
-     *     ...
-     *   FUNCTION-TABLE
-     *     size:s32 contents:byte[]
-     *     ...
-     */
     /* HEADER */
     fprintf(f, "BudeBWFv%d\n", version_number);
     /* DATA-INFO */
