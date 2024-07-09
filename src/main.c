@@ -13,6 +13,7 @@
 #include "ir.h"
 #include "memory.h"
 //#include "optimiser.h"
+#include "reader.h"
 #include "stack.h"
 #include "type_checker.h"
 #include "writer.h"
@@ -29,6 +30,7 @@ struct cmdopts {
     bool interpret;
     bool generate_asm;
     bool generate_bytecode;
+    bool from_bytecode;
     // Parameterised options.
     const char *output_filename;
     // Positional Args
@@ -47,6 +49,8 @@ static void print_help(FILE *file, const char *name) {
             "Options:\n"
             "  -a                generate assembly code\n"
             "  -b                generate bytecode only\n"
+            "  -B                load bytecode from a BudeBWF file instead of "
+                                       "a Bude source code file.\n"
             "  -d, --dump        dump the generated ir code and exit "
                                        "unless -i or -a are specified\n"
             "  -o <file>         write the output to the specified file\n"
@@ -70,6 +74,7 @@ static void init_cmdopts(struct cmdopts *opts) {
     opts->interpret = true;
     opts->generate_asm = false;
     opts->generate_bytecode = false;
+    opts->from_bytecode = false;
 }
 
 static void handle_positional_arg(const char *restrict name, struct cmdopts *opts,
@@ -102,6 +107,9 @@ static void parse_short_opt(const char *name, const char *arg,
             opts->generate_bytecode = true;
             opts->interpret = false;
             opts->generate_asm = false;
+            break;
+        case 'B':
+            opts->from_bytecode = true;
             break;
         case 'd':
             opts->dump_ir = true;
@@ -142,6 +150,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             switch (arg[1]) {
             case 'a':
             case 'b':
+            case 'B':
             case 'd':
             case 'h': case '?':
             case 'i':
@@ -246,29 +255,35 @@ void load_source(const char *restrict filename, char *restrict inbuf) {
 }
 
 int main(int argc, char *argv[]) {
-    char *inbuf = calloc(INPUT_BUFFER_SIZE, sizeof *inbuf);
-    CHECK_ALLOCATION(inbuf);
     struct cmdopts opts;
     parse_args(argc, argv, &opts);
-    load_source(opts.filename, inbuf);
+    struct module module = {0};
+    if (!opts.from_bytecode) {
+        char *inbuf = calloc(INPUT_BUFFER_SIZE, sizeof *inbuf);
+        CHECK_ALLOCATION(inbuf);
+        load_source(opts.filename, inbuf);
 
-    struct module module;
-    init_module(&module, opts.filename);
-    compile(inbuf, &module);
-    free(inbuf);
-    if (opts.optimise) {
-        // optimise(&module);
+        init_module(&module, opts.filename);
+
+        compile(inbuf, &module);
+        free(inbuf);
+        if (opts.optimise) {
+            // optimise(&module);
+        }
+        if (opts.dump_ir) {
+            printf("=== Before type checking: ===\n");
+            disassemble_tir(&module);
+            printf("------------------------------------------------\n");
+        }
+        struct type_checker checker;
+        init_type_checker(&checker, &module);
+        if (type_check(&checker) == TYPE_CHECK_ERROR) {
+            // Error message(s) already emitted.
+            exit(1);
+        }
     }
-    if (opts.dump_ir) {
-        printf("=== Before type checking: ===\n");
-        disassemble_tir(&module);
-        printf("------------------------------------------------\n");
-    }
-    struct type_checker checker;
-    init_type_checker(&checker, &module);
-    if (type_check(&checker) == TYPE_CHECK_ERROR) {
-        // Error message(s) already emitted.
-        exit(1);
+    else {
+        module = read_bytecode(opts.filename);
     }
     if (opts.dump_ir) {
         printf("=== After type checking: ===\n");
