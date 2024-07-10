@@ -4,7 +4,7 @@
 #include "module.h"
 #include "writer.h"
 
-#define writer_version_number 3
+#define writer_version_number 4
 
 
 void display_bytecode(struct module *module, FILE *f) {
@@ -66,12 +66,56 @@ static int write_function_entry(struct module *module, struct function *function
                                 FILE *f, int version_number) {
     (void)module;
     struct ir_block *block = &function->w_code;
-    int32_t entry_size = get_function_entry_size(block->count, version_number);
+    int32_t entry_size = get_function_entry_size(function, version_number);
     if (version_number >= 3) {
         if (fwrite(&entry_size, sizeof entry_size, 1, f) != 1) return errno;
     }
     if (fwrite(&block->count, sizeof block->count, 1, f) != 1) return errno;
     if (fwrite(block->code, 1, block->count, f) != (size_t)block->count) return errno;
+    if (version_number < 4) return 0;
+    int32_t max_for_loop_level = function->max_for_loop_level;
+    int32_t locals_size = function->locals_size;
+    int32_t local_count = function->locals.count;
+    if (fwrite(&max_for_loop_level, sizeof max_for_loop_level, 1, f) != 1) return errno;
+    if (fwrite(&locals_size, sizeof locals_size, 1, f) != 1) return errno;
+    if (fwrite(&local_count, sizeof local_count, 1, f) != 1) return errno;
+    for (int i = 0; i < local_count; ++i) {
+        int32_t type = function->locals.items[i].type;
+        if (fwrite(&type, sizeof type, 1, f) != 1) return errno;
+    }
+    return 0;
+}
+
+static int write_type_entry(struct module *module, type_index type, FILE *f, int version_number) {
+    const struct type_info *info = lookup_type(&module->types, type);
+    int32_t entry_size = get_type_entry_size(info, version_number);
+    if (fwrite(&entry_size, sizeof entry_size, 1, f) != 1) return errno;
+    int32_t kind = info->kind;
+    if (fwrite(&kind, sizeof kind, 1, f) != 1) return errno;
+    int32_t field_count = 0;
+    int32_t word_count = 1;
+    const type_index *fields = NULL;
+    switch (info->kind) {
+    case KIND_PACK:
+        field_count = info->pack.field_count;
+        fields = info->pack.fields;
+        break;
+    case KIND_COMP:
+        field_count = info->comp.field_count;
+        word_count = info->comp.word_count;
+        fields = info->comp.fields;
+        break;
+    case KIND_UNINIT:
+    case KIND_SIMPLE:
+        // Do nothing.
+        break;
+    }
+    if (fwrite(&field_count, sizeof field_count, 1, f) != 1) return errno;
+    if (fwrite(&word_count, sizeof word_count, 1, f) != 1) return errno;
+    for (int i = 0; i < field_count; ++i) {
+        int32_t field_type = fields[i];
+        if (fwrite(&field_type, sizeof field_type, 1, f) != 1) return errno;
+    }
     return 0;
 }
 
@@ -87,6 +131,11 @@ int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     int32_t function_count = module->functions.count;
     if (fwrite(&string_count, sizeof string_count, 1, f) != 1) return errno;
     if (fwrite(&function_count, sizeof function_count, 1, f) != 1) return errno;
+    int32_t ud_type_count = module->types.count + SIMPLE_TYPE_COUNT + BUILTIN_TYPE_COUNT;
+    if (version_number < 4) goto data_section;
+    // Version 4+ fields.
+    if (fwrite(&ud_type_count, sizeof ud_type_count, 1, f) != 1) return errno;
+data_section:
     /* DATA */
     /* STRING-TABLE */
     for (int i = 0; i < module->strings.count; ++i) {
@@ -101,7 +150,12 @@ int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
         int ret = write_function_entry(module, function, f, version_number);
         if (ret != 0) return ret;
     }
-    if (version_number < 3) return 0;
-    // Version 3+ fields here...
+    if (version_number < 4) return 0;
+    /* USER-DEFINED-TYPE-TABLE */
+    for (int i = 0; i < ud_type_count; ++i) {
+        type_index type = i + SIMPLE_TYPE_COUNT + BUILTIN_TYPE_COUNT;
+        int ret = write_type_entry(module, type, f, version_number);
+        if (ret != 0) return ret;
+    }
     return 0;
 }
