@@ -46,44 +46,51 @@ def write_data_info(f: BinaryIO, module: ir.Module, version_number: int) -> None
     assert bytes_written == 4 + field_count*4, f"{bytes_written = }, {field_count*4 = }"
 
 
+def write_function(f: BinaryIO, function: ir.Function, version_number: int) -> None:
+    size = function.code.size
+    local_count = len(function.locals)
+    bytes_written = 0
+    if version_number >= 3:
+        entry_size = 4 + size
+        if version_number >= 4:
+            entry_size += 3*4 + local_count*4
+        bytes_written += write_s32(f, entry_size)
+    else:
+        entry_size = size
+    bytes_written += write_s32(f, size)
+    bytes_written += f.write(function.code.code)
+    if version_number >= 4:
+        bytes_written += write_s32(f, function.max_for_loop_level)
+        bytes_written += write_s32(f, function.locals_size)
+        bytes_written += write_s32(f, local_count)
+        for local in function.locals:
+            bytes_written += write_s32(f, local)
+    assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
+
+
+def write_ud_type(f: BinaryIO, ud_type: ir.UserDefinedType, version_number: int) -> None:
+    bytes_written = 0
+    field_count = len(ud_type.fields)
+    entry_size = 3*4 + field_count*4
+    bytes_written += write_s32(f, entry_size)
+    bytes_written += write_s32(f, ud_type.kind)
+    bytes_written += write_s32(f, field_count)
+    bytes_written += write_s32(f, ud_type.word_count)
+    for field in ud_type.fields:
+        bytes_written += write_s32(f, field)
+    assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
+
+
 def write_data(f: BinaryIO, module: ir.Module, version_number: int) -> None:
     for string in module.strings:
         write_u32(f, len(string))
         f.write(string.encode())
     for function in module.functions:
-        size = function.code.size
-        local_count = len(function.locals)
-        bytes_written = 0
-        if version_number >= 3:
-            entry_size = 4 + size
-            if version_number >= 4:
-                entry_size += 3*4 + local_count*4
-            bytes_written += write_s32(f, entry_size)
-        else:
-            entry_size = size
-        bytes_written += write_s32(f, size)
-        bytes_written += f.write(function.code.code)
-        if version_number >= 4:
-            bytes_written += write_s32(f, function.max_for_loop_level)
-            bytes_written += write_s32(f, function.locals_size)
-            bytes_written += write_s32(f, local_count)
-            for local in function.locals:
-                bytes_written += write_s32(f, local)
-        assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
+        write_function(f, function, version_number)
     if version_number < 4:
         return
     for ud_type in module.user_defined_types:
-        bytes_written = 0
-        field_count = len(ud_type.fields)
-        entry_size = 3*4 + field_count*4
-        bytes_written += write_s32(f, entry_size)
-        bytes_written += write_s32(f, ud_type.kind)
-        bytes_written += write_s32(f, field_count)
-        bytes_written += write_s32(f, ud_type.word_count)
-        for field in ud_type.fields:
-            bytes_written += write_s32(f, ud)
-        assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
-
+        write_ud_type(f, ud_type, version_number)
 
 def write_bytecode(filename: str, module: ir.Module,
                    version_number: int = CURRENT_VERSION_NUMBER) -> None:
