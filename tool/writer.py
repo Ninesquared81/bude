@@ -8,7 +8,7 @@ import sys
 import ir
 
 
-CURRENT_VERSION_NUMBER = 3
+CURRENT_VERSION_NUMBER = 4
 
 
 def get_field_count(version_number: int) -> int:
@@ -16,6 +16,7 @@ def get_field_count(version_number: int) -> int:
         1: 2,
         2: 2,
         3: 2,
+        4: 3,
     }
     return field_counts[version_number]
 
@@ -28,28 +29,49 @@ def write_data_info(module: ir.Module, version_number: int) -> bytes:
     output = bytearray()
     field_count = get_field_count(version_number)
     if version_number >= 2:
-        output.extend(field_count.to_bytes(length=4, byteorder="little", signed=True))
-    output.extend(len(module.strings).to_bytes(length=4, byteorder="little", signed=True))
-    output.extend(len(module.functions).to_bytes(length=4, byteorder="little", signed=True))
+        output.extend(field_count.to_bytes(4, "little", signed=True))
+    output.extend(len(module.strings).to_bytes(4, "little", signed=True))
+    output.extend(len(module.functions).to_bytes(4, "little", signed=True))
+    if version_number >= 4:
+        output.extend(len(module.user_defined_types).to_bytes(4, "little", signed=True))
     return bytes(output)
 
 
 def write_data(module: ir.Module, version_number: int) -> bytes:
     output = bytearray()
     for string in module.strings:
-        output.extend(len(string).to_bytes(length=4, byteorder="little"))
+        output.extend(len(string).to_bytes(4, "little"))
         output.extend(string.encode())
     for function in module.functions:
-        size = len(function.code)
+        size = function.code.size
+        local_count = len(function.locals)
         if version_number >= 3:
-            entry_size = size + 4
-            output.extend(entry_size.to_bytes(length=4, byteorder="little", signed=True))
+            entry_size = 4 + size
+            if version_number >= 4:
+                entry_size += local_count * 4
+            output.extend(entry_size.to_bytes(4, "little", signed=True))
         else:
             entry_size = size
-        output.extend(size.to_bytes(length=4, byteorder="little", signed=True))
-        output.extend(function.code)
+        output.extend(size.to_bytes(4, "little", signed=True))
+        output.extend(function.code.code)
+        if version_number >= 4:
+            output.extend(function.max_for_loop_level.to_bytes(4, "little", signed=True))
+            output.extend(function.locals_size.to_bytes(4, "little", signed=True))
+            output.extend(local_count.to_bytes(4, "little", signed=True))
+            for local in function.locals:
+                output.extend(local.to_bytes(4, "little", signed=True))
+    if version_number < 4:
+        return bytes(output)
+    for ud_type in module.user_defined_types:
+        field_count = len(ud_type.fields)
+        entry_size = 3*4 + field_count*4
+        output.extend(entry_size.to_bytes(4, "little", signed=True))
+        output.extend(ud_type.kind.to_bytes(4, "little", signed=True))
+        output.extend(field_count.to_bytes(4, "little", signed=True))
+        output.extend(ud_type.word_count.to_bytes(4, "little", signed=True))
+        for field in ud_type.fields:
+            output.extend(ud.to_bytes(4, "little", signed=True))
     return bytes(output)
-
 
 def write_bytecode(module: ir.Module, version_number: int = CURRENT_VERSION_NUMBER) -> bytes:
     """Write Bude bytecode to a BudeBWF file."""

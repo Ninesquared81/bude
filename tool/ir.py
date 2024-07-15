@@ -6,9 +6,10 @@ import abc
 import dataclasses
 import enum
 import sys
-from typing import Callable, Iterator
+from typing import Iterator
 
-import reader
+
+BUILTIN_TYPE_COUNT = 17
 
 
 class Opcode(enum.IntEnum):
@@ -311,6 +312,10 @@ class Block:
             result += operand.to_bytes(byteorder="little")
         return result
 
+    @property
+    def size(self) -> int:
+        return len(self.code)
+
     INSTRUCTION_TABLE: dict[Opcode, tuple[type(Operand), ...]] = {
         Opcode.NOP:                (),
         Opcode.PUSH8:              (U8,),
@@ -427,11 +432,11 @@ class Block:
         Opcode.UNPACK6:            (U8,) * 6,
         Opcode.UNPACK7:            (U8,) * 7,
         Opcode.UNPACK8:            (U8,) * 8,
-        Opcode.PACK_FIELD_GET:     (U8,),
+        Opcode.PACK_FIELD_GET:     (U8, U8),
         Opcode.COMP_FIELD_GET8:    (U8,),
         Opcode.COMP_FIELD_GET16:   (U16,),
         Opcode.COMP_FIELD_GET32:   (U32,),
-        Opcode.PACK_FIELD_SET:     (U8,),
+        Opcode.PACK_FIELD_SET:     (U8, U8),
         Opcode.COMP_FIELD_SET8:    (U8,),
         Opcode.COMP_FIELD_SET16:   (U16,),
         Opcode.COMP_FIELD_SET32:   (U32,),
@@ -451,18 +456,70 @@ class Block:
     }
 
 
+class TypeKind(enum.IntEnum):
+    UNINIT = -1
+    SIMPLE = enum.auto()
+    PACK   = enum.auto()
+    COMP   = enum.auto()
+
+@dataclasses.dataclass
+class UserDefinedType:
+    """A Bude 'UserDefinedType' which can be a pack or comp."""
+
+    kind: TypeKind
+    word_count: int
+    fields: list[int]
+
+    def __iter__(self):
+        return iter(self.fields)
+
+
+@dataclasses.dataclass
+class Function:
+    """A Bude 'Function' object which contains bytecode for a function and metadata."""
+
+    code: Block
+    max_for_loop_level: int
+    locals_size: int
+    locals: list[int]
+
+    def __iter__(self):
+        return iter(self.code)
+
+
+class FunctionBuilder:
+    def __init__(self) -> None:
+        self.code = bytearray()
+        self.max_for_loop_level = 0
+        self.locals_size = 0
+        self.locals = []
+
+    @classmethod
+    def from_function(cls, function: Function) -> Self:
+        builder = cls()
+        builder.code[:] = bytearray(function.code.code)
+        builder.max_for_loop_level = function.max_for_loop_level
+        builder.locals_size = function.locals_size
+        builder.locals[:] = function.locals
+        return builder
+
+    def add_instruction(self, ins: Instruction) -> None:
+        self.code.extend(Block.encode(ins))
+
+    def build(self) -> Function:
+        return Function(Block(bytes(self.code)),
+                        self.max_for_loop_level,
+                        self.locals_size,
+                        self.locals[:])
+
+
 @dataclasses.dataclass
 class Module:
     """A Bude 'Module' object which contains a list of strings and functions."""
 
     strings: list[str]
-    functions: list[Block]
-
-    @classmethod
-    def from_file(cls, filename: str) -> Self:
-        """Construct a Module directly from a BudeBWF file."""
-        strings, function_bytes = reader.read_bytecode(filename)
-        return cls(strings, [Block(func) for func in function_bytes])
+    functions: list[Function]
+    user_defined_types: list[UserDefinedType]
 
     def pprint(self, file=sys.stdout) -> None:
         print("STRINGS", file=file)
@@ -470,29 +527,49 @@ class Module:
             print(f"{i: 4}: {string!r}", file=file)
         print("FUNCTIONS", file=file)
         for i, function in enumerate(self.functions):
-            print(f"{i: 4}: ", file=file, end="")
-            print("\n      ".join(str(ins) for ins in function), file=file, end="")
-            print("", file=file)
+            print(f"{i: 4}: {{max-for-loop-level {function.max_for_loop_level}",
+                  f"locals-size {function.locals_size}",
+                  f"locals ({' '.join(str(local) for local in function.locals)})}}",
+                  file=file, sep="  ")
+            for ins in function:
+                print(f"      {ins}", file=file)
+        print("USER-DEFINED TYPES", file=file)
+        for i, ud_type in enumerate(self.user_defined_types, start=BUILTIN_TYPE_COUNT):
+            print(f"{i: 4}: {{kind {ud_type.kind.name}",
+                  f"word-count {ud_type.word_count}",
+                  f"fields ({' '.join(str(field) for field in ud_type)})}}",
+                  file=file, sep="  ")
 
 
 class ModuleBuilder:
-    def __init__(self, module: Module | None = None) -> None:
+    def __init__(self) -> None:
         self.strings = []
-        self.functions = [bytearray()]
-        if module is not None:
-            self.strings[:] = module.strings
-            self.functions[:] = (function.code for function in functions)
+        self.functions = [FunctionBuilder()]
+        self.user_defined_types = []
+
+    def from_module(cls, module: Module) -> Self:
+        builder = cls()
+        builder.strings[:] = module.strings
+        builder.functions[:] = (function.code for function in functions)
+        builder.user_defined_types[:] = module.user_defined_types
+        return builder
 
     def add_string(self, string: str) -> int:
         self.strings.append(string)
         return len(self.strings) - 1
 
     def add_instruction(self, ins: Instruction) -> None:
-        self.functions[-1].extend(Block.encode(ins))
+        self.functions[-1].add_instruction(ins)
 
     def new_function(self) -> int:
         self.functions.append(bytearray())
         return len(self.functions) - 1
 
+    def add_type(self, ud_type: UserDefinedType) -> int:
+        self.user_defined_types.append(ud_type)
+        return len(self.user_defined_types) - 1
+
     def build(self) -> Module:
-        return Module(self.strings[:], [Block(bytes(function)) for function in self.functions])
+        return Module(self.strings[:],
+                      [function.build() for function in self.functions],
+                      self.user_defined_types[:])
