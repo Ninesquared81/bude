@@ -4,6 +4,7 @@
 import argparse
 import ast
 import sys
+from typing import BinaryIO
 
 import ir
 
@@ -21,65 +22,76 @@ def get_field_count(version_number: int) -> int:
     return field_counts[version_number]
 
 
-def write_header(version_number: int) -> bytes:
-    return f"BudeBWFv{version_number}\n".encode()
+def write_s32(f: BinaryIO, n: int) -> int:
+    return f.write(n.to_bytes(4, "little", signed=True))
 
 
-def write_data_info(module: ir.Module, version_number: int) -> bytes:
-    output = bytearray()
+def write_u32(f: BinaryIO, n: int) -> int:
+    return f.write(n.to_bytes(4, "little"))
+
+
+def write_header(f: BinaryIO, version_number: int) -> None:
+    f.write(f"BudeBWFv{version_number}\n".encode())
+
+
+def write_data_info(f: BinaryIO, module: ir.Module, version_number: int) -> None:
     field_count = get_field_count(version_number)
+    bytes_written = 0
     if version_number >= 2:
-        output.extend(field_count.to_bytes(4, "little", signed=True))
-    output.extend(len(module.strings).to_bytes(4, "little", signed=True))
-    output.extend(len(module.functions).to_bytes(4, "little", signed=True))
+        bytes_written += write_s32(f, field_count)
+    bytes_written += write_s32(f, len(module.strings))
+    bytes_written += write_s32(f, len(module.functions))
     if version_number >= 4:
-        output.extend(len(module.user_defined_types).to_bytes(4, "little", signed=True))
-    return bytes(output)
+        bytes_written += write_s32(f, len(module.user_defined_types))
+    assert bytes_written == 4 + field_count*4, f"{bytes_written = }, {field_count*4 = }"
 
 
-def write_data(module: ir.Module, version_number: int) -> bytes:
-    output = bytearray()
+def write_data(f: BinaryIO, module: ir.Module, version_number: int) -> None:
     for string in module.strings:
-        output.extend(len(string).to_bytes(4, "little"))
-        output.extend(string.encode())
+        write_u32(f, len(string))
+        f.write(string.encode())
     for function in module.functions:
         size = function.code.size
         local_count = len(function.locals)
+        bytes_written = 0
         if version_number >= 3:
             entry_size = 4 + size
             if version_number >= 4:
-                entry_size += local_count * 4
-            output.extend(entry_size.to_bytes(4, "little", signed=True))
+                entry_size += 3*4 + local_count*4
+            bytes_written += write_s32(f, entry_size)
         else:
             entry_size = size
-        output.extend(size.to_bytes(4, "little", signed=True))
-        output.extend(function.code.code)
+        bytes_written += write_s32(f, size)
+        bytes_written += f.write(function.code.code)
         if version_number >= 4:
-            output.extend(function.max_for_loop_level.to_bytes(4, "little", signed=True))
-            output.extend(function.locals_size.to_bytes(4, "little", signed=True))
-            output.extend(local_count.to_bytes(4, "little", signed=True))
+            bytes_written += write_s32(f, function.max_for_loop_level)
+            bytes_written += write_s32(f, function.locals_size)
+            bytes_written += write_s32(f, local_count)
             for local in function.locals:
-                output.extend(local.to_bytes(4, "little", signed=True))
+                bytes_written += write_s32(f, local)
+        assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
     if version_number < 4:
-        return bytes(output)
+        return
     for ud_type in module.user_defined_types:
+        bytes_written = 0
         field_count = len(ud_type.fields)
         entry_size = 3*4 + field_count*4
-        output.extend(entry_size.to_bytes(4, "little", signed=True))
-        output.extend(ud_type.kind.to_bytes(4, "little", signed=True))
-        output.extend(field_count.to_bytes(4, "little", signed=True))
-        output.extend(ud_type.word_count.to_bytes(4, "little", signed=True))
+        bytes_written += write_s32(f, entry_size)
+        bytes_written += write_s32(f, ud_type.kind)
+        bytes_written += write_s32(f, field_count)
+        bytes_written += write_s32(f, ud_type.word_count)
         for field in ud_type.fields:
-            output.extend(ud.to_bytes(4, "little", signed=True))
-    return bytes(output)
+            bytes_written += write_s32(f, ud)
+        assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
 
-def write_bytecode(module: ir.Module, version_number: int = CURRENT_VERSION_NUMBER) -> bytes:
+
+def write_bytecode(filename: str, module: ir.Module,
+                   version_number: int = CURRENT_VERSION_NUMBER) -> None:
     """Write Bude bytecode to a BudeBWF file."""
-    output = bytearray()
-    output += write_header(version_number)
-    output += write_data_info(module, version_number)
-    output += write_data(module, version_number)
-    return bytes(output)
+    with open(filename, "wb") as f:
+        write_header(f, version_number)
+        write_data_info(f, module, version_number)
+        write_data(f, module, version_number)
 
 
 def parse_instruction(src: str) -> ir.Instruction:
@@ -132,9 +144,7 @@ def main() -> None:
     module = module_builder.build()
     if args.verbose:
         module.pprint()
-    output = write_bytecode(module)
-    with open(args.filename, "wb") as f:
-        f.write(output)
+    write_bytecode(args.filename, module)
 
 if __name__ == "__main__":
     main()
