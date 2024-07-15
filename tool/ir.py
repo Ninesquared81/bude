@@ -550,7 +550,8 @@ class ModuleBuilder:
     def from_module(cls, module: Module) -> Self:
         builder = cls()
         builder.strings[:] = module.strings
-        builder.functions[:] = (function.code for function in functions)
+        builder.functions[:] = (FunctionBuilder.from_function(function)
+                                for function in module.functions)
         builder.user_defined_types[:] = module.user_defined_types
         return builder
 
@@ -562,7 +563,7 @@ class ModuleBuilder:
         self.functions[-1].add_instruction(ins)
 
     def new_function(self) -> int:
-        self.functions.append(bytearray())
+        self.functions.append(FunctionBuilder())
         return len(self.functions) - 1
 
     def add_type(self, ud_type: UserDefinedType) -> int:
