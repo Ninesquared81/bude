@@ -46,11 +46,11 @@ int get_type_entry_size(const struct type_info *info, int version_number) {
         switch (info->kind) {
         case KIND_UNINIT:
         case KIND_SIMPLE:
-            return 3*8;
+            return 3*4;
         case KIND_PACK:
-            return 3*8 + info->pack.field_count;
+            return 3*4 + info->pack.field_count*4;
         case KIND_COMP:
-            return 3*8 + info->comp.field_count;
+            return 3*4 + info->comp.field_count*4;
         }
         break;
     default:
