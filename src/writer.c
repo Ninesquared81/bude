@@ -131,7 +131,7 @@ int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     int32_t function_count = module->functions.count;
     if (fwrite(&string_count, sizeof string_count, 1, f) != 1) return errno;
     if (fwrite(&function_count, sizeof function_count, 1, f) != 1) return errno;
-    int32_t ud_type_count = module->types.count + SIMPLE_TYPE_COUNT + BUILTIN_TYPE_COUNT;
+    int32_t ud_type_count = module->types.count - BUILTIN_TYPE_COUNT;
     if (version_number < 4) goto data_section;
     // Version 4+ fields.
     if (fwrite(&ud_type_count, sizeof ud_type_count, 1, f) != 1) return errno;
