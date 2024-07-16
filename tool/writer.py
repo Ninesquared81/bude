@@ -3,6 +3,7 @@
 
 import argparse
 import ast
+import itertools
 import sys
 from typing import BinaryIO
 
@@ -116,15 +117,83 @@ def parse_instruction(src: str) -> ir.Instruction:
     return ir.Instruction(op, *[t(operand) for t, operand in zip(operand_types, operands)])
 
 
+def parse_beech(src: str) -> tuple[dict|list|str, str]:
+    src = src.strip()
+    if src.startswith("{"):
+        src = src.removeprefix("{")
+        d = {}
+        while src and src[0] != "}":
+            try:
+                key, rest = src.split(maxsplit=1)
+            except ValueError:
+                raise ValueError("Expected key-value pair")
+            value, src = parse_beech(rest)
+            d[key] = value
+        if not src:
+            raise ValueError("Unterminated tree")
+        return d, src.removeprefix("}")
+    if src.startswith("("):
+        src = src.removeprefix("(")
+        lst = []
+        while src and src[0] != ")":
+            value, src = parse_beech(src)
+            lst.append(value)
+        if not src:
+            raise ValueError("Unterminated list")
+        return lst, src.removeprefix(")")
+    try:
+        value, *rest = src.split(maxsplit=1)
+    except ValueError:
+        raise ValueError("Expected value")
+    brackets = []
+    while value.endswith("}") or value.endswith(")"):
+        brackets.append(value[-1])
+        value = value[:-1]
+    src = "".join(itertools.chain(reversed(brackets), rest))
+    return value, src
+
+
 def parse_new(args: str, module_builder: ir.ModuleBuilder) -> None:
     args = args.strip()
     match args.split(maxsplit=1):
         case ["string", literal]:
-            idx = module_builder.add_string(ast.literal_eval(literal))
-            print(f"New string created: {idx}.")
-        case ["function"]:
+            try:
+                string = ast.literal_eval(literal)
+            except (ValueError, SyntaxError) as e:
+                print(f"Failed to parse string: {e}", file=sys.stderr)
+            else:
+                idx = module_builder.add_string(string)
+                print(f"New string created: {idx}.", file=sys.stderr)
+        case ["function", *_]:
             idx = module_builder.new_function()
-            print(f"New function created: {idx}.")
+            print(f"New function created: {idx}.", file=sys.stderr)
+        case ["type", rest]:
+            rest = rest.strip()
+            if not (rest.startswith("{") and rest.endswith("}")):
+                print(f"Type must be enclosed in '{'...'}'", file=sys.stderr)
+                return
+            try:
+                type_dict, _ = parse_beech(rest)
+            except ValueError as e:
+                print(f"Failed to parse type: {e}")
+            assert(isinstance(type_dict, dict))
+            try:
+                ud_type = ir.UserDefinedType(
+                    kind=ir.TypeKind[type_dict["kind"].upper()],
+                    word_count=int(type_dict["word_count"]),
+                    fields=[int(field) for field in type_dict["fields"]]
+                )
+            except ValueError as e:
+                print(f"Failed to parse type: {e}", file=sys.stderr)
+            except KeyError as e:
+                print(f"Unknown key {e}")
+            else:
+                idx = module_builder.add_type(ud_type)
+                print(f"New type created: {idx+ir.BUILTIN_TYPE_COUNT}", file=sys.stderr)
+        case ["string"]:
+            print(f"No string literal provided", file=sys.stderr)
+        case [other, *_]:
+            print(f"Unknown target {other!r}", file=sys.stderr)
 
 
 def main() -> None:
@@ -152,6 +221,7 @@ def main() -> None:
     if args.verbose:
         module.pprint()
     write_bytecode(args.filename, module)
+
 
 if __name__ == "__main__":
     main()
