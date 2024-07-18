@@ -15,7 +15,6 @@ struct ext_function {
     struct signature sig;
     struct string_view name;
     enum calling_convention call_conv;
-    int lib_index;
 };
 
 struct external_table {
