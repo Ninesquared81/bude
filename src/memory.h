@@ -13,6 +13,13 @@
         exit(1);                                                 \
         }} while (0)
 
+#define CHECK_ARRAY_ALLOCATION(ptr, count)                              \
+    do {if (ptr == NULL && count != 0) {                                \
+            fprintf(stderr, "Failed to allocate %zu objects in %s on line %d.\n", \
+                    (size_t)count, __FILE__, __LINE__ - 1);             \
+            exit(1);                                                    \
+        }} while (0)                                                    \
+
 #define DARRAY_INIT_SIZE 8
 
 #define INIT_DARRAY(da, init_size)                                      \
