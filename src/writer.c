@@ -124,6 +124,46 @@ static int write_type_entry(struct module *module, type_index type, FILE *f, int
     return 0;
 }
 
+static int write_ext_function_entry(struct module *module, struct ext_function *external,
+                                    FILE *f, int version_number) {
+    int32_t entry_size = get_ext_function_entry_size(external, version_number);
+    WRITE_OR_ERR(entry_size, f, errno);
+    int32_t param_count = external->sig.param_count;
+    int32_t ret_count = external->sig.ret_count;
+    WRITE_OR_ERR(param_count, f, errno);
+    WRITE_OR_ERR(ret_count, f, errno);
+    for (int i = 0; i < param_count; ++i) {
+        int32_t param_type = external->sig.params[i];
+        WRITE_OR_ERR(param_type, f, errno);
+    }
+    for (int i = 0; i < ret_count; ++i) {
+        int32_t ret_type = external->sig.rets[i];
+        WRITE_OR_ERR(ret_type, f, errno);
+    }
+    int32_t name_index = find_string(module, &external->name);
+    assert(name_index > 0);
+    int32_t call_conv = external->call_conv;
+    WRITE_OR_ERR(name_index, f, errno);
+    WRITE_OR_ERR(call_conv, f, errno);
+    return 0;
+}
+
+static int write_ext_library_entry(struct module *module, struct ext_library *library,
+                                   FILE *f, int version_number) {
+    int32_t entry_size = get_ext_library_entry_size(library, version_number);
+    WRITE_OR_ERR(entry_size, f, errno);
+    int32_t external_count = library->count;
+    WRITE_OR_ERR(external_count, f, errno);
+    for (int i = 0; i < external_count; ++i) {
+        int32_t external_index = library->items[i];
+        WRITE_OR_ERR(external_index, f, errno);
+    }
+    int32_t filename_index = find_string(module, &library->filename);
+    assert(filename_index > 0);
+    WRITE_OR_ERR(filename_index, f, errno);
+    return 0;
+}
+
 int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     /* HEADER */
     fprintf(f, "BudeBWFv%d\n", version_number);
@@ -160,6 +200,19 @@ data_section:
     for (int i = 0; i < ud_type_count; ++i) {
         type_index type = i + SIMPLE_TYPE_COUNT + BUILTIN_TYPE_COUNT;
         int ret = write_type_entry(module, type, f, version_number);
+        if (ret != 0) return ret;
+    }
+    if (version_number < 5) return 0;
+    /* EXTERNAL-FUNCTION-TABLE */
+    for (int i = 0; i < di.ext_function_count; ++i) {
+        struct ext_function *external = &module->externals.items[i];
+        int ret = write_ext_function_entry(module, external, f, version_number);
+        if (ret != 0) return ret;
+    }
+    /* EXTERNAL-LIBRARY-TABLE */
+    for (int i = 0; i < di.ext_library_count; ++i) {
+        struct ext_library *library = &module->ext_libraries.items[i];
+        int ret = write_ext_library_entry(module, library, f, version_number);
         if (ret != 0) return ret;
     }
     return 0;
