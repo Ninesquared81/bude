@@ -83,6 +83,15 @@
 #include "type.h"
 
 
+struct data_info {
+    int32_t string_count;
+    int32_t function_count;
+    int32_t ud_type_count;
+    int32_t ext_function_count;
+    int32_t ext_library_count;
+};
+
+
 int get_field_count(int version_number);
 int get_function_entry_size(struct function *function, int version_number);
 int get_type_entry_size(const struct type_info *info, int version_number);

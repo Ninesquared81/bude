@@ -15,14 +15,6 @@
 
 #define reader_version_number 5
 
-struct data_info {
-    int string_count;
-    int function_count;
-    int ud_type_count;
-    int ext_function_count;
-    int ext_library_count;
-};
-
 
 static int parse_header(FILE *f) {
     static char header_buffer[1024] = {0};

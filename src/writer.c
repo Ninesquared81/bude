@@ -14,15 +14,6 @@
     if (WRITE(obj, f) != 1) return err_ret
 
 
-struct data_info {
-    int32_t string_count;
-    int32_t function_count;
-    int32_t ud_type_count;
-    int32_t ext_function_count;
-    int32_t ext_library_count;
-};
-
-
 void display_bytecode(struct module *module, FILE *f) {
     for (int i = 0; i < module->strings.count; ++i) {
         struct string_view *sv = &module->strings.items[i];
