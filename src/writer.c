@@ -5,6 +5,11 @@
 #include "writer.h"
 
 #define writer_version_number 4
+#define WRITE(obj, f) \
+    fwrite(&obj, sizeof obj, 1, f)
+
+#define WRITE_OR_ERR(obj, f, err_ret) \
+    if (WRITE(obj, f) != 1) return err_ret
 
 
 void display_bytecode(struct module *module, FILE *f) {
@@ -68,7 +73,7 @@ static int write_function_entry(struct module *module, struct function *function
     struct ir_block *block = &function->w_code;
     int32_t entry_size = get_function_entry_size(function, version_number);
     if (version_number >= 3) {
-        if (fwrite(&entry_size, sizeof entry_size, 1, f) != 1) return errno;
+        WRITE_OR_ERR(entry_size, f, errno);
     }
     if (fwrite(&block->count, sizeof block->count, 1, f) != 1) return errno;
     if (fwrite(block->code, 1, block->count, f) != (size_t)block->count) return errno;
@@ -76,12 +81,12 @@ static int write_function_entry(struct module *module, struct function *function
     int32_t max_for_loop_level = function->max_for_loop_level;
     int32_t locals_size = function->locals_size;
     int32_t local_count = function->locals.count;
-    if (fwrite(&max_for_loop_level, sizeof max_for_loop_level, 1, f) != 1) return errno;
-    if (fwrite(&locals_size, sizeof locals_size, 1, f) != 1) return errno;
-    if (fwrite(&local_count, sizeof local_count, 1, f) != 1) return errno;
+    WRITE_OR_ERR(max_for_loop_level, f, errno);
+    WRITE_OR_ERR(locals_size, f, errno);
+    WRITE_OR_ERR(local_count, f, errno);
     for (int i = 0; i < local_count; ++i) {
         int32_t type = function->locals.items[i].type;
-        if (fwrite(&type, sizeof type, 1, f) != 1) return errno;
+        WRITE_OR_ERR(type, f, errno);
     }
     return 0;
 }
@@ -89,9 +94,9 @@ static int write_function_entry(struct module *module, struct function *function
 static int write_type_entry(struct module *module, type_index type, FILE *f, int version_number) {
     const struct type_info *info = lookup_type(&module->types, type);
     int32_t entry_size = get_type_entry_size(info, version_number);
-    if (fwrite(&entry_size, sizeof entry_size, 1, f) != 1) return errno;
+    WRITE_OR_ERR(entry_size, f, errno);
     int32_t kind = info->kind;
-    if (fwrite(&kind, sizeof kind, 1, f) != 1) return errno;
+    WRITE_OR_ERR(kind, f, errno);
     int32_t field_count = 0;
     int32_t word_count = 1;
     const type_index *fields = NULL;
@@ -110,11 +115,11 @@ static int write_type_entry(struct module *module, type_index type, FILE *f, int
         // Do nothing.
         break;
     }
-    if (fwrite(&field_count, sizeof field_count, 1, f) != 1) return errno;
-    if (fwrite(&word_count, sizeof word_count, 1, f) != 1) return errno;
+    WRITE_OR_ERR(field_count, f, errno);
+    WRITE_OR_ERR(word_count, f, errno);
     for (int i = 0; i < field_count; ++i) {
         int32_t field_type = fields[i];
-        if (fwrite(&field_type, sizeof field_type, 1, f) != 1) return errno;
+        WRITE_OR_ERR(field_type, f, errno);
     }
     return 0;
 }
