@@ -4,7 +4,9 @@
 #include "module.h"
 #include "writer.h"
 
-#define writer_version_number 4
+#define writer_version_number 5
+
+
 #define WRITE(obj, f) \
     fwrite(&obj, sizeof obj, 1, f)
 
