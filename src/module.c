@@ -3,6 +3,7 @@
 
 #include "memory.h"
 #include "module.h"
+#include "string_view.h"
 
 #ifndef MODULE_REGION_SIZE
 #define MODULE_REGION_SIZE 1024
@@ -54,4 +55,11 @@ struct string_view *read_string(struct module *module, int index) {
     assert(index >= 0);
     assert(index < module->strings.count);
     return &module->strings.items[index];
+}
+
+int find_string(struct module *module, const struct string_view *view) {
+    for (int i = 0; i < module->strings.count; ++i) {
+        if (sv_eq(&module->strings.items[i], view)) return i;
+    }
+    return -1;
 }

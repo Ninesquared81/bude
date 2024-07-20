@@ -31,5 +31,6 @@ void free_module(struct module *module);
 
 int write_string(struct module *module, struct string_builder *builder);
 struct string_view *read_string(struct module *module, int index);
+int find_string(struct module *module, const struct string_view *view);
 
 #endif
