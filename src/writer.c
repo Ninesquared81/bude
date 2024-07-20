@@ -12,6 +12,15 @@
     if (WRITE(obj, f) != 1) return err_ret
 
 
+struct data_info {
+    int32_t string_count;
+    int32_t function_count;
+    int32_t ud_type_count;
+    int32_t ext_function_count;
+    int32_t ext_library_count;
+};
+
+
 void display_bytecode(struct module *module, FILE *f) {
     for (int i = 0; i < module->strings.count; ++i) {
         struct string_view *sv = &module->strings.items[i];
@@ -65,6 +74,23 @@ void display_bytecode(struct module *module, FILE *f) {
 
 int write_bytecode(struct module *module, FILE *f) {
     return write_bytecode_ex(module, f, BWF_version_number);
+}
+
+static int write_data_info(struct data_info di, FILE *f, int version_number) {
+    int32_t field_count = get_field_count(version_number);
+    if (version_number >= 2) {
+        WRITE_OR_ERR(field_count, f, errno);
+    }
+    WRITE_OR_ERR(di.string_count, f, errno);
+    WRITE_OR_ERR(di.function_count, f, errno);
+    if (version_number < 4) return 0;
+    // Version 4+ fields.
+    WRITE_OR_ERR(di.ud_type_count, f, errno);
+    if (version_number < 5) return 0;
+    // Version 5+ fields.
+    WRITE_OR_ERR(di.ext_function_count, f, errno);
+    WRITE_OR_ERR(di.ext_library_count , f, errno);
+    return 0;
 }
 
 static int write_function_entry(struct module *module, struct function *function,
@@ -168,36 +194,32 @@ int write_bytecode_ex(struct module *module, FILE *f, int version_number) {
     /* HEADER */
     fprintf(f, "BudeBWFv%d\n", version_number);
     /* DATA-INFO */
-    int32_t field_count = get_field_count(version_number);
-    if (version_number >= 2) {
-        if (fwrite(&field_count, sizeof field_count, 1, f) != 1) return errno;
-    }
-    int32_t string_count = module->strings.count;
-    int32_t function_count = module->functions.count;
-    if (fwrite(&string_count, sizeof string_count, 1, f) != 1) return errno;
-    if (fwrite(&function_count, sizeof function_count, 1, f) != 1) return errno;
-    int32_t ud_type_count = module->types.count - BUILTIN_TYPE_COUNT;
-    if (version_number < 4) goto data_section;
-    // Version 4+ fields.
-    if (fwrite(&ud_type_count, sizeof ud_type_count, 1, f) != 1) return errno;
-data_section:
+    struct data_info di = {
+        .string_count       = module->strings.count,
+        .function_count     = module->functions.count,
+        .ud_type_count      = module->types.count - BUILTIN_TYPE_COUNT,
+        .ext_function_count = module->externals.count,
+        .ext_library_count  = module->ext_libraries.count,
+    };
+    int ret = write_data_info(di, f, version_number);
+    if (ret != 0) return ret;
     /* DATA */
     /* STRING-TABLE */
-    for (int i = 0; i < module->strings.count; ++i) {
+    for (int i = 0; i < di.string_count; ++i) {
         struct string_view *sv = &module->strings.items[i];
         uint32_t length = sv->length;
-        if (fwrite(&length, sizeof length, 1, f) != 1) return errno;
+        WRITE_OR_ERR(length, f, errno);
         if (fprintf(f, "%"PRI_SV, SV_FMT(*sv)) != (int)sv->length) return errno;
     }
     /* FUNCTION-TABLE */
-    for (int i = 0; i < module->functions.count; ++i) {
+    for (int i = 0; i < di.function_count; ++i) {
         struct function *function = &module->functions.items[i];
         int ret = write_function_entry(module, function, f, version_number);
         if (ret != 0) return ret;
     }
     if (version_number < 4) return 0;
     /* USER-DEFINED-TYPE-TABLE */
-    for (int i = 0; i < ud_type_count; ++i) {
+    for (int i = 0; i < di.ud_type_count; ++i) {
         type_index type = i + SIMPLE_TYPE_COUNT + BUILTIN_TYPE_COUNT;
         int ret = write_type_entry(module, type, f, version_number);
         if (ret != 0) return ret;
