@@ -345,7 +345,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
     }
     asm_write_inst2(assembly, "sub", "rsp", "32");  // Shadow space.
     asm_write_inst1f(assembly, "call", "[%"PRI_SV"]", SV_FMT(external->name));
-    asm_write_inst2f(assembly, "lea", "rsp", "[rbp+%d]", param_count);
+    asm_write_inst2f(assembly, "lea", "rsp", "[rbp+%d]", 8 * param_count);
     if (overlong_ret) {
         int word_count = type_word_count(types, ret_type);
         aux_alloc_count += word_count;
