@@ -270,7 +270,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
     switch (param_count - offset + overlong_ret) {
     case 4: {
         type_index type = params[3 - overlong_ret];
-        if (is_integral(type) || is_pack(types, type)) {
+        if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
             asm_write_inst2f(assembly, "mov", "r9", "[rbp+%d]", 8 * offset);
         }
         else if (is_float(type)) {
@@ -286,7 +286,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         /* Fallthrough */
     case 3: {
         type_index type = params[2 - overlong_ret];
-        if (is_integral(type) || is_pack(types, type)) {
+        if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
             asm_write_inst2f(assembly, "mov", "r8", "[rbp+%d]", 8 * offset);
         }
         else if (is_float(type)) {
@@ -302,7 +302,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         /* Fallthrough */
     case 2: {
         type_index type = params[1 - overlong_ret];
-        if (is_integral(type) || is_pack(types, type)) {
+        if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
             asm_write_inst2f(assembly, "mov", "rdx", "[rbp+%d]", 8 * offset);
         }
         else if (is_float(type)) {
@@ -319,7 +319,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
     case 1:
         if (!overlong_ret) {
             type_index type = params[0];
-            if (is_integral(type) || is_pack(types, type)) {
+            if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
                 asm_write_inst2f(assembly, "mov", "rcx", "[rbp+%d]", 8 * offset);
             }
             else if (is_float(type)) {
