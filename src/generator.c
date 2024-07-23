@@ -266,70 +266,49 @@ static void generate_external_call_ms_x64(struct generator *generator,
             asm_write_inst1(assembly, "push", "rax");  // Pointer to start of comp.
         }
     }
+#define WRITE_REGISTER_PARAM(type, intreg, floatreg)                    \
+    do {                                                                \
+        int word_count = type_word_count(types, type);                  \
+        assert(word_count > 0);                                         \
+        if (word_count == 1 && !is_float(type)) {                       \
+            asm_write_inst2f(assembly, "mov", intreg, "[rbp+%d]", 8 * offset); \
+            }                                                           \
+        else if (type == TYPE_F32) {                                    \
+            asm_write_inst2f(assembly, "movd", floatreg, "dword [rbp+%d]", 8 * offset); \
+        }                                                               \
+        else if (type == TYPE_F64) {                                    \
+            asm_write_inst2f(assembly, "movq", floatreg, "qword [rbp+%d", 8 * offset); \
+        }                                                               \
+        else {                                                          \
+            move_comp_to_aux(generator, type, offset);                  \
+            aux_alloc_count += word_count;                              \
+            asm_write_inst2f(assembly, "lea", "r9", "[rsi-%d]", 8 * word_count); \
+        }                                                               \
+    } while (0)
     /* It turns out switch fallthrough is useful in some rare cases. */
     switch (param_count - offset + overlong_ret) {
     case 4: {
         type_index type = params[3 - overlong_ret];
-        if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
-            asm_write_inst2f(assembly, "mov", "r9", "[rbp+%d]", 8 * offset);
-        }
-        else if (is_float(type)) {
-            asm_write_inst2f(assembly, "mov", "xmm3", "[rbp+%d]", 8 * offset);
-        }
-        else {
-            int word_count = move_comp_to_aux(generator, type, offset);
-            aux_alloc_count += word_count;
-            asm_write_inst2f(assembly, "lea", "r9", "[rsi-%d]", 8 * word_count);
-        }
+        WRITE_REGISTER_PARAM(type, "r9", "xmm3");
         ++offset;
     }
         /* Fallthrough */
     case 3: {
         type_index type = params[2 - overlong_ret];
-        if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
-            asm_write_inst2f(assembly, "mov", "r8", "[rbp+%d]", 8 * offset);
-        }
-        else if (is_float(type)) {
-            asm_write_inst2f(assembly, "mov", "xmm2", "[rbp+%d]", 8 * offset);
-        }
-        else {
-            int word_count = move_comp_to_aux(generator, type, offset);
-            aux_alloc_count += word_count;
-            asm_write_inst2f(assembly, "lea", "r8", "[rsi-%d]", 8 * word_count);
-        }
+        WRITE_REGISTER_PARAM(type, "r8", "xmm2");
         ++offset;
     }
         /* Fallthrough */
     case 2: {
         type_index type = params[1 - overlong_ret];
-        if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
-            asm_write_inst2f(assembly, "mov", "rdx", "[rbp+%d]", 8 * offset);
-        }
-        else if (is_float(type)) {
-            asm_write_inst2f(assembly, "mov", "xmm1", "[rbp+%d]", 8 * offset);
-        }
-        else {
-            int word_count = move_comp_to_aux(generator, type, offset);
-            aux_alloc_count += word_count;
-            asm_write_inst2f(assembly, "lea", "rdx", "[rsi-%d]", 8 * word_count);
-        }
+        WRITE_REGISTER_PARAM(type, "rdx", "xmm1");
         ++offset;
     }
         /* Fallthrough */
     case 1:
         if (!overlong_ret) {
             type_index type = params[0];
-            if (is_integral(type) || is_pack(types, type) || type == TYPE_PTR) {
-                asm_write_inst2f(assembly, "mov", "rcx", "[rbp+%d]", 8 * offset);
-            }
-            else if (is_float(type)) {
-                asm_write_inst2f(assembly, "mov", "xmm0", "[rbp+%d]", 8 * offset);
-            }
-            else {
-                int word_count = move_comp_to_aux(generator, type, offset);
-                aux_alloc_count += word_count;
-                asm_write_inst2f(assembly, "lea", "rcx", "[rsi-%d]", 8 * word_count);
-            }
+            WRITE_REGISTER_PARAM(type, "rcx", "xmm0");
         }
         else {
             int word_count = type_word_count(types, ret_type);
@@ -343,6 +322,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
     default:
         assert(0 && "Unreachable");
     }
+#undef WRITE_REGISTER_PARAM
     asm_write_inst2(assembly, "sub", "rsp", "32");  // Shadow space.
     asm_write_inst1f(assembly, "call", "[%"PRI_SV"]", SV_FMT(external->name));
     asm_write_inst2f(assembly, "lea", "rsp", "[rbp+%d]", 8 * param_count);
