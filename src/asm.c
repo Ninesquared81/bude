@@ -64,10 +64,13 @@ static bool can_be_in_fasm_string(char c) {
     return ' ' <= c && c <= '~';  // ASCII only.
 }
 
-void asm_write_string(struct asm_block *assembly, const char *restrict string) {
+void asm_write_sv(struct asm_block *assembly, const struct string_view *sv) {
+    const char *string = sv->start;
+    const char *end = SV_END(*sv);
     char opener = (*string == '"') ? '\'' : '"';
     asm_write(assembly, "%c", opener);
-    for (char c = *string; c != '\0'; c = *++string) {
+    for (; string != end; ++string) {
+        char c = *string;
         if (can_be_in_fasm_string(c)) {
             if (c != opener) {
                 asm_write(assembly, "%c", c);
@@ -82,11 +85,10 @@ void asm_write_string(struct asm_block *assembly, const char *restrict string) {
             asm_write(assembly, "%c", opener);
             do {
                 asm_write(assembly, ", %d", c);
-                if (c == '\0') return;  // Stop string after null terminator.
+                if (string == end) return;
             } while (!can_be_in_fasm_string(c = *++string));
             asm_write(assembly, ", %c%c", opener, c);
         }
     }
     asm_write(assembly, "%c, 0", opener);  // Null terminate string.
 }
-
