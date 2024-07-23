@@ -514,12 +514,51 @@ class FunctionBuilder:
 
 
 @dataclasses.dataclass
+class Signature:
+    """The signature of a Bude (external) function."""
+
+    params: list[int]
+    rets: list[int]
+
+    def __str__(self) -> str:
+        params_str = " ".join(str(t) for t in self.params)
+        rets_str = " ".join(str(t) for t in self.rets)
+        return f"{{params ({params_str})  rets ({rets_str})}}"
+
+
+class CallingConvention(enum.IntEnum):
+    BUDE = 0
+    NATIVE = enum.auto()
+    MS_X64 = enum.auto()
+    SYSV_AMD64 = enum.auto()
+
+
+@dataclasses.dataclass
+class ExternalFunction:
+    """A Bude 'ExternalFunction' object which refers to a non-Bude function defined elsewhere."""
+
+    sig: Signature
+    name: str
+    call_conv: CallingConvention
+
+
+@dataclasses.dataclass
+class ExternalLibrary:
+    """A library containing external functions."""
+
+    indices: list[int]
+    filename: str
+
+
+@dataclasses.dataclass
 class Module:
     """A Bude 'Module' object which contains a list of strings and functions."""
 
     strings: list[str]
     functions: list[Function]
     user_defined_types: list[UserDefinedType]
+    externals: list[ExternalFunction]
+    ext_libraries: list[ExternalLibrary]
 
     def pprint(self, file=sys.stdout) -> None:
         print("STRINGS", file=file)
@@ -533,12 +572,20 @@ class Module:
                   file=file, sep="  ")
             for ins in function:
                 print(f"      {ins}", file=file)
-        print("USER-DEFINED TYPES", file=file)
+        print("USER-DEFINED-TYPES", file=file)
         for i, ud_type in enumerate(self.user_defined_types, start=BUILTIN_TYPE_COUNT):
             print(f"{i: 4}: {{kind {ud_type.kind.name}",
                   f"word-count {ud_type.word_count}",
                   f"fields ({' '.join(str(field) for field in ud_type)})}}",
                   file=file, sep="  ")
+        print("EXTERNAL-FUNCTIONS")
+        for i, external in enumerate(self.externals):
+            print(f"{i: 4}: {{sig {external.sig!s}  name {external.name!r}",
+                  f"call-conv {external.call_conv.name}}}", file=file, sep="  ")
+        print("EXTERNAL-LIBRARIES")
+        for i, library in enumerate(self.ext_libraries):
+            print(f"{i: 4}: {{indices ({' '.join(str(j) for j in library.indices)})",
+                  f"filename {library.filename!r}}}", file=file, sep="  ")
 
 
 class ModuleBuilder:
@@ -546,6 +593,8 @@ class ModuleBuilder:
         self.strings = []
         self.functions = [FunctionBuilder()]
         self.user_defined_types = []
+        self.externals = []
+        self.ext_libraries = []
 
     def from_module(cls, module: Module) -> Self:
         builder = cls()
@@ -553,6 +602,8 @@ class ModuleBuilder:
         builder.functions[:] = (FunctionBuilder.from_function(function)
                                 for function in module.functions)
         builder.user_defined_types[:] = module.user_defined_types
+        builder.externals[:] = module.externals
+        builder.ext_libraries[:] = module.ext_libraries
         return builder
 
     def add_string(self, string: str) -> int:
@@ -570,7 +621,19 @@ class ModuleBuilder:
         self.user_defined_types.append(ud_type)
         return len(self.user_defined_types) - 1
 
+    def add_external(self, external: ExternalFunction) -> int:
+        index = len(self.externals)
+        self.externals.append(external)
+        self.ext_libraries[-1].indices.append(index)
+        return index
+
+    def new_ext_library(self, filename: str) -> int:
+        self.ext_libraries.append(ExternalLibrary([], filename))
+        return len(self.ext_libraries) - 1
+
     def build(self) -> Module:
         return Module(self.strings[:],
                       [function.build() for function in self.functions],
-                      self.user_defined_types[:])
+                      self.user_defined_types[:],
+                      self.externals[:],
+                      self.ext_libraries[:])
