@@ -11,8 +11,7 @@ from typing import BinaryIO
 import ir
 
 
-CURRENT_VERSION_NUMBER = 4
-
+CURRENT_VERSION_NUMBER = 5
 
 
 class ParseError(Exception):
@@ -26,6 +25,8 @@ class DataInfo:
     string_count: int
     function_count: int
     user_defined_type_count: int
+    ext_function_count: int
+    ext_library_count: int
 
 
 def read_s32(f: BinaryIO, bytes_read: int = 0) -> tuple[int, int]:
@@ -53,11 +54,17 @@ def read_data_info(f: BinaryIO, version_number: int) -> DataInfo:
     ud_type_count = 0
     if version_number >= 4:
         ud_type_count, bytes_read = read_s32(f, bytes_read)
+    ext_function_count = 0
+    ext_library_count = 0
+    if version_number >= 5:
+        ext_function_count, bytes_read = read_s32(f, bytes_read)
+        ext_library_count, bytes_read = read_s32(f, bytes_read)
     bytes_left = field_count*4 - bytes_read
     assert bytes_left >= 0
     if bytes_left > 0:
         f.read(bytes_left)
-    return DataInfo(string_count, function_count, ud_type_count)
+    return DataInfo(string_count, function_count, ud_type_count,
+                    ext_function_count, ext_library_count)
 
 
 def read_function(f: BinaryIO, version_number: int) -> ir.Function:
@@ -106,6 +113,49 @@ def read_ud_type(f: BinaryIO, version_number: int) -> ir.UserDefinedType:
     return ir.UserDefinedType(ir.TypeKind(kind), word_count, fields)
 
 
+def read_ext_function(f: BinaryIO, version_number: int,
+                      strings: list[str]) -> ir.ExternalFunction:
+    assert version_number >= 5
+    entry_size, _ = read_s32(f)
+    bytes_read = 0
+    param_count, bytes_read = read_s32(f, bytes_read)
+    ret_count, bytes_read = read_s32(f, bytes_read)
+    params = []
+    rets = []
+    for _ in range(param_count):
+        param, bytes_read = read_s32(f, bytes_read)
+        params.append(param)
+    for _ in range(ret_count):
+        ret, bytes_read = read_s32(f, bytes_read)
+        rets.append(ret)
+    name_index, bytes_read = read_s32(f, bytes_read)
+    call_conv, bytes_read = read_s32(f, bytes_read)
+    bytes_left = entry_size - bytes_read
+    assert bytes_left >= 0
+    if bytes_left > 0:
+        f.read(bytes_left)
+    name = strings[name_index]
+    return ir.ExternalFunction(ir.Signature(params, rets), name, call_conv)
+
+
+def read_ext_library(f: BinaryIO, version_number: int, strings: list[str]) -> ir.ExternalLibrary:
+    assert version_number >= 5
+    entry_size, _ = read_s32(f)
+    bytes_read = 0
+    external_count, bytes_read = read_s32(f, bytes_read)
+    externals = []
+    for _ in range(external_count):
+        index, bytes_read = read_s32(f, bytes_read)
+        externals.append(index)
+    filename_index, bytes_read = read_s32(f, bytes_read)
+    bytes_left = entry_size - bytes_read
+    assert bytes_left >= 0
+    if bytes_left > 0:
+        f.read(bytes_left)
+    filename = strings[filename_index]
+    return ir.ExternalLibrary(externals, filename)
+
+
 def read_bytecode(filename: str, strict=True) -> ir.Module:
     """Read bytecode in file and return a list of strings and functions."""
     with open(filename, "rb") as f:
@@ -129,6 +179,8 @@ def read_bytecode(filename: str, strict=True) -> ir.Module:
         strings = []
         functions = []
         user_defined_types = []
+        ext_functions = []
+        ext_libraries = []
         for _ in range(di.string_count):
             length, _ = read_u32(f)
             strings.append(f.read(length).decode())
@@ -138,7 +190,13 @@ def read_bytecode(filename: str, strict=True) -> ir.Module:
         for _ in range(di.user_defined_type_count):
             ud_type = read_ud_type(f, version_number)
             user_defined_types.append(ud_type)
-    return ir.Module(strings, functions, user_defined_types)
+        for _ in range(di.ext_function_count):
+            external = read_ext_function(f, version_number, strings)
+            ext_functions.append(external)
+        for _ in range(di.ext_library_count):
+            library = read_ext_library(f, version_number, strings)
+            ext_libraries.append(library)
+    return ir.Module(strings, functions, user_defined_types, ext_functions, ext_libraries)
 
 
 def main() -> None:

@@ -10,7 +10,7 @@ from typing import BinaryIO
 import ir
 
 
-CURRENT_VERSION_NUMBER = 4
+CURRENT_VERSION_NUMBER = 5
 
 
 def get_field_count(version_number: int) -> int:
@@ -19,6 +19,7 @@ def get_field_count(version_number: int) -> int:
         2: 2,
         3: 2,
         4: 3,
+        5: 5,
     }
     return field_counts[version_number]
 
@@ -44,6 +45,9 @@ def write_data_info(f: BinaryIO, module: ir.Module, version_number: int) -> None
     bytes_written += write_s32(f, len(module.functions))
     if version_number >= 4:
         bytes_written += write_s32(f, len(module.user_defined_types))
+    if version_number >= 5:
+        bytes_written += write_s32(f, len(module.externals))
+        bytes_written += write_s32(f, len(module.ext_libraries))
     assert bytes_written == 4 + field_count*4, f"{bytes_written = }, {field_count*4 = }"
 
 
@@ -82,6 +86,37 @@ def write_ud_type(f: BinaryIO, ud_type: ir.UserDefinedType, version_number: int)
     assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
 
 
+def write_ext_function(f: BinaryIO, external: ir.ExternalFunction, strings: list[str],
+                       version_number: int) -> None:
+    bytes_written = 0
+    param_count = len(external.sig.params)
+    ret_count = len(external.sig.rets)
+    entry_size = 2*4 + param_count*4 + ret_count*4 + 2*4
+    bytes_written += write_s32(f, entry_size)
+    bytes_written += write_s32(f, param_count)
+    bytes_written += write_s32(f, ret_count)
+    for param in external.sig.params:
+        bytes_written += write_s32(f, param)
+    for ret in external.sig.rets:
+        bytes_written += write_s32(f, ret)
+    bytes_written += write_s32(f, strings.index(external.name))
+    bytes_written += write_s32(f, external.call_conv)
+    assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
+
+
+def write_ext_library(f: BinaryIO, library: ir.ExternalLibrary, strings: list[str],
+                      version_number: int) -> None:
+    bytes_written = 0
+    external_count = len(library.indices)
+    entry_size = 4 + external_count*4 + 4
+    bytes_written += write_s32(f, entry_size)
+    bytes_written += write_s32(f, external_count)
+    for index in library.indices:
+        bytes_written += write_s32(f, index)
+    bytes_written += write_s32(f, strings.index(library.filename))
+    assert bytes_written == entry_size + 4, f"{bytes_written = }, {entry_size + 4 = }"
+
+
 def write_data(f: BinaryIO, module: ir.Module, version_number: int) -> None:
     for string in module.strings:
         write_u32(f, len(string))
@@ -92,6 +127,13 @@ def write_data(f: BinaryIO, module: ir.Module, version_number: int) -> None:
         return
     for ud_type in module.user_defined_types:
         write_ud_type(f, ud_type, version_number)
+    if version_number < 5:
+        return
+    for external in module.externals:
+        write_ext_function(f, external, module.strings, version_number)
+    for library in module.ext_libraries:
+        write_ext_library(f, library, module.strings, version_number)
+
 
 def write_bytecode(filename: str, module: ir.Module,
                    version_number: int = CURRENT_VERSION_NUMBER) -> None:
@@ -123,11 +165,15 @@ def parse_beech(src: str) -> tuple[dict|list|str, str]:
         src = src.removeprefix("{")
         d = {}
         while src and src[0] != "}":
+            src = src.lstrip()
             try:
-                key, rest = src.split(maxsplit=1)
+                if src.startswith("'") or src.startswith('"'):
+                    key, src = parse_beech(src)
+                else:
+                    key, src = src.split(maxsplit=1)
             except ValueError:
                 raise ValueError("Expected key-value pair")
-            value, src = parse_beech(rest)
+            value, src = parse_beech(src)
             d[key] = value
         if not src:
             raise ValueError("Unterminated tree")
@@ -141,6 +187,18 @@ def parse_beech(src: str) -> tuple[dict|list|str, str]:
         if not src:
             raise ValueError("Unterminated list")
         return lst, src.removeprefix(")")
+    if src.startswith("'") or src.startswith('"'):
+        delim = src[0]
+        start = 1
+        while True:
+            end = src.find(delim, start)
+            if end == -1:
+                raise ValueError("Unterminated string")
+            if src[end-1] != "\\":
+                break
+            start = end + 1
+        string = ast.literal_eval(src[:end+1])
+        return string, src[end+1:]
     try:
         value, *rest = src.split(maxsplit=1)
     except ValueError:
@@ -176,6 +234,7 @@ def parse_new(args: str, module_builder: ir.ModuleBuilder) -> None:
                 type_dict, _ = parse_beech(rest)
             except ValueError as e:
                 print(f"Failed to parse type: {e}")
+                return
             assert(isinstance(type_dict, dict))
             try:
                 ud_type = ir.UserDefinedType(
@@ -186,10 +245,49 @@ def parse_new(args: str, module_builder: ir.ModuleBuilder) -> None:
             except ValueError as e:
                 print(f"Failed to parse type: {e}", file=sys.stderr)
             except KeyError as e:
-                print(f"Unknown key {e}")
+                print(f"Unknown key {e}", file=sys.stderr)
             else:
                 idx = module_builder.add_type(ud_type)
                 print(f"New type created: {idx+ir.BUILTIN_TYPE_COUNT}", file=sys.stderr)
+        case ["external", rest]:
+            rest = rest.strip()
+            if not (rest.startswith("{") and rest.endswith("}")):
+                print("External function must be enclosed in '{'...'}'", file=sys.stderr)
+                return
+            try:
+                ext_dict, _ = parse_beech(rest)
+            except ValueError as e:
+                print(f"Failed to parse external function: {e}")
+                return
+            assert(isinstance(ext_dict, dict))
+            try:
+                name = ext_dict["name"]
+                params = [int(t) for t in ext_dict["sig"]["params"]]
+                rets = [int(t) for t in ext_dict["sig"]["rets"]]
+                external = ir.ExternalFunction(
+                    sig=ir.Signature(params, rets),
+                    name=name,
+                    call_conv=ir.CallingConvention[ext_dict["call-conv"]]
+                )
+            except ValueError as e:
+                print(f"Failed to parse external function: {e}", file=sys.stderr)
+            except KeyError as e:
+                print(f"Unknown key {e}", file=sys.stderr)
+            else:
+                idx = module_builder.add_external(external)
+                str_idx = module_builder.add_string(name)
+                print(f"New external function created: {idx}", file=sys.stderr)
+                print(f"New string created: {str_idx}", file=sys.stderr)
+        case ["ext_library", literal]:
+            try:
+                filename = ast.literal_eval(literal)
+            except (ValueError, SyntaxError) as e:
+                print(f"Failed to parse filename: {e}", file=sys.stderr)
+            else:
+                idx = module_builder.new_ext_library(filename)
+                str_idx = module_builder.add_string(filename)
+                print(f"New external library created: {idx}", file=sys.stderr)
+                print(f"New string created: {str_idx}", file=sys.stderr)
         case ["string"]:
             print(f"No string literal provided", file=sys.stderr)
         case [other, *_]:
