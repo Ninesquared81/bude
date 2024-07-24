@@ -1652,13 +1652,13 @@ static void generate_imports(struct generator *generator) {
     asm_write(assembly, "\n");
     asm_write(assembly, "  library\\\n");
     asm_write(assembly, "\tkernel, 'kernel32.dll',\\\n");
-    asm_write(assembly, "\tmsvcrt, 'msvcrt.dll'\n");
+    asm_write(assembly, "\tmsvcrt, 'msvcrt.dll'");
     struct ext_lib_table *libraries = &generator->module->ext_libraries;
     for (int i = 0; i < libraries->count; ++i) {
         struct ext_library *lib = &libraries->items[i];
-        asm_write(assembly, "\textlib_%d, '%"PRI_SV"'", i, SV_FMT(lib->filename));
+        asm_write(assembly, ",\\\n\textlib_%d, '%"PRI_SV"'", i, SV_FMT(lib->filename));
     }
-    asm_write(assembly, "\n");
+    asm_write(assembly, "\n\n");
     asm_write(assembly, "  import msvcrt,\\\n");
     asm_write(assembly, "\tprintf, 'printf'\n");
     asm_write(assembly, "\n");
