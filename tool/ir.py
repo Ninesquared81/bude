@@ -609,6 +609,8 @@ class ModuleBuilder:
         self.user_defined_types = []
         self.externals = []
         self.ext_libraries = []
+        self._current_function = self.functions[-1]
+        self._current_extlib = None
 
     @classmethod
     def from_module(cls, module: Module) -> Self:
@@ -627,10 +629,10 @@ class ModuleBuilder:
             # References to `self` refer to the outer ModuleBuilder instance (not the InsWrapper!)
             @staticmethod
             def __getitem__(idx):
-                return self.functions[-1].instructions[idx]
+                return self._current_function.instructions[idx]
             @staticmethod
             def __setitem__(idx, item):
-                self.functions[-1].instructions[idx] = item
+                self._current_function.instructions[idx] = item
             @staticmethod
             def __iter__():
                 return iter(self.functions[-1])
@@ -641,14 +643,19 @@ class ModuleBuilder:
         return len(self.strings) - 1
 
     def add_instruction(self, ins: Instruction) -> None:
-        self.functions[-1].add_instruction(ins)
+        self._current_function.add_instruction(ins)
 
     def insert_instruction(self, idx: int, ins: Instruction) -> None:
-        self.functions[-1].insert_instruction(idx, ins)
+        self._current_function.insert_instruction(idx, ins)
 
     def new_function(self) -> int:
-        self.functions.append(FunctionBuilder())
+        func = FunctionBuilder()
+        self.functions.append(func)
+        self._current_function = func
         return len(self.functions) - 1
+
+    def set_function(self, idx: int) -> None:
+        self._current_function = self.functions[idx]
 
     def add_type(self, ud_type: UserDefinedType) -> int:
         self.user_defined_types.append(ud_type)
@@ -657,12 +664,17 @@ class ModuleBuilder:
     def add_external(self, external: ExternalFunction) -> int:
         index = len(self.externals)
         self.externals.append(external)
-        self.ext_libraries[-1].indices.append(index)
+        self._current_extlib.indices.append(index)
         return index
 
     def new_ext_library(self, filename: str) -> int:
-        self.ext_libraries.append(ExternalLibrary([], filename))
+        extlib = ExternalLibrary([], filename)
+        self.ext_libraries.append(extlib)
+        self._current_extlib = extlib
         return len(self.ext_libraries) - 1
+
+    def set_ext_library(self, idx: int) -> None:
+        self._current_extlib = self.ext_libraries[idx]
 
     def build(self) -> Module:
         return Module(self.strings[:],
