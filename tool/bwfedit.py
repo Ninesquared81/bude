@@ -217,7 +217,7 @@ class Editor:
             case ["i"]:
                 accum = 0
                 for i, ins in enumerate(self.builder.instructions):
-                    print(f"{i: 2} [acc.{accum: 3}]: {ins}")
+                    print(f"{i: >3} [acc.{accum: >3}]: {ins}")
                     accum += ins.size()
                 print(f"[total size {accum}]")
             case _:
