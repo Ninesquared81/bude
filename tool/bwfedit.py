@@ -90,12 +90,18 @@ class Editor:
                     instruction = self.parse_instruction(inp[1:])
                 except ValueError as e:
                     print(f"{e}. Instruction not processed", file=sys.stderr)
+                else:
+                    self.builder.add_instruction(instruction)
             elif inp.lower().startswith("end"):
                 break
             elif inp.lower().startswith("new"):
                 self.parse_new(inp[3:])
             elif inp.lower().startswith("show"):
                 self.parse_show(inp[4:])
+            elif inp.lower().startswith("insert"):
+                self.parse_insert(inp[6:])
+            elif inp.lower().startswith("amend"):
+                self.parse_amend(inp[5:])
             else:
                 print(f"Unknown input '{inp}'", file=sys.stderr)
 
@@ -104,7 +110,8 @@ class Editor:
         module = self.builder.build()
         module.pprint()
 
-    def parse_instruction(self, src: str) -> None:
+    @staticmethod
+    def parse_instruction(src: str) -> ir.Instruction:
         src = src.strip()
         if not src.endswith(")"):
             raise ValueError("Instruction must be enclosed in brackets '(', ')'")
@@ -117,8 +124,7 @@ class Editor:
         if (n_real := len(operands)) != (n_types := len(operand_types)):
             raise ValueError(f"Incorrect number of operands -- expected {n_types}"\
                              f"but got {n_real}.")
-        ins = ir.Instruction(op, *[t(operand) for t, operand in zip(operand_types, operands)])
-        self.builder.add_instruction(ins)
+        return ir.Instruction(op, *[t(operand) for t, operand in zip(operand_types, operands)])
 
 
     def parse_new(self, args: str) -> None:
@@ -209,10 +215,59 @@ class Editor:
             case []:
                 self.display()
             case ["i"]:
+                accum = 0
                 for i, ins in enumerate(self.builder.instructions):
-                    print(f"{i}: {ins}")
+                    print(f"{i: 2} [acc.{accum: 3}]: {ins}")
+                    accum += ins.size()
+                print(f"[total size {accum}]")
             case _:
                 print(f"Unknown show target {src!r}")
+
+    def parse_insert(self, src: str) -> None:
+        src = src.strip()
+        try:
+            idx, rest = src.split(maxsplit=1)
+        except ValueError:
+            print(f"Unknown insert target {src!r}", file=stderr)
+            return
+        try:
+            idx = int(idx)
+        except ValueError:
+            print(f"({e}", file=sys.stderr)
+            return
+        src = rest.strip()
+        if not src.startswith("("):
+            print("Instruction must start with '('", file=stderr)
+            return
+        try:
+            instruction = self.parse_instruction(src.removeprefix("("))
+        except ValueError as e:
+            print(f"{e}. Instruction not processed.", file=sys.stderr)
+        else:
+            self.builder.insert_instruction(idx, instruction)
+
+    def parse_amend(self, src: str) -> None:
+        src = src.strip()
+        try:
+            idx, rest = src.split(maxsplit=1)
+        except ValueError:
+            print(f"Unknown insert target {src!r}", file=sys.stderr)
+            return
+        try:
+            idx = int(idx)
+        except ValueError:
+            print(f"({e}", file=sys.stderr)
+            return
+        src = rest.strip()
+        if not src.startswith("("):
+            print("Instruction must start with '('", file=sys.stderr)
+            return
+        try:
+            instruction = self.parse_instruction(src.removeprefix("("))
+        except ValueError as e:
+            print(f"{e}. Instruction not processed.", file=sys.stderr)
+        else:
+            self.builder.instructions[idx] = instruction
 
 
 def main() -> None:

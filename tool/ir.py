@@ -266,6 +266,12 @@ class Instruction:
     def __str__(self) -> str:
         return f"({' '.join((self.op.name, *map(str, self.operands)))})"
 
+    def size(self) -> int:
+        size = 1
+        for operand in self.operands:
+            size += operand.size()
+        return size
+
 
 class Block:
     """Block of Bude Word-oriented IR code.
@@ -508,7 +514,10 @@ class FunctionBuilder:
         return builder
 
     def add_instruction(self, ins: Instruction) -> None:
-        self.code.extend(ins)
+        self.instructions.append(ins)
+
+    def insert_instruction(self, idx: int, ins: Instruction) -> None:
+        self.instructions.insert(idx, ins)
 
     def build(self) -> Function:
         bytecode = itertools.chain.from_iterable(Block.encode(ins) for ins in self)
@@ -614,7 +623,18 @@ class ModuleBuilder:
 
     @property
     def instructions(self) -> Iterator[Instruction]:
-        return iter(self.functions[-1])
+        class InsWrapper:
+            # References to `self` refer to the outer ModuleBuilder instance (not the InsWrapper!)
+            @staticmethod
+            def __getitem__(idx):
+                return self.functions[-1].instructions[idx]
+            @staticmethod
+            def __setitem__(idx, item):
+                self.functions[-1].instructions[idx] = item
+            @staticmethod
+            def __iter__():
+                return iter(self.functions[-1])
+        return InsWrapper()
 
     def add_string(self, string: str) -> int:
         self.strings.append(string)
@@ -622,6 +642,9 @@ class ModuleBuilder:
 
     def add_instruction(self, ins: Instruction) -> None:
         self.functions[-1].add_instruction(ins)
+
+    def insert_instruction(self, idx: int, ins: Instruction) -> None:
+        self.functions[-1].insert_instruction(idx, ins)
 
     def new_function(self) -> int:
         self.functions.append(FunctionBuilder())
