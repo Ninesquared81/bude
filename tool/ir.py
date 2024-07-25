@@ -621,6 +621,11 @@ class ModuleBuilder:
         builder.user_defined_types[:] = module.user_defined_types
         builder.externals[:] = module.externals
         builder.ext_libraries[:] = module.ext_libraries
+        builder._current_function = builder.functions[-1]
+        try:
+            builder._current_extlib = builder.ext_libraries[-1]
+        except IndexError:
+            pass
         return builder
 
     @property
