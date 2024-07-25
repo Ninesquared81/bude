@@ -5,6 +5,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 import enum
+import itertools
 import sys
 from typing import Iterator
 
@@ -489,25 +490,29 @@ class Function:
 
 class FunctionBuilder:
     def __init__(self) -> None:
-        self.code = bytearray()
-        self.max_for_loop_level = 0
-        self.locals_size = 0
-        self.locals = []
+        self.instructions: list[Instruction] = []
+        self.max_for_loop_level: int = 0
+        self.locals_size: int = 0
+        self.locals: list[int] = []
+
+    def __iter__(self):
+        return iter(self.instructions)
 
     @classmethod
     def from_function(cls, function: Function) -> Self:
         builder = cls()
-        builder.code[:] = bytearray(function.code.code)
+        builder.instructions[:] = iter(function)
         builder.max_for_loop_level = function.max_for_loop_level
         builder.locals_size = function.locals_size
         builder.locals[:] = function.locals
         return builder
 
     def add_instruction(self, ins: Instruction) -> None:
-        self.code.extend(Block.encode(ins))
+        self.code.extend(ins)
 
     def build(self) -> Function:
-        return Function(Block(bytes(self.code)),
+        bytecode = itertools.chain.from_iterable(Block.encode(ins) for ins in self)
+        return Function(Block(bytes(bytecode)),
                         self.max_for_loop_level,
                         self.locals_size,
                         self.locals[:])
@@ -596,6 +601,7 @@ class ModuleBuilder:
         self.externals = []
         self.ext_libraries = []
 
+    @classmethod
     def from_module(cls, module: Module) -> Self:
         builder = cls()
         builder.strings[:] = module.strings
@@ -605,6 +611,10 @@ class ModuleBuilder:
         builder.externals[:] = module.externals
         builder.ext_libraries[:] = module.ext_libraries
         return builder
+
+    @property
+    def instructions(self) -> Iterator[Instruction]:
+        return iter(self.functions[-1])
 
     def add_string(self, string: str) -> int:
         self.strings.append(string)

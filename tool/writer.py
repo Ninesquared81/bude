@@ -3,8 +3,6 @@
 
 import argparse
 import ast
-import itertools
-import sys
 from typing import BinaryIO
 
 import ir
@@ -135,163 +133,13 @@ def write_data(f: BinaryIO, module: ir.Module, version_number: int) -> None:
         write_ext_library(f, library, module.strings, version_number)
 
 
-def write_bytecode(filename: str, module: ir.Module,
+def write_bytecode(f: BinaryIO, module: ir.Module,
                    version_number: int = CURRENT_VERSION_NUMBER) -> None:
     """Write Bude bytecode to a BudeBWF file."""
-    with open(filename, "wb") as f:
-        write_header(f, version_number)
-        write_data_info(f, module, version_number)
-        write_data(f, module, version_number)
+    write_header(f, version_number)
+    write_data_info(f, module, version_number)
+    write_data(f, module, version_number)
 
-
-def parse_instruction(src: str) -> ir.Instruction:
-    src = src.strip()
-    if not src.endswith(")"):
-        raise ValueError("Instruction must be enclosed in brackets '(', ')'")
-    op_string, *operands = src[:-1].strip().split()
-    try:
-        op = ir.Opcode[op_string]
-    except KeyError:
-        raise ValueError(f"Invalid opcode {op_string}")
-    operand_types = ir.Block.INSTRUCTION_TABLE[op]
-    if (n_real := len(operands)) != (n_types := len(operand_types)):
-        raise ValueError(f"Incorrect number of operands -- expected {n_types} but got {n_real}.")
-    return ir.Instruction(op, *[t(operand) for t, operand in zip(operand_types, operands)])
-
-
-def parse_beech(src: str) -> tuple[dict|list|str, str]:
-    src = src.strip()
-    if src.startswith("{"):
-        src = src.removeprefix("{")
-        d = {}
-        while src and src[0] != "}":
-            src = src.lstrip()
-            try:
-                if src.startswith("'") or src.startswith('"'):
-                    key, src = parse_beech(src)
-                else:
-                    key, src = src.split(maxsplit=1)
-            except ValueError:
-                raise ValueError("Expected key-value pair")
-            value, src = parse_beech(src)
-            d[key] = value
-        if not src:
-            raise ValueError("Unterminated tree")
-        return d, src.removeprefix("}")
-    if src.startswith("("):
-        src = src.removeprefix("(")
-        lst = []
-        while src and src[0] != ")":
-            value, src = parse_beech(src)
-            lst.append(value)
-        if not src:
-            raise ValueError("Unterminated list")
-        return lst, src.removeprefix(")")
-    if src.startswith("'") or src.startswith('"'):
-        delim = src[0]
-        start = 1
-        while True:
-            end = src.find(delim, start)
-            if end == -1:
-                raise ValueError("Unterminated string")
-            if src[end-1] != "\\":
-                break
-            start = end + 1
-        string = ast.literal_eval(src[:end+1])
-        return string, src[end+1:]
-    try:
-        value, *rest = src.split(maxsplit=1)
-    except ValueError:
-        raise ValueError("Expected value")
-    brackets = []
-    while value.endswith("}") or value.endswith(")"):
-        brackets.append(value[-1])
-        value = value[:-1]
-    src = "".join(itertools.chain(reversed(brackets), rest))
-    return value, src
-
-
-def parse_new(args: str, module_builder: ir.ModuleBuilder) -> None:
-    args = args.strip()
-    match args.split(maxsplit=1):
-        case ["string", literal]:
-            try:
-                string = ast.literal_eval(literal)
-            except (ValueError, SyntaxError) as e:
-                print(f"Failed to parse string: {e}", file=sys.stderr)
-            else:
-                idx = module_builder.add_string(string)
-                print(f"New string created: {idx}.", file=sys.stderr)
-        case ["function", *_]:
-            idx = module_builder.new_function()
-            print(f"New function created: {idx}.", file=sys.stderr)
-        case ["type", rest]:
-            rest = rest.strip()
-            if not (rest.startswith("{") and rest.endswith("}")):
-                print(f"Type must be enclosed in '{'...'}'", file=sys.stderr)
-                return
-            try:
-                type_dict, _ = parse_beech(rest)
-            except ValueError as e:
-                print(f"Failed to parse type: {e}")
-                return
-            assert(isinstance(type_dict, dict))
-            try:
-                ud_type = ir.UserDefinedType(
-                    kind=ir.TypeKind[type_dict["kind"].upper()],
-                    word_count=int(type_dict["word_count"]),
-                    fields=[int(field) for field in type_dict["fields"]]
-                )
-            except ValueError as e:
-                print(f"Failed to parse type: {e}", file=sys.stderr)
-            except KeyError as e:
-                print(f"Unknown key {e}", file=sys.stderr)
-            else:
-                idx = module_builder.add_type(ud_type)
-                print(f"New type created: {idx+ir.BUILTIN_TYPE_COUNT}", file=sys.stderr)
-        case ["external", rest]:
-            rest = rest.strip()
-            if not (rest.startswith("{") and rest.endswith("}")):
-                print("External function must be enclosed in '{'...'}'", file=sys.stderr)
-                return
-            try:
-                ext_dict, _ = parse_beech(rest)
-            except ValueError as e:
-                print(f"Failed to parse external function: {e}")
-                return
-            assert(isinstance(ext_dict, dict))
-            try:
-                name = ext_dict["name"]
-                params = [int(t) for t in ext_dict["sig"]["params"]]
-                rets = [int(t) for t in ext_dict["sig"]["rets"]]
-                external = ir.ExternalFunction(
-                    sig=ir.Signature(params, rets),
-                    name=name,
-                    call_conv=ir.CallingConvention[ext_dict["call-conv"]]
-                )
-            except ValueError as e:
-                print(f"Failed to parse external function: {e}", file=sys.stderr)
-            except KeyError as e:
-                print(f"Unknown key {e}", file=sys.stderr)
-            else:
-                idx = module_builder.add_external(external)
-                str_idx = module_builder.add_string(name)
-                print(f"New external function created: {idx}", file=sys.stderr)
-                print(f"New string created: {str_idx}", file=sys.stderr)
-        case ["ext_library", literal]:
-            try:
-                filename = ast.literal_eval(literal)
-            except (ValueError, SyntaxError) as e:
-                print(f"Failed to parse filename: {e}", file=sys.stderr)
-            else:
-                idx = module_builder.new_ext_library(filename)
-                str_idx = module_builder.add_string(filename)
-                print(f"New external library created: {idx}", file=sys.stderr)
-                print(f"New string created: {str_idx}", file=sys.stderr)
-        case ["string"]:
-            print(f"No string literal provided", file=sys.stderr)
-        case [other, *_]:
-            print(f"Unknown target {other!r}", file=sys.stderr)
 
 
 def main() -> None:
@@ -300,25 +148,11 @@ def main() -> None:
     arg_parser.add_argument("--verbose", help="If enabled, print extra info", action="store_true")
     args = arg_parser.parse_args()
     module_builder = ir.ModuleBuilder()
-    while True:
-        inp = input("> ").strip()
-        if inp.startswith("("):
-            try:
-                instruction = parse_instruction(inp[1:])
-            except ValueError as e:
-                print(f"{e}. Instruction not processed", file=sys.stderr)
-            else:
-                module_builder.add_instruction(instruction)
-        elif inp.lower().startswith("end"):
-            break
-        elif inp.lower().startswith("new"):
-            parse_new(inp[3:], module_builder)
-        else:
-            print(f"Unknown input '{inp}'", file=sys.stderr)
     module = module_builder.build()
     if args.verbose:
         module.pprint()
-    write_bytecode(args.filename, module)
+    with open(args.filename, "wb") as f:
+        write_bytecode(f, module)
 
 
 if __name__ == "__main__":

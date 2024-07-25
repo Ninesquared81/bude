@@ -135,7 +135,7 @@ def read_ext_function(f: BinaryIO, version_number: int,
     if bytes_left > 0:
         f.read(bytes_left)
     name = strings[name_index]
-    return ir.ExternalFunction(ir.Signature(params, rets), name, call_conv)
+    return ir.ExternalFunction(ir.Signature(params, rets), name, ir.CallingConvention(call_conv))
 
 
 def read_ext_library(f: BinaryIO, version_number: int, strings: list[str]) -> ir.ExternalLibrary:
@@ -156,46 +156,45 @@ def read_ext_library(f: BinaryIO, version_number: int, strings: list[str]) -> ir
     return ir.ExternalLibrary(externals, filename)
 
 
-def read_bytecode(filename: str, strict=True) -> ir.Module:
+def read_bytecode(f: BinaryIO, strict=True) -> ir.Module:
     """Read bytecode in file and return a list of strings and functions."""
-    with open(filename, "rb") as f:
-        header_line = f.readline().decode()
-        magic_number, _, version_number_string = header_line.partition("v")
-        if magic_number != "BudeBWF":
-            raise ParseError("Invalid file")
-        try:
-            version_number = int(version_number_string.rstrip())
-        except ValueError:
-            raise ParseError(f"Invalid version number: {version_number_string!r}")
-        if version_number <= 0:
-            raise ParseError(f"Invalid version number: {version_number}")
-        if version_number > CURRENT_VERSION_NUMBER:
-            if strict or CURRENT_VERSION_NUMBER < 2:
-                raise ParseError(f"Unsupported BudeBWF version: {version_number}")
-            else:
-                print(f"Warning: version {version_number} is not supported.",
-                      "Some data may not be read correctly and some may not be read at all.")
-        di = read_data_info(f, version_number)
-        strings = []
-        functions = []
-        user_defined_types = []
-        ext_functions = []
-        ext_libraries = []
-        for _ in range(di.string_count):
-            length, _ = read_u32(f)
-            strings.append(f.read(length).decode())
-        for _ in range(di.function_count):
-            function = read_function(f, version_number)
-            functions.append(function)
-        for _ in range(di.user_defined_type_count):
-            ud_type = read_ud_type(f, version_number)
-            user_defined_types.append(ud_type)
-        for _ in range(di.ext_function_count):
-            external = read_ext_function(f, version_number, strings)
-            ext_functions.append(external)
-        for _ in range(di.ext_library_count):
-            library = read_ext_library(f, version_number, strings)
-            ext_libraries.append(library)
+    header_line = f.readline().decode()
+    magic_number, _, version_number_string = header_line.partition("v")
+    if magic_number != "BudeBWF":
+        raise ParseError("Invalid file")
+    try:
+        version_number = int(version_number_string.rstrip())
+    except ValueError:
+        raise ParseError(f"Invalid version number: {version_number_string!r}")
+    if version_number <= 0:
+        raise ParseError(f"Invalid version number: {version_number}")
+    if version_number > CURRENT_VERSION_NUMBER:
+        if strict or CURRENT_VERSION_NUMBER < 2:
+            raise ParseError(f"Unsupported BudeBWF version: {version_number}")
+        else:
+            print(f"Warning: version {version_number} is not supported.",
+                  "Some data may not be read correctly and some may not be read at all.")
+    di = read_data_info(f, version_number)
+    strings = []
+    functions = []
+    user_defined_types = []
+    ext_functions = []
+    ext_libraries = []
+    for _ in range(di.string_count):
+        length, _ = read_u32(f)
+        strings.append(f.read(length).decode())
+    for _ in range(di.function_count):
+        function = read_function(f, version_number)
+        functions.append(function)
+    for _ in range(di.user_defined_type_count):
+        ud_type = read_ud_type(f, version_number)
+        user_defined_types.append(ud_type)
+    for _ in range(di.ext_function_count):
+        external = read_ext_function(f, version_number, strings)
+        ext_functions.append(external)
+    for _ in range(di.ext_library_count):
+        library = read_ext_library(f, version_number, strings)
+        ext_libraries.append(library)
     return ir.Module(strings, functions, user_defined_types, ext_functions, ext_libraries)
 
 
@@ -206,7 +205,8 @@ def main() -> None:
     args = arg_parser.parse_args()
     if args.o is None or args.o == "-":
         args.o = sys.stdout
-    module = read_bytecode(args.filename)
+    with open(args.filename, "rb") as f:
+        module = read_bytecode(f)
     module.pprint()
 
 
