@@ -106,6 +106,7 @@ skip_rest:
         .max_for_loop_level = max_for_loop_level,
         .locals_size = locals_size,
     };
+    recompute_jump_dests(&function->w_code);
     return true;
 }
 

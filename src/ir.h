@@ -476,6 +476,8 @@ const char *get_w_opcode_name(enum w_opcode opcode);
              enum w_opcode: get_w_opcode_name   \
         )(opcode)
 
+int get_w_instruction_size(enum w_opcode opcode);
+
 bool is_t_jump(enum t_opcode instruction);
 bool is_w_jump(enum w_opcode instruction);
 
@@ -544,6 +546,7 @@ int64_t read_s64(struct ir_block *block, int index);
 int add_jump(struct ir_block *block, int dest);
 int find_jump(struct ir_block *block, int dest);
 bool is_jump_dest(struct ir_block *block, int dest);
+void recompute_jump_dests(struct ir_block *block);
 
 void ir_error(const char *restrict filename, struct ir_block *block,
               size_t index, const char *restrict message);

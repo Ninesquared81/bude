@@ -37,6 +37,145 @@ const char *get_w_opcode_name(enum w_opcode opcode) {
     return w_opcode_names[opcode];
 }
 
+static const int w_instruction_sizes[] = {
+    [W_OP_NOP]                       = 1,
+    [W_OP_PUSH8]                     = 2,
+    [W_OP_PUSH16]                    = 3,
+    [W_OP_PUSH32]                    = 5,
+    [W_OP_PUSH64]                    = 9,
+    [W_OP_PUSH_INT8]                 = 2,
+    [W_OP_PUSH_INT16]                = 3,
+    [W_OP_PUSH_INT32]                = 5,
+    [W_OP_PUSH_INT64]                = 9,
+    [W_OP_PUSH_FLOAT32]              = 5,
+    [W_OP_PUSH_FLOAT64]              = 9,
+    [W_OP_PUSH_CHAR8]                = 2,
+    [W_OP_PUSH_CHAR16]               = 3,
+    [W_OP_PUSH_CHAR32]               = 5,
+    [W_OP_LOAD_STRING8]              = 2,
+    [W_OP_LOAD_STRING16]             = 3,
+    [W_OP_LOAD_STRING32]             = 5,
+    [W_OP_POP]                       = 1,
+    [W_OP_POPN8]                     = 2,
+    [W_OP_POPN16]                    = 3,
+    [W_OP_POPN32]                    = 5,
+    [W_OP_ADD]                       = 1,
+    [W_OP_ADDF32]                    = 1,
+    [W_OP_ADDF64]                    = 1,
+    [W_OP_AND]                       = 1,
+    [W_OP_DEREF]                     = 1,
+    [W_OP_DIVF32]                    = 1,
+    [W_OP_DIVF64]                    = 1,
+    [W_OP_DIVMOD]                    = 1,
+    [W_OP_IDIVMOD]                   = 1,
+    [W_OP_EDIVMOD]                   = 1,
+    [W_OP_DUPE]                      = 1,
+    [W_OP_DUPEN8]                    = 2,
+    [W_OP_DUPEN16]                   = 3,
+    [W_OP_DUPEN32]                   = 5,
+    [W_OP_EQUALS]                    = 1,
+    [W_OP_EXIT]                      = 1,
+    [W_OP_FOR_DEC_START]             = 3,
+    [W_OP_FOR_DEC]                   = 3,
+    [W_OP_FOR_INC_START]             = 3,
+    [W_OP_FOR_INC]                   = 3,
+    [W_OP_GET_LOOP_VAR]              = 3,
+    [W_OP_GREATER_THAN]              = 1,
+    [W_OP_HIGHER_THAN]               = 1,
+    [W_OP_JUMP]                      = 3,
+    [W_OP_JUMP_COND]                 = 3,
+    [W_OP_JUMP_NCOND]                = 3,
+    [W_OP_LESS_THAN]                 = 1,
+    [W_OP_LOCAL_GET]                 = 3,
+    [W_OP_LOCAL_SET]                 = 3,
+    [W_OP_LOWER_THAN]                = 1,
+    [W_OP_MULT]                      = 1,
+    [W_OP_MULTF32]                   = 1,
+    [W_OP_MULTF64]                   = 1,
+    [W_OP_NOT]                       = 1,
+    [W_OP_NOT_EQUALS]                = 1,
+    [W_OP_OR]                        = 1,
+    [W_OP_PRINT]                     = 1,
+    [W_OP_PRINT_CHAR]                = 1,
+    [W_OP_PRINT_FLOAT]               = 1,
+    [W_OP_PRINT_INT]                 = 1,
+    [W_OP_PRINT_STRING]              = 1,
+    [W_OP_SUB]                       = 1,
+    [W_OP_SUBF32]                    = 1,
+    [W_OP_SUBF64]                    = 1,
+    [W_OP_SWAP]                      = 1,
+    [W_OP_SWAP_COMPS8]               = 3,
+    [W_OP_SWAP_COMPS16]              = 5,
+    [W_OP_SWAP_COMPS32]              = 9,
+    [W_OP_SX8]                       = 1,
+    [W_OP_SX8L]                      = 1,
+    [W_OP_SX16]                      = 1,
+    [W_OP_SX16L]                     = 1,
+    [W_OP_SX32]                      = 1,
+    [W_OP_SX32L]                     = 1,
+    [W_OP_ZX8]                       = 1,
+    [W_OP_ZX8L]                      = 1,
+    [W_OP_ZX16]                      = 1,
+    [W_OP_ZX16L]                     = 1,
+    [W_OP_ZX32]                      = 1,
+    [W_OP_ZX32L]                     = 1,
+    [W_OP_FPROM]                     = 1,
+    [W_OP_FPROML]                    = 1,
+    [W_OP_FDEM]                      = 1,
+    [W_OP_ICONVF32]                  = 1,
+    [W_OP_ICONVF32L]                 = 1,
+    [W_OP_ICONVF64]                  = 1,
+    [W_OP_ICONVF64L]                 = 1,
+    [W_OP_FCONVI64]                  = 1,
+    [W_OP_ICONVC32]                  = 1,
+    [W_OP_CHAR_8CONV32]              = 1,
+    [W_OP_CHAR_32CONV8]              = 1,
+    [W_OP_CHAR_16CONV32]             = 1,
+    [W_OP_CHAR_32CONV16]             = 1,
+    [W_OP_PACK1]                     = 2,
+    [W_OP_PACK2]                     = 3,
+    [W_OP_PACK3]                     = 4,
+    [W_OP_PACK4]                     = 5,
+    [W_OP_PACK5]                     = 6,
+    [W_OP_PACK6]                     = 7,
+    [W_OP_PACK7]                     = 8,
+    [W_OP_PACK8]                     = 9,
+    [W_OP_UNPACK1]                   = 2,
+    [W_OP_UNPACK2]                   = 3,
+    [W_OP_UNPACK3]                   = 4,
+    [W_OP_UNPACK4]                   = 5,
+    [W_OP_UNPACK5]                   = 6,
+    [W_OP_UNPACK6]                   = 7,
+    [W_OP_UNPACK7]                   = 8,
+    [W_OP_UNPACK8]                   = 9,
+    [W_OP_PACK_FIELD_GET]            = 3,
+    [W_OP_COMP_FIELD_GET8]           = 2,
+    [W_OP_COMP_FIELD_GET16]          = 3,
+    [W_OP_COMP_FIELD_GET32]          = 5,
+    [W_OP_PACK_FIELD_SET]            = 3,
+    [W_OP_COMP_FIELD_SET8]           = 2,
+    [W_OP_COMP_FIELD_SET16]          = 3,
+    [W_OP_COMP_FIELD_SET32]          = 5,
+    [W_OP_COMP_SUBCOMP_GET8]         = 3,
+    [W_OP_COMP_SUBCOMP_GET16]        = 5,
+    [W_OP_COMP_SUBCOMP_GET32]        = 9,
+    [W_OP_COMP_SUBCOMP_SET8]         = 3,
+    [W_OP_COMP_SUBCOMP_SET16]        = 5,
+    [W_OP_COMP_SUBCOMP_SET32]        = 9,
+    [W_OP_CALL8]                     = 2,
+    [W_OP_CALL16]                    = 3,
+    [W_OP_CALL32]                    = 5,
+    [W_OP_EXTCALL8]                  = 2,
+    [W_OP_EXTCALL16]                 = 3,
+    [W_OP_EXTCALL32]                 = 5,
+    [W_OP_RET]                       = 1,
+};
+
+int get_w_instruction_size(enum w_opcode opcode) {
+    assert(0 <= opcode && opcode < sizeof w_instruction_sizes);
+    return w_instruction_sizes[opcode];
+}
+
 bool is_t_jump(enum t_opcode instruction) {
     switch (instruction) {
     case T_OP_JUMP:
@@ -389,6 +528,21 @@ int find_jump(struct ir_block *block, int dest) {
 
 bool is_jump_dest(struct ir_block *block, int dest) {
     return find_jump(block, dest) != -1;
+}
+
+void recompute_jump_dests(struct ir_block *block) {
+    assert(block->instruction_set == IR_WORD_ORIENTED);
+    block->jumps.count = 0;  // Clear jump info table.
+    for (int ip = 0; ip < block->count; ) {
+        enum w_opcode instruction = block->code[ip];
+        int size = get_w_instruction_size(instruction);
+        if (is_w_jump(instruction)) {
+            int jump = read_s16(block, ip + 1);
+            int dest = ip + 1 + jump;  // Jump measured from after opcode (stupid design!)
+            add_jump(block, dest);
+        }
+        ip += size;
+    }
 }
 
 void ir_error(const char *restrict filename, struct ir_block *block,
