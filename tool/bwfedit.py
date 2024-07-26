@@ -278,7 +278,10 @@ class Editor:
 
 def main() -> None:
     arg_parser = argparse.ArgumentParser(description="Edit a BudeBWF file.")
-    arg_parser.add_argument("filename", help="The file to edit")
+    arg_parser.add_argument(
+        "filename",
+        help="the file to edit/create"
+    )
     args = arg_parser.parse_args()
     try:
         editor = Editor.from_file(args.filename)
