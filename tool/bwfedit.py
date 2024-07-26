@@ -64,14 +64,22 @@ def parse_beech(src: str) -> tuple[dict|list|str, str]:
 class Editor:
     """A simple BudeBWF editor."""
 
-    def __init__(self, module: ir.Module):
-        self.builder = ir.ModuleBuilder.from_module(module)
+    def __init__(self, builder: ir.ModuleBuilder):
+        self.builder = builder
 
     @classmethod
     def from_file(cls, filename: str) -> Self:
         with open(filename, "rb") as f:
             module = reader.read_bytecode(f)
-        return cls(module)
+        return cls.from_module(module)
+
+    @classmethod
+    def from_module(cls, module: ir.ModuleBuilder):
+        return cls(ir.ModuleBuilder.from_module(module))
+
+    @classmethod
+    def blank(cls) -> Self:
+        return cls(ir.ModuleBuilder())
 
     def save_file(self, filename: str) -> None:
         module = self.finish()
@@ -274,7 +282,10 @@ def main() -> None:
     arg_parser = argparse.ArgumentParser(description="Edit a BudeBWF file.")
     arg_parser.add_argument("filename", help="The file to edit")
     args = arg_parser.parse_args()
-    editor = Editor.from_file(args.filename)
+    try:
+        editor = Editor.from_file(args.filename)
+    except FileNotFoundError:
+        editor = Editor.blank()
     editor.run()
     editor.save_file(args.filename)
 
