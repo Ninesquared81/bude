@@ -132,7 +132,6 @@ class Editor:
                              f"but got {n_real}.")
         return ir.Instruction(op, *[t(operand) for t, operand in zip(operand_types, operands)])
 
-
     def parse_new(self, args: str) -> None:
         args = args.strip()
         match args.split(maxsplit=1):
@@ -289,7 +288,6 @@ def main() -> None:
         editor = Editor()  # Create a new, blank module.
     editor.run()
     editor.save_file(args.filename)
-
 
 
 if __name__ == "__main__":
