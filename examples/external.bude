@@ -1,3 +1,4 @@
+# NOTE: the `external.c` file must be compiled as a dll before this example can be run.
 import from "mylib.dll"
     ptr greet from "greet"
 end
