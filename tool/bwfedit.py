@@ -64,7 +64,9 @@ def parse_beech(src: str) -> tuple[dict|list|str, str]:
 class Editor:
     """A simple BudeBWF editor."""
 
-    def __init__(self, builder: ir.ModuleBuilder):
+    def __init__(self, builder: ir.ModuleBuilder | None = None) -> None:
+        if builder is None:
+            builder = ir.ModuleBuilder()
         self.builder = builder
 
     @classmethod
@@ -74,12 +76,8 @@ class Editor:
         return cls.from_module(module)
 
     @classmethod
-    def from_module(cls, module: ir.ModuleBuilder):
+    def from_module(cls, module: ir.ModuleBuilder) -> Self:
         return cls(ir.ModuleBuilder.from_module(module))
-
-    @classmethod
-    def blank(cls) -> Self:
-        return cls(ir.ModuleBuilder())
 
     def save_file(self, filename: str) -> None:
         module = self.finish()
@@ -285,7 +283,7 @@ def main() -> None:
     try:
         editor = Editor.from_file(args.filename)
     except FileNotFoundError:
-        editor = Editor.blank()
+        editor = Editor()  # Create a new, blank module.
     editor.run()
     editor.save_file(args.filename)
 
