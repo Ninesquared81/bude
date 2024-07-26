@@ -1,0 +1,6 @@
+import from "mylib.dll"
+    ptr greet from "greet"
+end
+
+"Bude" decomp pop
+greet
