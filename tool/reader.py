@@ -2,10 +2,7 @@
 """A module for reading Bude Binary Word-oriented Format (BudeBWF) files."""
 
 from __future__ import annotations
-import argparse
 import dataclasses
-import os
-import sys
 from typing import BinaryIO
 
 import ir
@@ -196,19 +193,3 @@ def read_bytecode(f: BinaryIO, strict=True) -> ir.Module:
         library = read_ext_library(f, version_number, strings)
         ext_libraries.append(library)
     return ir.Module(strings, functions, user_defined_types, ext_functions, ext_libraries)
-
-
-def main() -> None:
-    arg_parser = argparse.ArgumentParser(description="Display the contents of a BudeBWF file.")
-    arg_parser.add_argument("filename", help="the file to be read")
-    arg_parser.add_argument("-o", help="the file to write the output to (defaut: stdout)")
-    args = arg_parser.parse_args()
-    if args.o is None or args.o == "-":
-        args.o = sys.stdout
-    with open(args.filename, "rb") as f:
-        module = read_bytecode(f)
-    module.pprint()
-
-
-if __name__ == "__main__":
-    main()

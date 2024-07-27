@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """A module for writing Bude Binary Word-oriented Format (BudeBWF) files."""
 
-import argparse
-import ast
 from typing import BinaryIO
 
 import ir
@@ -139,21 +137,3 @@ def write_bytecode(f: BinaryIO, module: ir.Module,
     write_header(f, version_number)
     write_data_info(f, module, version_number)
     write_data(f, module, version_number)
-
-
-
-def main() -> None:
-    arg_parser = argparse.ArgumentParser(description="Create a BudeBWF file.")
-    arg_parser.add_argument("filename", help="The file to save into")
-    arg_parser.add_argument("--verbose", help="If enabled, print extra info", action="store_true")
-    args = arg_parser.parse_args()
-    module_builder = ir.ModuleBuilder()
-    module = module_builder.build()
-    if args.verbose:
-        module.pprint()
-    with open(args.filename, "wb") as f:
-        write_bytecode(f, module)
-
-
-if __name__ == "__main__":
-    main()
