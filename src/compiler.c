@@ -68,7 +68,15 @@ static void compile_error(struct compiler *compiler, const char *restrict messag
     fprintf(stderr, "\n");
 }
 
+static bool is_at_end(struct compiler *compiler) {
+    return compiler->current_token.type == TOKEN_EOT;
+}
+
 static struct token advance(struct compiler *compiler) {
+    if (is_at_end(compiler)) {
+        parse_error(compiler, "Unexpected EOF.");
+        exit(1);
+    }
     compiler->previous_token = compiler->current_token;
     compiler->current_token = next_token(&compiler->lexer);
     return compiler->previous_token;
@@ -92,10 +100,6 @@ static void expect_consume(struct compiler *compiler, enum token_type type,
         parse_error(compiler, "%s", message);
         exit(1);
     }
-}
-
-static bool is_at_end(struct compiler *compiler) {
-    return compiler->current_token.type == TOKEN_EOT;
 }
 
 static struct token peek(struct compiler *compiler) {
@@ -781,10 +785,6 @@ static void compile_pack(struct compiler *compiler) {
     int field_count = 0;
     int size = 0;
     for (; field_count < 8 && !check(compiler, TOKEN_END); ++field_count) {
-        if (is_at_end(compiler)) {
-            parse_error(compiler, "unexpected EOF parsing pack definition.\n");
-            exit(1);
-        }
         expect_consume(compiler, TOKEN_SYMBOL, "Expect field name.");
         struct symbol field = {
             .name = peek_previous(compiler).value,
@@ -840,10 +840,6 @@ static void compile_comp(struct compiler *compiler) {
         int offset;
     } *head = NULL;
     while (!check(compiler, TOKEN_END)) {
-        if (is_at_end(compiler)) {
-            parse_error(compiler, "unexpected EOF parsing comp definition.");
-            exit(1);
-        }
         expect_consume(compiler, TOKEN_SYMBOL, "Expect field name.");
         struct symbol field = {
             .name = peek_previous(compiler).value,
@@ -961,7 +957,7 @@ static void compile_to_conversion(struct compiler *compiler) {
 }
 
 static void compile_var(struct compiler *compiler) {
-    while (!is_at_end(compiler) && !check(compiler, TOKEN_END)) {
+    while (!check(compiler, TOKEN_END)) {
         expect_consume(compiler, TOKEN_SYMBOL, "Expect variable name.");
         struct string_view name = peek_previous(compiler).value;
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `<-` after variable name.");
