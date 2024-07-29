@@ -199,6 +199,7 @@ static enum token_type symbol_type(struct lexer *lexer) {
         switch (lexer->start[1]) {
         case 'd': return check_keyword(lexer, 2, 5, "ivmod", TOKEN_IDIVMOD);
         case 'f': return check_terminal(lexer, 2, TOKEN_IF);
+        case 'm': return check_keyword(lexer, 2, 4, "port", TOKEN_IMPORT);
         case 'n': return check_keyword(lexer, 2, 1, "t", TOKEN_INT);
         }
         break;

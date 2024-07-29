@@ -1100,6 +1100,11 @@ static void compile_function(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_END, "Expect `end` after function body.");
 }
 
+static void compile_import(struct compiler *compiler) {
+    (void)compiler;
+    assert(0 && "Not implemented");
+}
+
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
     int level = symbol->loop_var.level;
     if (level > compiler->for_loop_level) {
@@ -1293,6 +1298,9 @@ static void compile_expr(struct compiler *compiler) {
         }
         else if (match(compiler, TOKEN_IF)) {
             compile_conditional(compiler);
+        }
+        else if (match(compiler, TOKEN_IMPORT)) {
+            compile_import(compiler);
         }
         else if (match(compiler, TOKEN_INT_LIT)) {
             compile_integer(compiler);

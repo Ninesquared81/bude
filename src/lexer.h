@@ -43,6 +43,7 @@ enum token_type {
     TOKEN_GREATER_THAN,
     TOKEN_IDIVMOD,
     TOKEN_IF,
+    TOKEN_IMPORT,
     TOKEN_INT,
     TOKEN_LEFT_ARROW,
     TOKEN_LESS_EQUALS,
