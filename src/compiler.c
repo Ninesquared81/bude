@@ -1004,22 +1004,20 @@ static void compile_assignment(struct compiler *compiler) {
     }
 }
 
-static void compile_function(struct compiler *compiler) {
-    /* `func` params... name [`->` rets...] `def` body... `end` */
-    struct ir_block *block = &compiler->function->t_code;
+static struct signature parse_signature(struct compiler *compiler, struct string_view *name) {
     struct token prev = advance(compiler);
-    if (prev.type == TOKEN_RIGHT_ARROW || prev.type == TOKEN_DEF || is_at_end(compiler)) {
-        parse_error(compiler, "Expect function name.");
-        exit(1);
-    }
+    struct signature sig = {0};
+    /* Because we want to allocate the param and ret lists in a region, we cannot use
+       dynamic arrays. Instead, we first build a (temporary) linked list for each, then
+       Copy across the elements when we know the size. */
     struct type_list {
         struct type_list *next;
         type_index type;
     };
     struct type_list *param_list = NULL;
     struct type_list *ret_list = NULL;
-    int param_count = 0;
-    int ret_count = 0;
+    struct region *temp_region = compiler->temp;
+    struct region *data_region = compiler->module->functions.region;
     while (!check(compiler, TOKEN_RIGHT_ARROW) && !check(compiler, TOKEN_DEF)) {
         // Parameter types.
         type_index param = parse_type(compiler, &prev);
@@ -1028,18 +1026,18 @@ static void compile_function(struct compiler *compiler) {
             exit(1);
         }
         prev = advance(compiler);
-        struct type_list *node = region_alloc(compiler->temp, sizeof *node);
+        struct type_list *node = region_alloc(temp_region, sizeof *node);
         CHECK_ALLOCATION(node);
         node->next = param_list;
         node->type = param;
         param_list = node;
-        ++param_count;
+        ++sig.param_count;
     }
     if (prev.type != TOKEN_SYMBOL) {
         parse_error(compiler, "Expect function name after parameter types.");
         exit(1);
     }
-    struct string_view name = prev.value;
+    *name = prev.value;
     if (match(compiler, TOKEN_RIGHT_ARROW)) {
         // Return values.
         while (!check(compiler, TOKEN_DEF)) {
@@ -1049,30 +1047,40 @@ static void compile_function(struct compiler *compiler) {
                 parse_error(compiler, "Expect return type.");
                 exit(1);
             }
-            struct type_list *node = region_alloc(compiler->temp, sizeof *node);
+            struct type_list *node = region_alloc(temp_region, sizeof *node);
             CHECK_ALLOCATION(node);
             node->next = ret_list;
             node->type = ret;
             ret_list = node;
-            ++ret_count;
+            ++sig.ret_count;
         }
     }
-    type_index *params = region_calloc(compiler->module->functions.region,
-                                       param_count, sizeof *params);
-    if (param_count != 0) CHECK_ALLOCATION(params);
-    for (int i = param_count - 1; i >= 0; --i) {
-        params[i] = param_list->type;
+    sig.params = region_calloc(data_region, sig.param_count, sizeof *sig.params);
+    CHECK_ARRAY_ALLOCATION(sig.params, sig.param_count);
+    for (int i = sig.param_count - 1; i >= 0; --i) {
+        sig.params[i] = param_list->type;
         param_list = param_list->next;  // This isn't a memory leak (because regions).
     }
-    type_index *rets = region_calloc(compiler->module->functions.region,
-                                     ret_count, sizeof *rets);
-    if (ret_count != 0) CHECK_ALLOCATION(rets);
-    for (int i = ret_count - 1; i >= 0; --i) {
-        rets[i] = ret_list->type;
+    sig.rets = region_calloc(data_region, sig.ret_count, sizeof *sig.rets);
+    CHECK_ARRAY_ALLOCATION(sig.rets, sig.ret_count);
+    for (int i = sig.ret_count - 1; i >= 0; --i) {
+        sig.rets[i] = ret_list->type;
         ret_list = ret_list->next;  // Again, no memory leak because regions.
     }
-    clear_region(compiler->temp);
-    int index = add_function(&compiler->module->functions, param_count, ret_count, params, rets);
+    clear_region(temp_region);
+    return sig;
+}
+
+static void compile_function(struct compiler *compiler) {
+    /* `func` params... name [`->` rets...] `def` body... `end` */
+    struct ir_block *block = &compiler->function->t_code;
+    if (check(compiler, TOKEN_RIGHT_ARROW) || check(compiler, TOKEN_DEF)) {
+        parse_error(compiler, "Expect function name.");
+        exit(1);
+    }
+    struct string_view name = {0};
+    struct signature sig = parse_signature(compiler, &name);
+    int index = add_function(&compiler->module->functions, sig);
     struct symbol symbol = {
         .name = name,
         .type = SYM_FUNCTION,
@@ -1323,7 +1331,7 @@ void compile(const char *src, struct module *module) {
     init_compiler(&compiler, src, module);
     init_builtins(&compiler.symbols);
     assert(module->functions.count == 0);  // We assume that the function table is empty.
-    add_function(&module->functions, 0, 0, NULL, NULL);  // Main/script function.
+    add_function(&module->functions, (struct signature){0});  // Main/script function.
     compiler.function = get_function(&module->functions, 0);
     compile_expr(&compiler);
     emit_simple(&compiler, T_OP_RET);  // Return from main function.

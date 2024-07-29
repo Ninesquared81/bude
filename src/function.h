@@ -48,8 +48,7 @@ int add_local(struct function *function, type_index type);
 void init_function_table(struct function_table *functions);
 void free_function_table(struct function_table *functions);
 
-int add_function(struct function_table *functions, int param_count, int ret_count,
-                 type_index params[param_count], type_index rets[ret_count]);
+int add_function(struct function_table *functions, struct signature sig);
 struct function *get_function(struct function_table *functions, int index);
 
 #endif
