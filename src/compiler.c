@@ -1091,8 +1091,7 @@ static void compile_function(struct compiler *compiler) {
     struct function *previous_function = compiler->function;
     compiler->function = get_function(&compiler->module->functions, index);
     compile_expr(compiler);  // Body.
-    if (!check_last_instruction(compiler, T_OP_RET)
-        || is_jump_dest(block, block->count)) {
+    if (!check_last_instruction(compiler, T_OP_RET) || is_jump_dest(block, block->count)) {
         // Implicit return at end of function. Only emit if we need it.
         emit_simple(compiler, T_OP_RET);
     }
