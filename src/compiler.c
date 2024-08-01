@@ -678,7 +678,7 @@ static int escape_character(char ch) {
     return -1;
 }
 
-static void compile_string(struct compiler *compiler) {
+static struct string_builder parse_string(struct compiler *compiler) {
     struct token token = peek_previous(compiler);
     struct string_builder builder = {0};
     struct string_builder *current = &builder;
@@ -701,6 +701,11 @@ static void compile_string(struct compiler *compiler) {
             ++current->view.length;
         }
     }
+    return builder;
+}
+
+static void compile_string(struct compiler *compiler) {
+    struct string_builder builder = parse_string(compiler);
     uint32_t index = write_string(compiler->module, &builder);
     emit_immediate_uv(compiler, T_OP_LOAD_STRING8, index);
     clear_region(compiler->temp);
