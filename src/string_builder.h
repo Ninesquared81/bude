@@ -18,8 +18,10 @@
                                        .start = &(builder)->owned[0],   \
                                        .length = (builder)->owned_count})
 
-#define STORE_STR_LIT(builder, str_lit, region) \
-    store_view(builder, &LIT(str_lit), region)
+#define SB_STORE_STR_LIT(builder, str_lit, region) \
+    store_view(builder, &SV_LIT(str_lit), region)
+
+#define SB_FROM_SV(sv) ((struct string_builder) {.view = (sv), .owned_count = -1})
 
 struct string_builder {
     union {
