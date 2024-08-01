@@ -1149,6 +1149,11 @@ static void compile_var_symbol(struct compiler *compiler, struct symbol *symbol)
     emit_immediate_u16(compiler, T_OP_LOCAL_GET, var_index);
 }
 
+static void compile_ext_function_symbol(struct compiler *compiler, struct symbol *symbol) {
+    int index = symbol->ext_function.index;
+    emit_immediate_uv(compiler, T_OP_EXTCALL8, index);
+}
+
 static void compile_symbol(struct compiler *compiler) {
     struct string_view symbol_text = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
@@ -1177,6 +1182,9 @@ static void compile_symbol(struct compiler *compiler) {
         break;
     case SYM_VAR:
         compile_var_symbol(compiler, symbol);
+        break;
+    case SYM_EXT_FUNCTION:
+        compile_ext_function_symbol(compiler, symbol);
         break;
     }
 }
