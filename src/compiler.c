@@ -1009,7 +1009,8 @@ static void compile_assignment(struct compiler *compiler) {
     }
 }
 
-static struct signature parse_signature(struct compiler *compiler, struct string_view *name) {
+static struct signature parse_signature(struct compiler *compiler, enum token_type delim,
+                                        struct string_view *name) {
     struct token prev = advance(compiler);
     struct signature sig = {0};
     /* Because we want to allocate the param and ret lists in a region, we cannot use
@@ -1023,7 +1024,7 @@ static struct signature parse_signature(struct compiler *compiler, struct string
     struct type_list *ret_list = NULL;
     struct region *temp_region = compiler->temp;
     struct region *data_region = compiler->module->functions.region;
-    while (!check(compiler, TOKEN_RIGHT_ARROW) && !check(compiler, TOKEN_DEF)) {
+    while (!check(compiler, TOKEN_RIGHT_ARROW) && !check(compiler, delim)) {
         // Parameter types.
         type_index param = parse_type(compiler, &prev);
         if (param == TYPE_ERROR) {
@@ -1045,7 +1046,7 @@ static struct signature parse_signature(struct compiler *compiler, struct string
     *name = prev.value;
     if (match(compiler, TOKEN_RIGHT_ARROW)) {
         // Return values.
-        while (!check(compiler, TOKEN_DEF)) {
+        while (!check(compiler, delim)) {
             struct token token = advance(compiler);
             type_index ret = parse_type(compiler, &token);
             if (ret == TYPE_ERROR) {
@@ -1084,7 +1085,8 @@ static void compile_function(struct compiler *compiler) {
         exit(1);
     }
     struct string_view name = {0};
-    struct signature sig = parse_signature(compiler, &name);
+    struct signature sig = parse_signature(compiler, TOKEN_DEF, &name);
+    expect_consume(compiler, TOKEN_DEF, "Expect `def` after function signature.");
     int index = add_function(&compiler->module->functions, sig);
     struct symbol symbol = {
         .name = name,
@@ -1092,7 +1094,6 @@ static void compile_function(struct compiler *compiler) {
         .function.index = index
     };
     insert_symbol(&compiler->symbols, &symbol);
-    expect_consume(compiler, TOKEN_DEF, "Expect `def` after function signature.");
     struct function *previous_function = compiler->function;
     compiler->function = get_function(&compiler->module->functions, index);
     compile_expr(compiler);  // Body.
@@ -1105,8 +1106,33 @@ static void compile_function(struct compiler *compiler) {
 }
 
 static void compile_import(struct compiler *compiler) {
-    (void)compiler;
-    assert(0 && "Not implemented");
+    /* `import` name `def` (sig `from` name [`with` call-conv] `end`) ... `end` */
+    struct ext_lib_table *ext_libraries = &compiler->module->ext_libraries;
+    expect_consume(compiler, TOKEN_STRING_LIT, "Expect external library name.");
+    struct string_builder lib_builder = parse_string(compiler);
+    uint32_t lib_name_index = write_string(compiler->module, &lib_builder);
+    expect_consume(compiler, TOKEN_DEF, "Expect `def` after external library name.");
+    struct string_view *lib_name = read_string(compiler->module, lib_name_index);
+    int lib_index = add_ext_library(ext_libraries, lib_name);
+    struct ext_library *library = get_ext_library(ext_libraries, lib_index);
+    while (!check(compiler, TOKEN_END)) {
+        struct symbol ext_symbol = {.type = SYM_EXT_FUNCTION};
+        struct signature sig = parse_signature(compiler, TOKEN_FROM, &ext_symbol.name);
+        expect_consume(compiler, TOKEN_FROM, "Expect `from` after external function signature.");
+        expect_consume(compiler, TOKEN_STRING_LIT,
+                       "Expect external function name after `from`.");
+        struct string_builder ext_builder = parse_string(compiler);
+        uint32_t ext_name_index = write_string(compiler->module, &ext_builder);
+        struct string_view *ext_name = read_string(compiler->module, ext_name_index);
+        enum calling_convention call_conv = CC_NATIVE;
+        // TODO: support different calling conventions.
+        struct ext_function external = {.sig = sig, .name = *ext_name, .call_conv = call_conv};
+        int ext_index = add_external(&compiler->module->externals, library, &external);
+        ext_symbol.ext_function.index = ext_index;
+        insert_symbol(&compiler->symbols, &ext_symbol);
+    }
+    expect_consume(compiler, TOKEN_END, "Expect `end` after external function list.");
+    clear_region(compiler->temp);
 }
 
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
