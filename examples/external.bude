@@ -1,7 +1,15 @@
 # NOTE: the `external.c` file must be compiled as a dll before this example can be run.
-import from "mylib.dll"
+import "mylib.dll" def
     ptr greet from "greet"
 end
 
 "Bude" decomp pop
 greet
+
+"Hi, C! From Bude!!\n" print
+
+# import "mylib.dll" with MS_X64 def
+#     func ptr greet end
+# end
+
+# bude src.bude --libtype:dy --lib mylib=mylib.dll -o tmp.asm
