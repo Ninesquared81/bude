@@ -771,8 +771,7 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
     }
     default: break;
     }
-    parse_error(compiler, "Invalid type: '%"PRI_SV"'", SV_FMT(token->value));
-    exit(1);
+    return TYPE_ERROR;  // Not a type. It is up to the caller to report an error (or not).
 }
 
 static void compile_pack(struct compiler *compiler) {
@@ -804,7 +803,7 @@ static void compile_pack(struct compiler *compiler) {
         struct token field_token = advance(compiler);
         type_index field_type = parse_type(compiler, &field_token);
         if (field_type == TYPE_ERROR) {
-            parse_error(compiler, "unknown type.");
+            parse_error(compiler, "Expect type after `->`.");
             exit(1);
         }
         int field_size = type_size(&compiler->module->types, field_type);
@@ -867,7 +866,7 @@ static void compile_comp(struct compiler *compiler) {
             field_word_count = info->comp.word_count;
         }
         if (type == TYPE_ERROR) {
-            parse_error(compiler, "unknown type while parsing comp definition.\n");
+            parse_error(compiler, "Expect type after `->`.");
             exit(1);
         }
         struct type_node *next = head;
