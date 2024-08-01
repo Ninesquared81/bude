@@ -1060,17 +1060,21 @@ static void check_comp_field_set(struct type_checker *checker, type_index index,
     expect_type(checker, info->comp.fields[offset]);
 }
 
+static void check_signature(struct type_checker *checker, struct signature sig) {
+    expect_types(checker, sig.param_count, sig.params);
+    for (int i = 0; i < sig.ret_count; ++i) {
+        ts_push(checker, sig.rets[i]);
+    }
+}
+
 static void check_function_call(struct type_checker *checker, int index) {
     struct function *function = get_function(&checker->module->functions, index);
-    assert(function != NULL);
-    int param_count = function->sig.param_count;
-    type_index *params = function->sig.params;
-    expect_types(checker, param_count, params);
-    int ret_count = function->sig.ret_count;
-    type_index *rets = function->sig.rets;
-    for (int i = 0; i < ret_count; ++i) {
-        ts_push(checker, rets[i]);
-    }
+    check_signature(checker, function->sig);
+}
+
+static void check_ext_function_call(struct type_checker *checker, int index) {
+    struct ext_function *external = get_external(&checker->module->externals, index);
+    check_signature(checker, external->sig);
 }
 
 static void check_function_return(struct type_checker *checker, struct function *function) {
@@ -1973,11 +1977,27 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_immediate_u32(checker, W_OP_CALL32, index);
             break;
         }
-        case T_OP_EXTCALL8:
-        case T_OP_EXTCALL16:
-        case T_OP_EXTCALL32:
-            assert(false && "Not implemented");
+        case T_OP_EXTCALL8: {
+            uint8_t index = read_u8(checker->in_block, checker->ip + 1);
+            checker->ip += 1;
+            check_ext_function_call(checker, index);
+            emit_immediate_u8(checker, W_OP_EXTCALL8, index);
             break;
+        }
+        case T_OP_EXTCALL16: {
+            uint16_t index = read_u16(checker->in_block, checker->ip + 1);
+            checker->ip += 2;
+            check_ext_function_call(checker, index);
+            emit_immediate_u16(checker, W_OP_EXTCALL16, index);
+            break;
+        }
+        case T_OP_EXTCALL32: {
+            uint32_t index = read_u32(checker->in_block, checker->ip + 1);
+            checker->ip += 4;
+            check_ext_function_call(checker, index);
+            emit_immediate_u32(checker, W_OP_EXTCALL32, index);
+            break;
+        }
         case T_OP_RET:
             check_function_return(checker, function);
             check_unreachable(checker);
