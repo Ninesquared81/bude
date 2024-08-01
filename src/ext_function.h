@@ -46,4 +46,7 @@ int add_external(struct external_table *externals, struct ext_library *library,
                  struct ext_function *external);
 struct ext_function *get_external(struct external_table *externals, int index);
 
+int add_ext_library(struct ext_lib_table *libraries, struct string_view *filename);
+struct ext_library *get_ext_library(struct ext_lib_table *libraries, int index);
+
 #endif

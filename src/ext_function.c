@@ -47,9 +47,14 @@ struct ext_function *get_external(struct external_table *externals, int index) {
     return &externals->items[index];
 }
 
-int add_ext_libarary(struct ext_lib_table *libraries, struct string_view *filename) {
+int add_ext_library(struct ext_lib_table *libraries, struct string_view *filename) {
     DARRAY_APPEND(libraries, (struct ext_library){.filename = *filename});
     int index = libraries->count - 1;
     init_ext_library(&libraries->items[index]);
     return index;
+}
+
+struct ext_library *get_ext_library(struct ext_lib_table *libraries, int index) {
+    assert(0 <= index && index < libraries->count);
+    return &libraries->items[index];
 }
