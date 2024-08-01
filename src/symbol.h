@@ -18,6 +18,7 @@ enum symbol_type {
     SYM_COMP_FIELD,
     SYM_FUNCTION,
     SYM_VAR,
+    SYM_EXT_FUNCTION,
 };
 
 struct symbol {
@@ -47,6 +48,9 @@ struct symbol {
         struct {
             int var;
         } var;
+        struct {
+            int index;
+        } ext_function;
     };
 };
 
