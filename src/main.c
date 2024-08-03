@@ -33,8 +33,11 @@ struct cmdopts {
     bool from_bytecode;
     // Parameterised options.
     const char *output_filename;
-    // Positional Args
+    // Positional args.
     const char *filename;
+    // Private fields.
+    bool _had_i;
+    bool _had_a;
 };
 
 static void print_usage(FILE *file, const char *name) {
@@ -75,6 +78,8 @@ static void init_cmdopts(struct cmdopts *opts) {
     opts->generate_asm = false;
     opts->generate_bytecode = false;
     opts->from_bytecode = false;
+    opts->_had_i = false;
+    opts->_had_a = false;
 }
 
 static void handle_positional_arg(const char *restrict name, struct cmdopts *opts,
@@ -93,15 +98,14 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
         print_usage(stderr, name);                      \
     } while (0)
 
-static void parse_short_opt(const char *name, const char *arg,
-                            struct cmdopts *opts, bool *had_i, bool *had_a) {
+static void parse_short_opt(const char *name, const char *arg, struct cmdopts *opts) {
     for (const char *opt = &arg[1]; *opt != '\0'; ++opt) {
         switch (*opt) {
         case 'a':
             opts->generate_asm = true;
             opts->interpret = false;
             opts->generate_bytecode = false;
-            *had_a = true;
+            opts->_had_a = true;
             break;
         case 'b':
             opts->generate_bytecode = true;
@@ -113,15 +117,15 @@ static void parse_short_opt(const char *name, const char *arg,
             break;
         case 'd':
             opts->dump_ir = true;
-            opts->interpret = *had_i;
-            opts->generate_asm = *had_a;
+            opts->interpret = opts->_had_i;
+            opts->generate_asm = opts->_had_a;
             break;
         case 'h': case '?':
             print_help(stderr, name);
             exit(0);
         case 'i':
             opts->interpret = true;
-            *had_i = true;
+            opts->_had_i = true;
             break;
         case 'O':
             opts->optimise = true;
@@ -140,8 +144,6 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
     init_cmdopts(opts);
     const char *name = argv[0];
 
-    bool had_i = false;
-    bool had_a = false;
     for (int i = 1; i < argc; ++i) {
         const char *arg = argv[i];
         switch (arg[0]) {
@@ -156,7 +158,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
             case 'i':
             case 'O':
             case 'v':
-                parse_short_opt(name, arg, opts, &had_i, &had_a);
+                parse_short_opt(name, arg, opts);
                 break;
             case 'o': {
                 const char *filename = NULL;
@@ -187,8 +189,8 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                 // Long options.
                 if (strcmp(&arg[2], "dump") == 0) {
                     opts->dump_ir = true;
-                    opts->interpret = had_i;
-                    opts->generate_asm = had_a;
+                    opts->interpret = opts->_had_i;
+                    opts->generate_asm = opts->_had_a;
                 }
                 else if (strcmp(&arg[2], "help") == 0) {
                     print_help(stderr, name);
@@ -196,7 +198,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                 }
                 else if (strcmp(&arg[2], "interpret") == 0) {
                     opts->interpret = true;
-                    had_i = true;
+                    opts->_had_i = true;
                 }
                 else if (strcmp(&arg[2], "optimise") == 0) {
                     opts->optimise = true;
