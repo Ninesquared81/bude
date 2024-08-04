@@ -3,8 +3,8 @@
 
 #include "ir.h"
 #include "module.h"
+#include "symbol.h"
 
-void compile(const char *src, struct module *module);
+void compile(const char *src, struct module *module, struct symbol_dictionary *symbols);
 
 #endif
-

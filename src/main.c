@@ -15,6 +15,7 @@
 //#include "optimiser.h"
 #include "reader.h"
 #include "stack.h"
+#include "symbol.h"
 #include "type_checker.h"
 #include "writer.h"
 
@@ -38,6 +39,7 @@ struct cmdopts {
     // Private fields.
     bool _had_i;
     bool _had_a;
+    enum link_type _default_linking;
 };
 
 static void print_usage(FILE *file, const char *name) {
@@ -59,6 +61,15 @@ static void print_help(FILE *file, const char *name) {
             "  -o <file>         write the output to the specified file\n"
             "  -h, -?, --help    display this help message and exit\n"
             "  -i, --interpret   interpret ir code (enabled by default)\n"
+            "  --lib[:st|:dy] <libname>=<path> link with a STatic or DYnamic library. "
+                                       "If neither :st nor :dy\n"
+            "                    are specified, the default linking strategy is used. "
+                                       "This option can be used\n"
+            "                    multiple times to link multiple libraries.\n"
+            "  --lib-type:<st|dy> set the default library linking strategy to STatic or "
+                                       "DYnamic.\n"
+            "                    This option can be used multiple times and affects "
+                                       "subsequent uses of --lib.\n"
             "  -O, --optimise    optimise ir code\n"
             "  -v, --version     display the version number and exit\n"
             "  --                treat all following arguments as positional\n"
@@ -80,6 +91,7 @@ static void init_cmdopts(struct cmdopts *opts) {
     opts->from_bytecode = false;
     opts->_had_i = false;
     opts->_had_a = false;
+    opts->_default_linking = LINK_DYNAMIC;
 }
 
 static void handle_positional_arg(const char *restrict name, struct cmdopts *opts,
@@ -140,7 +152,19 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
     }
 }
 
-static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
+static enum link_type parse_link_type(const char *rest, const char *name, const char *arg) {
+    if (strcmp(rest, "st")) {
+        return LINK_STATIC;
+    }
+    if (strcmp(rest, "dy")) {
+        return LINK_DYNAMIC;
+    }
+    BAD_OPTION(name, arg);
+    exit(1);
+}
+
+static void parse_args(int argc, char *argv[], struct cmdopts *opts,
+                       struct symbol_dictionary *symbols, struct module *module) {
     init_cmdopts(opts);
     const char *name = argv[0];
 
@@ -200,6 +224,41 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts) {
                     opts->interpret = true;
                     opts->_had_i = true;
                 }
+                else if (strcmp(&arg[2], "lib-type:") == 0) {
+                    // NOTE: this must come BEFORE the check for `--lib`.
+                    const char *rest = &arg[2 + sizeof "lib-type:" - 1];
+                    opts->_default_linking = parse_link_type(rest, name, arg);
+                }
+                else if (strncmp(&arg[2], "lib", 3) == 0) {
+                    // NOTE: this must come AFTER the check for `--lib-type`.
+                    const char *rest = &arg[2 + 3];
+                    enum link_type linking = opts->_default_linking;
+                    if (*rest == ':') {
+                        ++rest;
+                        linking = parse_link_type(rest, name, arg);
+                    }
+                    arg = argv[++i];
+                    int sep = 0;
+                    while (arg[sep] != '=') {
+                        if (arg[sep] == '\0') {
+                            BAD_OPTION(name, arg);
+                            exit(1);
+                        }
+                        ++sep;
+                    }
+                    struct string_view libname = {.start = arg, .length = sep};
+                    const char *path = &arg[sep + 1];
+                    struct ext_library library = {
+                        .filename = {.start = path, .length = strlen(path)},
+                        .link_type = linking,
+                    };
+                    int index = add_ext_library(&module->ext_libraries, library);
+                    insert_symbol(symbols, &(struct symbol) {
+                            .name = libname,
+                            .type = SYM_EXT_LIBRARY,
+                            .ext_library.index = index,
+                    });
+                }
                 else if (strcmp(&arg[2], "optimise") == 0) {
                     opts->optimise = true;
                 }
@@ -258,17 +317,23 @@ void load_source(const char *restrict filename, char *restrict inbuf) {
 
 int main(int argc, char *argv[]) {
     struct cmdopts opts;
-    parse_args(argc, argv, &opts);
+    struct symbol_dictionary symbols;
     struct module module = {0};
+    init_symbol_dictionary(&symbols);
+    init_module(&module, NULL);
+    parse_args(argc, argv, &opts, &symbols, &module);
     if (!opts.from_bytecode) {
         char *inbuf = calloc(INPUT_BUFFER_SIZE, sizeof *inbuf);
         CHECK_ALLOCATION(inbuf);
         load_source(opts.filename, inbuf);
 
-        init_module(&module, opts.filename);
+        module.filename = opts.filename;
 
-        compile(inbuf, &module);
+        compile(inbuf, &module, &symbols);
         free(inbuf);
+        inbuf = NULL;
+        free_symbol_dictionary(&symbols);
+        symbols = (struct symbol_dictionary){0};
         if (opts.optimise) {
             // optimise(&module);
         }
@@ -285,6 +350,9 @@ int main(int argc, char *argv[]) {
         }
     }
     else {
+        free_symbol_dictionary(&symbols);
+        free_module(&module);
+        symbols = (struct symbol_dictionary){0};
         module = read_bytecode(opts.filename);
     }
     if (opts.dump_ir) {

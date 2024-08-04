@@ -45,7 +45,6 @@ void free_module(struct module *module) {
 
 int write_string(struct module *module, struct string_builder *builder) {
     struct string_view view = build_string_in_region(builder, module->region);
-    CHECK_ALLOCATION(view.start);
     struct string_table *strings = &module->strings;
     DARRAY_APPEND(strings, view);
     return strings->count - 1;

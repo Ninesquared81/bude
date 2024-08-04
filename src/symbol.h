@@ -19,6 +19,7 @@ enum symbol_type {
     SYM_FUNCTION,
     SYM_VAR,
     SYM_EXT_FUNCTION,
+    SYM_EXT_LIBRARY,
 };
 
 struct symbol {
@@ -51,6 +52,9 @@ struct symbol {
         struct {
             int index;
         } ext_function;
+        struct {
+            int index;
+        } ext_library;
     };
 };
 

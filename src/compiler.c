@@ -23,19 +23,20 @@ struct compiler {
     struct lexer lexer;
     struct token current_token;
     struct token previous_token;
-    struct symbol_dictionary symbols;
+    struct symbol_dictionary *symbols;
     struct function *function;
     struct module *module;
     struct region *temp;
     int for_loop_level;
 };
 
-static void init_compiler(struct compiler *compiler, const char *src, struct module *module) {
+static void init_compiler(struct compiler *compiler, const char *src, struct module *module,
+                          struct symbol_dictionary *symbols) {
     compiler->function = NULL;  // Will be set later.
     init_lexer(&compiler->lexer, src, module->filename);
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
-    init_symbol_dictionary(&compiler->symbols);
+    compiler->symbols = symbols;
     compiler->for_loop_level = 0;
     compiler->module = module;
     compiler->temp = new_region(TEMP_REGION_SIZE);
@@ -43,7 +44,6 @@ static void init_compiler(struct compiler *compiler, const char *src, struct mod
 }
 
 static void free_compiler(struct compiler *compiler) {
-    free_symbol_dictionary(&compiler->symbols);
     kill_region(compiler->temp);
     compiler->temp = NULL;
 }
@@ -596,13 +596,13 @@ static void compile_for_loop(struct compiler *compiler) {
             .loop_var.level = compiler->for_loop_level + 1
         };
         if (match(compiler, TOKEN_FROM)) {
-            insert_symbol(&compiler->symbols, &symbol);
+            insert_symbol(compiler->symbols, &symbol);
         } else if (match(compiler, TOKEN_TO)) {
             start_instruction = T_OP_FOR_INC_START;
             update_instruction = T_OP_FOR_INC;
             ++loop_level_offset;  // +1 for loop target.
             ++symbol.loop_var.level;  // Store loop counter above target in loop stack.
-            insert_symbol(&compiler->symbols, &symbol);
+            insert_symbol(compiler->symbols, &symbol);
         }
         else {
             // Symbol was part of count.
@@ -707,8 +707,8 @@ static struct string_builder parse_string(struct compiler *compiler) {
 static void compile_string(struct compiler *compiler) {
     struct string_builder builder = parse_string(compiler);
     uint32_t index = write_string(compiler->module, &builder);
-    emit_immediate_uv(compiler, T_OP_LOAD_STRING8, index);
     clear_region(compiler->temp);
+    emit_immediate_uv(compiler, T_OP_LOAD_STRING8, index);
 }
 
 static void compile_character(struct compiler *compiler) {
@@ -757,7 +757,7 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
     case TOKEN_WORD: return TYPE_WORD;
     case TOKEN_STRING: return TYPE_STRING;
     case TOKEN_SYMBOL: {
-        struct symbol *symbol = lookup_symbol(&compiler->symbols, &token->value);
+        struct symbol *symbol = lookup_symbol(compiler->symbols, &token->value);
         if (symbol == NULL) {
             compile_error(compiler, "Unknown symbol '%"PRI_SV"'", SV_FMT(token->value));
             exit(1);
@@ -783,7 +783,7 @@ static void compile_pack(struct compiler *compiler) {
         .type = SYM_PACK,
         .pack.index = index,
     };
-    insert_symbol(&compiler->symbols, &symbol);
+    insert_symbol(compiler->symbols, &symbol);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after pack name.");
     struct type_info info = {.kind = KIND_PACK};
     int field_count = 0;
@@ -798,7 +798,7 @@ static void compile_pack(struct compiler *compiler) {
                 .field_offset = field_count,
             },
         };
-        insert_symbol(&compiler->symbols, &field);
+        insert_symbol(compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
         struct token field_token = advance(compiler);
         type_index field_type = parse_type(compiler, &field_token);
@@ -833,7 +833,7 @@ static void compile_comp(struct compiler *compiler) {
         .type = SYM_COMP,
         .comp.index = index,
     };
-    insert_symbol(&compiler->symbols, &symbol);
+    insert_symbol(compiler->symbols, &symbol);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after comp name.");
     struct type_info info = {.kind = KIND_COMP};
     int field_count = 0;
@@ -853,7 +853,7 @@ static void compile_comp(struct compiler *compiler) {
                 .field_offset = field_count,
             },
         };
-        insert_symbol(&compiler->symbols, &field);
+        insert_symbol(compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
         struct token field_token = advance(compiler);
         type_index type = parse_type(compiler, &field_token);
@@ -977,7 +977,7 @@ static void compile_var(struct compiler *compiler) {
             .type = SYM_VAR,
             .var.var = var_index,
         };
-        insert_symbol(&compiler->symbols, &symbol);
+        insert_symbol(compiler->symbols, &symbol);
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after `var` block.");
 }
@@ -985,7 +985,7 @@ static void compile_var(struct compiler *compiler) {
 static void compile_assignment(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `<-`");
     struct string_view name = peek_previous(compiler).value;
-    struct symbol *symbol = lookup_symbol(&compiler->symbols, &name);
+    struct symbol *symbol = lookup_symbol(compiler->symbols, &name);
     if (symbol == NULL) {
         compile_error(compiler, "Unknown symbol '"PRI_SV"'", SV_FMT(name));
         exit(1);
@@ -1092,7 +1092,7 @@ static void compile_function(struct compiler *compiler) {
         .type = SYM_FUNCTION,
         .function.index = index
     };
-    insert_symbol(&compiler->symbols, &symbol);
+    insert_symbol(compiler->symbols, &symbol);
     struct function *previous_function = compiler->function;
     compiler->function = get_function(&compiler->module->functions, index);
     compile_expr(compiler);  // Body.
@@ -1107,12 +1107,20 @@ static void compile_function(struct compiler *compiler) {
 static void compile_import(struct compiler *compiler) {
     /* `import` name `def` (sig `from` name [`with` call-conv] `end`) ... `end` */
     struct ext_lib_table *ext_libraries = &compiler->module->ext_libraries;
-    expect_consume(compiler, TOKEN_STRING_LIT, "Expect external library name.");
-    struct string_builder lib_builder = parse_string(compiler);
-    uint32_t lib_name_index = write_string(compiler->module, &lib_builder);
+    expect_consume(compiler, TOKEN_SYMBOL, "Expect external library name.");
+    struct string_view lib_name = peek_previous(compiler).value;
+    write_string(compiler->module, &SB_FROM_SV(lib_name));
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after external library name.");
-    struct string_view *lib_name = read_string(compiler->module, lib_name_index);
-    int lib_index = add_ext_library(ext_libraries, lib_name);
+    struct symbol *lib_symbol = lookup_symbol(compiler->symbols, &lib_name);
+    if (lib_symbol == NULL || lib_symbol->type != SYM_EXT_LIBRARY) {
+        parse_error(
+            compiler,
+            "Unknown library '%"PRI_SV"'. Use `--lib[:st|:dy] %"PRI_SV"=<path>` to link.",
+            SV_FMT(lib_name), SV_FMT(lib_name)
+        );
+        exit(1);
+    }
+    int lib_index = lib_symbol->ext_library.index;
     struct ext_library *library = get_ext_library(ext_libraries, lib_index);
     while (!check(compiler, TOKEN_END)) {
         struct symbol ext_symbol = {.type = SYM_EXT_FUNCTION};
@@ -1128,7 +1136,7 @@ static void compile_import(struct compiler *compiler) {
         struct ext_function external = {.sig = sig, .name = *ext_name, .call_conv = call_conv};
         int ext_index = add_external(&compiler->module->externals, library, &external);
         ext_symbol.ext_function.index = ext_index;
-        insert_symbol(&compiler->symbols, &ext_symbol);
+        insert_symbol(compiler->symbols, &ext_symbol);
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after external function list.");
     clear_region(compiler->temp);
@@ -1181,7 +1189,7 @@ static void compile_ext_function_symbol(struct compiler *compiler, struct symbol
 
 static void compile_symbol(struct compiler *compiler) {
     struct string_view symbol_text = peek_previous(compiler).value;
-    struct symbol *symbol = lookup_symbol(&compiler->symbols, &symbol_text);
+    struct symbol *symbol = lookup_symbol(compiler->symbols, &symbol_text);
     if (symbol == NULL) {
         compile_error(compiler, "unknown symbol '%"PRI_SV"'.\n", SV_FMT(symbol_text));
         exit(1);
@@ -1211,6 +1219,10 @@ static void compile_symbol(struct compiler *compiler) {
     case SYM_EXT_FUNCTION:
         compile_ext_function_symbol(compiler, symbol);
         break;
+    case SYM_EXT_LIBRARY:
+        parse_error(compiler, "Invalid use of external library symbol '%"PRI_SV"'.",
+                    SV_FMT(symbol_text));
+        exit(1);
     }
 }
 
@@ -1371,10 +1383,10 @@ static void compile_expr(struct compiler *compiler) {
     }
 }
 
-void compile(const char *src, struct module *module) {
+void compile(const char *src, struct module *module, struct symbol_dictionary *symbols) {
     struct compiler compiler;
-    init_compiler(&compiler, src, module);
-    init_builtins(&compiler.symbols);
+    init_compiler(&compiler, src, module, symbols);
+    init_builtins(compiler.symbols);
     assert(module->functions.count == 0);  // We assume that the function table is empty.
     add_function(&module->functions, (struct signature){0});  // Main/script function.
     compiler.function = get_function(&module->functions, 0);

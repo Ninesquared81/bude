@@ -11,6 +11,11 @@ enum calling_convention {
     CC_SYSV_AMD64,  /* System V AMD64 Calling Convention (1st 6 args in regs, return in rax). */
 };
 
+enum link_type {
+    LINK_STATIC,
+    LINK_DYNAMIC,
+};
+
 struct ext_function {
     struct signature sig;
     struct string_view name;
@@ -28,6 +33,7 @@ struct ext_library {
     int count;
     int *items;  // Array of external function indices in this library.
     struct string_view filename;
+    enum link_type link_type;
 };
 
 struct ext_lib_table {
@@ -46,7 +52,7 @@ int add_external(struct external_table *externals, struct ext_library *library,
                  struct ext_function *external);
 struct ext_function *get_external(struct external_table *externals, int index);
 
-int add_ext_library(struct ext_lib_table *libraries, struct string_view *filename);
+int add_ext_library(struct ext_lib_table *libraries, struct ext_library library);
 struct ext_library *get_ext_library(struct ext_lib_table *libraries, int index);
 
 #endif
