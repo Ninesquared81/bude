@@ -1119,6 +1119,8 @@ static void compile_import(struct compiler *compiler) {
     int lib_index = lib_symbol->ext_library.index;
     struct ext_library *library = get_ext_library(ext_libraries, lib_index);
     while (!check(compiler, TOKEN_END)) {
+        expect_consume(compiler, TOKEN_FUNC,
+                       "Expect `func` before external function declaration.");
         struct symbol ext_symbol = {.type = SYM_EXT_FUNCTION};
         struct signature sig = parse_signature(compiler, &ext_symbol.name);
         expect_consume(compiler, TOKEN_FROM, "Expect `from` after external function signature.");
