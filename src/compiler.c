@@ -758,10 +758,7 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
     case TOKEN_STRING: return TYPE_STRING;
     case TOKEN_SYMBOL: {
         struct symbol *symbol = lookup_symbol(compiler->symbols, &token->value);
-        if (symbol == NULL) {
-            compile_error(compiler, "Unknown symbol '%"PRI_SV"'", SV_FMT(token->value));
-            exit(1);
-        }
+        if (symbol == NULL) return TYPE_ERROR;
         switch (symbol->type) {
         case SYM_COMP: return symbol->comp.index;
         case SYM_PACK: return symbol->pack.index;
@@ -1008,8 +1005,7 @@ static void compile_assignment(struct compiler *compiler) {
     }
 }
 
-static struct signature parse_signature(struct compiler *compiler, enum token_type delim,
-                                        struct string_view *name) {
+static struct signature parse_signature(struct compiler *compiler, struct string_view *name) {
     struct token prev = advance(compiler);
     struct signature sig = {0};
     /* Because we want to allocate the param and ret lists in a region, we cannot use
@@ -1023,12 +1019,12 @@ static struct signature parse_signature(struct compiler *compiler, enum token_ty
     struct type_list *ret_list = NULL;
     struct region *temp_region = compiler->temp;
     struct region *data_region = compiler->module->functions.region;
-    while (!check(compiler, TOKEN_RIGHT_ARROW) && !check(compiler, delim)) {
+    for (;;) {
         // Parameter types.
         type_index param = parse_type(compiler, &prev);
         if (param == TYPE_ERROR) {
-            parse_error(compiler, "Expect paramater type.");
-            exit(1);
+            // Assume anything that's not a type is the function name.
+            break;
         }
         prev = advance(compiler);
         struct type_list *node = region_alloc(temp_region, sizeof *node);
@@ -1045,12 +1041,11 @@ static struct signature parse_signature(struct compiler *compiler, enum token_ty
     *name = prev.value;
     if (match(compiler, TOKEN_RIGHT_ARROW)) {
         // Return values.
-        while (!check(compiler, delim)) {
-            struct token token = advance(compiler);
-            type_index ret = parse_type(compiler, &token);
+        for (;;) {
+            type_index ret = parse_type(compiler, &compiler->current_token);
             if (ret == TYPE_ERROR) {
-                parse_error(compiler, "Expect return type.");
-                exit(1);
+                // End of return types.
+                break;
             }
             struct type_list *node = region_alloc(temp_region, sizeof *node);
             CHECK_ALLOCATION(node);
@@ -1058,6 +1053,7 @@ static struct signature parse_signature(struct compiler *compiler, enum token_ty
             node->type = ret;
             ret_list = node;
             ++sig.ret_count;
+            advance(compiler);
         }
     }
     sig.params = region_calloc(data_region, sig.param_count, sizeof *sig.params);
@@ -1084,7 +1080,7 @@ static void compile_function(struct compiler *compiler) {
         exit(1);
     }
     struct string_view name = {0};
-    struct signature sig = parse_signature(compiler, TOKEN_DEF, &name);
+    struct signature sig = parse_signature(compiler, &name);
     expect_consume(compiler, TOKEN_DEF, "Expect `def` after function signature.");
     int index = add_function(&compiler->module->functions, sig);
     struct symbol symbol = {
@@ -1105,7 +1101,7 @@ static void compile_function(struct compiler *compiler) {
 }
 
 static void compile_import(struct compiler *compiler) {
-    /* `import` name `def` (sig `from` name [`with` call-conv] `end`) ... `end` */
+    /* `import` name `def` (`func` sig [`from` name] [`with` call-conv] `end`) ... `end` */
     struct ext_lib_table *ext_libraries = &compiler->module->ext_libraries;
     expect_consume(compiler, TOKEN_SYMBOL, "Expect external library name.");
     struct string_view lib_name = peek_previous(compiler).value;
@@ -1124,7 +1120,7 @@ static void compile_import(struct compiler *compiler) {
     struct ext_library *library = get_ext_library(ext_libraries, lib_index);
     while (!check(compiler, TOKEN_END)) {
         struct symbol ext_symbol = {.type = SYM_EXT_FUNCTION};
-        struct signature sig = parse_signature(compiler, TOKEN_FROM, &ext_symbol.name);
+        struct signature sig = parse_signature(compiler, &ext_symbol.name);
         expect_consume(compiler, TOKEN_FROM, "Expect `from` after external function signature.");
         expect_consume(compiler, TOKEN_STRING_LIT,
                        "Expect external function name after `from`.");
