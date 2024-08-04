@@ -1123,10 +1123,12 @@ static void compile_import(struct compiler *compiler) {
                        "Expect `func` before external function declaration.");
         struct symbol ext_symbol = {.type = SYM_EXT_FUNCTION};
         struct signature sig = parse_signature(compiler, &ext_symbol.name);
-        expect_consume(compiler, TOKEN_FROM, "Expect `from` after external function signature.");
-        expect_consume(compiler, TOKEN_STRING_LIT,
-                       "Expect external function name after `from`.");
-        struct string_builder ext_builder = parse_string(compiler);
+        struct string_builder ext_builder = SB_FROM_SV(ext_symbol.name);
+        if (match(compiler, TOKEN_FROM)) {
+            expect_consume(compiler, TOKEN_STRING_LIT,
+                           "Expect external function name after `from`.");
+            ext_builder = parse_string(compiler);
+        }
         uint32_t ext_name_index = write_string(compiler->module, &ext_builder);
         struct string_view *ext_name = read_string(compiler->module, ext_name_index);
         enum calling_convention call_conv = CC_NATIVE;
