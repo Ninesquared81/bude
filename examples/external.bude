@@ -12,4 +12,4 @@ greet
 #     func ptr greet end
 # end
 
-# bude src.bude --libtype:dy --lib mylib=mylib.dll -o tmp.asm
+# bude src.bude --lib-type:dy --lib mylib=mylib.dll -o tmp.asm
