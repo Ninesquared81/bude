@@ -1135,6 +1135,7 @@ static void compile_import(struct compiler *compiler) {
         int ext_index = add_external(&compiler->module->externals, library, &external);
         ext_symbol.ext_function.index = ext_index;
         insert_symbol(compiler->symbols, &ext_symbol);
+        expect_consume(compiler, TOKEN_END, "Expect `end` after external function declaration.");
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after external function list.");
     clear_region(compiler->temp);
