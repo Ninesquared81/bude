@@ -1132,7 +1132,27 @@ static void compile_import(struct compiler *compiler) {
         uint32_t ext_name_index = write_string(compiler->module, &ext_builder);
         struct string_view *ext_name = read_string(compiler->module, ext_name_index);
         enum calling_convention call_conv = CC_NATIVE;
-        // TODO: support different calling conventions.
+        if (match(compiler, TOKEN_WITH)) {
+            expect_consume(compiler, TOKEN_SYMBOL, "Expect calling convention after `with`.");
+            struct string_view conv_name = peek_previous(compiler).value;
+            if (sv_eq(&conv_name, &SV_LIT("bude"))) {
+                call_conv = CC_BUDE;
+            }
+            else if (sv_eq(&conv_name, &SV_LIT("native"))) {
+                call_conv = CC_NATIVE;
+            }
+            else if (sv_eq(&conv_name, &SV_LIT("ms-x64"))) {
+                call_conv = CC_MS_X64;
+            }
+            else if (sv_eq(&conv_name, &SV_LIT("sysv-amd64"))) {
+                call_conv = CC_SYSV_AMD64;
+            }
+            else {
+                parse_error(compiler, "Unrecognised calling convention '%"PRI_SV"'.",
+                            SV_FMT(conv_name));
+                exit(1);
+            }
+        }
         struct ext_function external = {.sig = sig, .name = *ext_name, .call_conv = call_conv};
         int ext_index = add_external(&compiler->module->externals, library, &external);
         ext_symbol.ext_function.index = ext_index;

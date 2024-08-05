@@ -78,6 +78,7 @@ enum token_type {
     TOKEN_UNPACK,
     TOKEN_VAR,
     TOKEN_WHILE,
+    TOKEN_WITH,
     TOKEN_WORD,
 
     // Special.
