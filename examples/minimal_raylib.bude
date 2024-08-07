@@ -1,0 +1,21 @@
+import raylib def
+    func s32 s32 ptr InitWindow end
+    func CloseWindow end
+    func WindowShouldClose -> s8 end
+    func BeginDrawing end
+    func EndDrawing end
+end
+
+800s32
+450s32
+"Raylib in Bude" decomp pop
+InitWindow
+
+while WindowShouldClose not do
+    BeginDrawing
+    EndDrawing
+end
+
+CloseWindow
+
+# .../bude> ./bin/bude.exe ./examples/minimal_raylib.bude -a -o tmp.asm --lib raylib=raylib.dll
