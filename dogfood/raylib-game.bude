@@ -8,11 +8,11 @@ pack Color def
 end
 
 var RAYWHITE -> Color
-    RED -> Color
+    RED      -> Color
 end
 
 245u8 245u8 245u8 255u8 Color <- RAYWHITE
-255u8 0u8 0u8 255u8 Color <- RED
+230u8 41u8 55u8 255u8 Color   <- RED
 
 import raylib def
     func s32 s32 ptr InitWindow end
