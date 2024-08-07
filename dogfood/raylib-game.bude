@@ -21,26 +21,47 @@ import raylib def
     func BeginDrawing end
     func EndDrawing end
     func Color ClearBackground end
+    func ptr s32 s32 s32 Color DrawText end
+    func ptr s32 MeasureText -> s32 end
 end
 
 ### END RAYLIB ###
 
 
-var width  -> s32
-    height -> s32
-    title  -> string
+func string to-cstr -> ptr def
+     decomp pop
 end
 
-1200s32 <- width
-800s32  <- height
 
-"Raylib Game in Bude" <- title
+var screen-width  -> s32
+    screen-height -> s32
+    screen-title  -> string
+end
 
-1200s32 800s32 title decomp pop InitWindow
+1200s32 <- screen-width
+800s32  <- screen-height
+
+"Raylib Game in Bude" <- screen-title
+
+screen-width screen-height screen-title decomp pop InitWindow
 
 while WindowShouldClose not do
     BeginDrawing
     RAYWHITE ClearBackground
+
+    var text -> ptr
+        font-size -> s32
+    end
+    "Hello, Raylib!" to-cstr <- text
+    80s32 <- font-size
+
+    text
+    screen-width text font-size MeasureText - 2s32 /  # x position
+    screen-height 2s32 /  # y position
+    font-size
+    RED
+    DrawText
+
     EndDrawing
 end
 
