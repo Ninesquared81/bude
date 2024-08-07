@@ -1,0 +1,47 @@
+### BEGIN RAYLIB ###
+
+pack Color def
+    r -> u8
+    g -> u8
+    b -> u8
+    a -> u8
+end
+
+var RAYWHITE -> Color
+    RED -> Color
+end
+
+245u8 245u8 245u8 255u8 Color <- RAYWHITE
+255u8 0u8 0u8 255u8 Color <- RED
+
+import raylib def
+    func s32 s32 ptr InitWindow end
+    func CloseWindow end
+    func WindowShouldClose -> s8 end  # TODO: bool type
+    func BeginDrawing end
+    func EndDrawing end
+    func Color ClearBackground end
+end
+
+### END RAYLIB ###
+
+
+var width  -> s32
+    height -> s32
+    title  -> string
+end
+
+1200s32 <- width
+800s32  <- height
+
+"Raylib Game in Bude" <- title
+
+1200s32 800s32 title decomp pop InitWindow
+
+while WindowShouldClose not do
+    BeginDrawing
+    RAYWHITE ClearBackground
+    EndDrawing
+end
+
+CloseWindow
