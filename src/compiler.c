@@ -961,7 +961,7 @@ static void compile_var(struct compiler *compiler) {
     while (!check(compiler, TOKEN_END)) {
         expect_consume(compiler, TOKEN_SYMBOL, "Expect variable name.");
         struct string_view name = peek_previous(compiler).value;
-        expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `<-` after variable name.");
+        expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after variable name.");
         struct token type_token = advance(compiler);
         type_index type = parse_type(compiler, &type_token);
         if (type == TYPE_ERROR) {
