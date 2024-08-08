@@ -43,7 +43,7 @@ end
 
 "Raylib Game in Bude" <- screen-title
 
-screen-width screen-height screen-title decomp pop InitWindow
+screen-width screen-height screen-title to-cstr InitWindow
 
 while WindowShouldClose not do
     BeginDrawing
