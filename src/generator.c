@@ -336,11 +336,24 @@ static void generate_external_call_ms_x64(struct generator *generator,
     else if (external->sig.ret_count > 0) {
         // External functions have either 0 or 1 return value(s), no more.
         assert(external->sig.ret_count == 1);
+        int ret_size = type_size(types, ret_type);
         if (ret_type == TYPE_F64) {
             asm_write_inst2(assembly, "movq", "rax", "xmm0");
         }
         else if (ret_type == TYPE_F32) {
             asm_write_inst2(assembly, "movd", "eax", "xmm0");
+        }
+        else if (ret_size == 1) {
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+        }
+        else if (ret_size == 2) {
+            asm_write_inst2(assembly, "movzx", "eax", "ax");
+        }
+        else if (ret_size == 4) {
+            asm_write_inst2(assembly, "mov", "eax", "eax");
+        }
+        else {
+            assert(ret_size == 8 && "Unaccounted-for return value size");
         }
         asm_write_inst1(assembly, "push", "rax");
     }
