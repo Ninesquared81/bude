@@ -52,6 +52,8 @@ class Opcode(enum.IntEnum):
     DUPEN16 = enum.auto()
     DUPEN32 = enum.auto()
     EQUALS = enum.auto()
+    EQUALS_F32 = enum.auto()
+    EQUALS_F64 = enum.auto()
     EXIT = enum.auto()
     FOR_DEC_START = enum.auto()
     FOR_DEC = enum.auto()
@@ -59,14 +61,22 @@ class Opcode(enum.IntEnum):
     FOR_INC = enum.auto()
     GET_LOOP_VAR = enum.auto()
     GREATER_EQUALS = enum.auto()
+    GREATER_EQUALS_F32 = enum.auto()
+    GREATER_EQUALS_F64 = enum.auto()
     GREATER_THAN = enum.auto()
+    GREATER_THAN_F32 = enum.auto()
+    GREATER_THAN_F64 = enum.auto()
     HIGHER_SAME = enum.auto()
     HIGHER_THAN = enum.auto()
     JUMP = enum.auto()
     JUMP_COND = enum.auto()
     JUMP_NCOND = enum.auto()
     LESS_EQUALS = enum.auto()
+    LESS_EQUALS_F32 = enum.auto()
+    LESS_EQUALS_F64 = enum.auto()
     LESS_THAN = enum.auto()
+    LESS_THAN_F32 = enum.auto()
+    LESS_THAN_F64 = enum.auto()
     LOCAL_GET = enum.auto()
     LOCAL_SET = enum.auto()
     LOWER_SAME = enum.auto()
@@ -76,6 +86,8 @@ class Opcode(enum.IntEnum):
     MULTF64 = enum.auto()
     NOT = enum.auto()
     NOT_EQUALS = enum.auto()
+    NOT_EQUALS_F32 = enum.auto()
+    NOT_EQUALS_F64 = enum.auto()
     OR = enum.auto()
     PRINT = enum.auto()
     PRINT_CHAR = enum.auto()
@@ -360,6 +372,8 @@ class Block:
         Opcode.DUPEN16:            (S16,),
         Opcode.DUPEN32:            (S32,),
         Opcode.EQUALS:             (),
+        Opcode.EQUALS_F32:         (),
+        Opcode.EQUALS_F64:         (),
         Opcode.EXIT:               (),
         Opcode.FOR_DEC_START:      (S16,),
         Opcode.FOR_DEC:            (S16,),
@@ -367,14 +381,22 @@ class Block:
         Opcode.FOR_INC:            (S16,),
         Opcode.GET_LOOP_VAR:       (U16,),
         Opcode.GREATER_EQUALS:     (),
+        Opcode.GREATER_EQUALS_F32: (),
+        Opcode.GREATER_EQUALS_F64: (),
         Opcode.GREATER_THAN:       (),
+        Opcode.GREATER_THAN_F32:   (),
+        Opcode.GREATER_THAN_F64:   (),
         Opcode.HIGHER_SAME:        (),
         Opcode.HIGHER_THAN:        (),
         Opcode.JUMP:               (S16,),
         Opcode.JUMP_COND:          (S16,),
         Opcode.JUMP_NCOND:         (S16,),
         Opcode.LESS_EQUALS:        (),
+        Opcode.LESS_EQUALS_F32:    (),
+        Opcode.LESS_EQUALS_F64:    (),
         Opcode.LESS_THAN:          (),
+        Opcode.LESS_THAN_F32:      (),
+        Opcode.LESS_THAN_F64:      (),
         Opcode.LOCAL_GET:          (U16,),
         Opcode.LOCAL_SET:          (U16,),
         Opcode.LOWER_SAME:         (),
@@ -384,6 +406,8 @@ class Block:
         Opcode.MULTF64:            (),
         Opcode.NOT:                (),
         Opcode.NOT_EQUALS:         (),
+        Opcode.NOT_EQUALS_F32:     (),
+        Opcode.NOT_EQUALS_F64:     (),
         Opcode.OR:                 (),
         Opcode.PRINT:              (),
         Opcode.PRINT_CHAR:         (),

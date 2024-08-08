@@ -706,6 +706,26 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_EQUALS_F32:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "sete", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_EQUALS_F64:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "sete", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_EXIT:
             asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
@@ -787,10 +807,50 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_GREATER_EQUALS_F32:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setge", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_GREATER_EQUALS_F64:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setge", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_GREATER_THAN:
             asm_write_inst1(assembly, "pop", "rdx");  // RHS.
             asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setg", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_GREATER_THAN_F32:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setg", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_GREATER_THAN_F64:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setg", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
@@ -844,10 +904,50 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_LESS_EQUALS_F32:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setle", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_LESS_EQUALS_F64:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setle", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_LESS_THAN:
             asm_write_inst1(assembly, "pop", "rdx");  // RHS.
             asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setl", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_LESS_THAN_F32:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setl", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_LESS_THAN_F64:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setl", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
@@ -922,6 +1022,26 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst1(assembly, "pop", "rdx");  // RHS.
             asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
+            asm_write_inst1(assembly, "setne", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_NOT_EQUALS_F32:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setne", "al");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_NOT_EQUALS_F64:
+            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
+            asm_write_inst1(assembly, "pop", "rax");  // LHS.
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setne", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");

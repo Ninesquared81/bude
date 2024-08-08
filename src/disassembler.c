@@ -573,6 +573,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return immediate_s32_instruction("W_OP_DUPEN32", block, offset);
     case W_OP_EQUALS:
         return simple_instruction("W_OP_EQUALS", block, offset);
+    case W_OP_EQUALS_F32:
+        return simple_instruction("W_OP_EQUALS_F32", block, offset);
+    case W_OP_EQUALS_F64:
+        return simple_instruction("W_OP_EQUALS_F64", block, offset);
     case W_OP_EXIT:
         return simple_instruction("W_OP_EXIT", block, offset);
     case W_OP_FOR_DEC_START:
@@ -587,8 +591,16 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return immediate_u16_instruction("W_OP_GET_LOOP_VAR", block, offset);
     case W_OP_GREATER_EQUALS:
         return simple_instruction("W_OP_GREATER_EQUALS", block, offset);
+    case W_OP_GREATER_EQUALS_F32:
+        return simple_instruction("W_OP_GREATER_EQUALS_F32", block, offset);
+    case W_OP_GREATER_EQUALS_F64:
+        return simple_instruction("W_OP_GREATER_EQUALS_F64", block, offset);
     case W_OP_GREATER_THAN:
         return simple_instruction("W_OP_GREATER_THAN", block, offset);
+    case W_OP_GREATER_THAN_F32:
+        return simple_instruction("W_OP_GREATER_THAN_F32", block, offset);
+    case W_OP_GREATER_THAN_F64:
+        return simple_instruction("W_OP_GREATER_THAN_F64", block, offset);
     case W_OP_HIGHER_SAME:
         return simple_instruction("W_OP_HIGHER_SAME", block, offset);
     case W_OP_HIGHER_THAN:
@@ -601,8 +613,16 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return jump_instruction("W_OP_JUMP_NCOND", block, offset);
     case W_OP_LESS_EQUALS:
         return simple_instruction("W_OP_LESS_EQUALS", block, offset);
+    case W_OP_LESS_EQUALS_F32:
+        return simple_instruction("W_OP_LESS_EQUALS_F32", block, offset);
+    case W_OP_LESS_EQUALS_F64:
+        return simple_instruction("W_OP_LESS_EQUALS_F64", block, offset);
     case W_OP_LESS_THAN:
         return simple_instruction("W_OP_LESS_THAN", block, offset);
+    case W_OP_LESS_THAN_F32:
+        return simple_instruction("W_OP_LESS_THAN_F32", block, offset);
+    case W_OP_LESS_THAN_F64:
+        return simple_instruction("W_OP_LESS_THAN_F64", block, offset);
     case W_OP_LOCAL_GET:
         return immediate_u16_instruction("W_OP_LOCAL_GET", block, offset);
     case W_OP_LOCAL_SET:
@@ -621,6 +641,10 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_NOT", block, offset);
     case W_OP_NOT_EQUALS:
         return simple_instruction("W_OP_NOT_EQUALS", block, offset);
+    case W_OP_NOT_EQUALS_F32:
+        return simple_instruction("W_OP_NOT_EQUALS_F32", block, offset);
+    case W_OP_NOT_EQUALS_F64:
+        return simple_instruction("W_OP_NOT_EQUALS_F64", block, offset);
     case W_OP_OR:
         return simple_instruction("W_OP_OR", block, offset);
     case W_OP_PRINT:

@@ -251,6 +251,12 @@
     X(W_OP_DUPEN32)                                                     \
     /* EQUALS -- Pop top two stack elements and push 1 if they're equal or 0 if not. */ \
     X(W_OP_EQUALS)                                                      \
+    /* EQUALS_F32 -- Pop top two 32-bit floating-point values and push 1 if they're equal \
+       or 0 if not.*/                                                   \
+    X(W_OP_EQUALS_F32)                                                  \
+    /* EQUALS_F64 -- Pop top two 64-bit floating-point values and push 1 if they're equal \
+       or 0 if not.*/                                                   \
+    X(W_OP_EQUALS_F64)                                                  \
     /* EXIT -- Exit the program, using the top of the stack as the exit code. */ \
     X(W_OP_EXIT)                                                        \
     /* FOR_DEC_START Off_s16 -- Initialise a for loop counter to the top element. */ \
@@ -265,12 +271,24 @@
     X(W_OP_FOR_INC)                                                     \
     /* GET_LOOP_VAR Idx_u16 -- Get the loop variable a given distance from the current loop. */ \
     X(W_OP_GET_LOOP_VAR)                                                \
-    /* GREATER_EQUALS -- Pop top two (signed) stack elements and push 1 if next element is greater \
-       than or equal to the top element, or 0 if not. */                \
+    /* GREATER_EQUALS -- Pop top two (signed) stack elements and push 1 if next element is \
+       greater than or equal to the top element, or 0 if not. */        \
     X(W_OP_GREATER_EQUALS)                                              \
+    /* GREATER_EQUALS_F32 -- Pop two 32-bit floating-point values from the stack and push 1 if \
+       next element is greater than or equal to the top element, or 0 if not. */ \
+    X(W_OP_GREATER_EQUALS_F32) \
+    /* GREATER_EQUALS_F64 -- Pop two 64-bit floating-point values from the stack and push 1 if \
+       next element is greater than or equal to the top element, or 0 if not. */ \
+    X(W_OP_GREATER_EQUALS_F64) \
     /* GREATER_THAN -- Pop top two (signed) stack elements and push 1 if next element is greater \
        than the top element, or 0 if not. */                            \
-    X(W_OP_GREATER_THAN)                                                \
+    X(W_OP_GREATER_THAN)                                                    \
+    /* GREATER_THAN_F32 -- Pop top two 32-bit floating point values form the stack and push 1 if \
+       next element is greater than the top element, or 0 if not. */    \
+    X(W_OP_GREATER_THAN_F32) \
+    /* GREATER_THAN_F64 -- Pop top two 64-bit floating point values form the stack and push 1 if \
+       next element is greater than the top element, or 0 if not. */    \
+    X(W_OP_GREATER_THAN_F64) \
     /* HIGHER_SAME -- Pop top two (unsigned) stack elements and push 1 if next element is higher \
        or the same as the top element, or 0 if not. */                  \
     X(W_OP_HIGHER_SAME)                                                 \
@@ -283,21 +301,33 @@
     X(W_OP_JUMP_COND)                                                   \
     /* JUMP_NCOND Off_s16 -- Jump the given distance if the top element is zero (false). */ \
     X(W_OP_JUMP_NCOND)                                                  \
-    /* LESS_EQUALS -- Pop top two (signed) stack elements and push 1 if next element is less than \
-       or equal to the top element, or 0 if not. */                     \
+    /* LESS_EQUALS -- Pop top two (signed) stack elements and push 1 if next element is less \
+       than or equal to the top element, or 0 if not. */                \
     X(W_OP_LESS_EQUALS)                                                 \
-    /* LESS_THAN -- Pop top two (signed) stack elements and push 1 if next element is less than the \
-       top element, or 0 if not. */                                     \
+    /* LESS_EQUALS_F32 -- Pop two 32-bit floating-point values from the stack and push 1 if \
+       next element is less than or equal to the top element, or 0 if not. */ \
+    X(W_OP_LESS_EQUALS_F32) \
+    /* LESS_EQUALS_F64 -- Pop two 64-bit floating-point values from the stack and push 1 if \
+       next element is less than or equal to the top element, or 0 if not. */ \
+    X(W_OP_LESS_EQUALS_F64) \
+    /* LESS_THAN -- Pop top two (signed) stack elements and push 1 if next element is less \
+       than the top element, or 0 if not. */                            \
     X(W_OP_LESS_THAN)                                                   \
+    /* LESS_THAN_F32 -- Pop top two 32-bit floating point values form the stack and push 1 if \
+       next element is less than the top element, or 0 if not. */    \
+    X(W_OP_LESS_THAN_F32) \
+    /* LESS_THAN_F64 -- Pop top two 64-bit floating point values form the stack and push 1 if \
+       next element is less than the top element, or 0 if not. */    \
+    X(W_OP_LESS_THAN_F64) \
     /* LOCAL_GET Idx_u16 -- Get the local variable with the given index. */ \
     X(W_OP_LOCAL_GET)                                                   \
     /* LOCAL_SET Idx_u16 -- Set the local variable with the given index. */ \
     X(W_OP_LOCAL_SET)                                                   \
-    /* LOWER_SAME -- Pop top two (unsigned) stack elements and push 1 if next element is lower or the \
-       same as the top element, or 0 if not. */                         \
+    /* LOWER_SAME -- Pop top two (unsigned) stack elements and push 1 if next element is lower
+       or the same as the top element, or 0 if not. */                  \
     X(W_OP_LOWER_SAME)                                                  \
-    /* LOWER_THAN -- Pop top two (unsigned) stack elements and push 1 if next element is lower than the \
-       top element, or 0 if not. */                                     \
+    /* LOWER_THAN -- Pop top two (unsigned) stack elements and push 1 if next element is lower \
+       than the top element, or 0 if not. */                            \
     X(W_OP_LOWER_THAN)                                                  \
     /* MULT -- Multiply the top two stack elements. */                  \
     X(W_OP_MULT)                                                        \
@@ -309,13 +339,20 @@
     X(W_OP_NOT)                                                         \
     /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */ \
     X(W_OP_NOT_EQUALS)                                                  \
+    /* NOT_EQUALS_F32 -- Pop top two 32-bit floating-point values and push 1 if they're \
+       different or 0 if not.*/                                         \
+    X(W_OP_NOT_EQUALS_F32)                                                  \
+    /* NOT_EQUALS_F64 -- Pop top two 64-bit floating-point values and push 1 if they're \
+       different or 0 if not.*/                                                   \
+    X(W_OP_NOT_EQUALS_F64)                                                  \
     /* OR -- Logical (value-preserving) or operation of top two stack elements. */ \
     X(W_OP_OR)                                                          \
     /* (W)PRINT -- Print the top element of the stack as a word. */     \
     X(W_OP_PRINT)                                                       \
     /* PRINT_CHAR -- Print the top element of the stack as a character. */ \
     X(W_OP_PRINT_CHAR)                                                  \
-    /* PRINT_FLOAT -- Print the top element of the stack as an IEEE 754 double-precision (binary 64-bit) floating-point value. */ \
+    /* PRINT_FLOAT -- Print the top element of the stack as an IEEE 754 double-precision \
+       (binary 64-bit) floating-point value. */                         \
     X(W_OP_PRINT_FLOAT)                                                 \
     /* PRINT_INT -- Print the top element of the stack as a signed integer. */ \
     X(W_OP_PRINT_INT)                                                   \
@@ -323,9 +360,9 @@
     X(W_OP_PRINT_STRING)                                                \
     /* SUB -- Subtract the top stack element from the next element. */  \
     X(W_OP_SUB)                                                         \
-    /* SUBF32 -- Single-precision floating-point subtraction of top element from next element. */ \
+    /* SUBF32 -- Single-precision floating-point subtraction of top element from next element. */\
     X(W_OP_SUBF32)                                                      \
-    /* SUBF64 -- Double-precision floating-point subtraction of top element from next element. */ \
+    /* SUBF64 -- Double-precision floating-point subtraction of top element from next element. */\
     X(W_OP_SUBF64)                                                      \
     /* SWAP -- Swap the top two stack words. */                         \
     X(W_OP_SWAP)                                                        \

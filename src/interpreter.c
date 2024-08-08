@@ -315,6 +315,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_EQUALS: BIN_OP(==, interpreter->main_stack); break;
+        case W_OP_EQUALS_F32: BINF32_OP(==, interpreter->main_stack); break;
+        case W_OP_EQUALS_F64: BINF64_OP(==, interpreter->main_stack); break;
         case W_OP_EXIT: {
             int64_t exit_code = u64_to_s64(pop(interpreter->main_stack));
             if (exit_code < INT_MIN) exit_code = INT_MIN;
@@ -422,11 +424,19 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_GREATER_EQUALS: IBIN_OP(>=, interpreter->main_stack); break;
+        case W_OP_GREATER_EQUALS_F32: BINF32_OP(>=, interpreter->main_stack); break;
+        case W_OP_GREATER_EQUALS_F64: BINF64_OP(>=, interpreter->main_stack); break;
         case W_OP_GREATER_THAN: IBIN_OP(>, interpreter->main_stack); break;
+        case W_OP_GREATER_THAN_F32: BINF32_OP(>, interpreter->main_stack); break;
+        case W_OP_GREATER_THAN_F64: BINF64_OP(>, interpreter->main_stack); break;
         case W_OP_HIGHER_SAME: BIN_OP(>=, interpreter->main_stack); break;
         case W_OP_HIGHER_THAN: BIN_OP(>, interpreter->main_stack); break;
         case W_OP_LESS_EQUALS: IBIN_OP(<=, interpreter->main_stack); break;
+        case W_OP_LESS_EQUALS_F32: BINF32_OP(<=, interpreter->main_stack); break;
+        case W_OP_LESS_EQUALS_F64: BINF64_OP(<=, interpreter->main_stack); break;
         case W_OP_LESS_THAN: IBIN_OP(<, interpreter->main_stack); break;
+        case W_OP_LESS_THAN_F32: BINF32_OP(<, interpreter->main_stack); break;
+        case W_OP_LESS_THAN_F64: BINF64_OP(<, interpreter->main_stack); break;
         case W_OP_LOCAL_GET: {
             ip += 2;
             uint16_t index = read_u16(interpreter->block, ip - 1);
@@ -456,6 +466,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_NOT_EQUALS: BIN_OP(!=, interpreter->main_stack); break;
+        case W_OP_NOT_EQUALS_F32: BINF32_OP(!=, interpreter->main_stack); break;
+        case W_OP_NOT_EQUALS_F64: BINF64_OP(!=, interpreter->main_stack); break;
         case W_OP_SUB: BIN_OP(-, interpreter->main_stack); break;
         case W_OP_SUBF32: BINF32_OP(-, interpreter->main_stack); break;
         case W_OP_SUBF64: BINF64_OP(-, interpreter->main_stack); break;

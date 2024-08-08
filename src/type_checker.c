@@ -355,6 +355,20 @@ static enum w_opcode int_to_float(type_index type) {
     return convert_float(type, TYPE_INT).rhs_conv;
 }
 
+static enum w_opcode convert_float_args(type_index *lhs_type, type_index *rhs_type) {
+    assert(is_float(*lhs_type) || is_float(*rhs_type));
+    enum w_opcode conv_instruction = W_OP_NOP;
+    if (is_integral(*lhs_type)) {
+        conv_instruction = promotel(*lhs_type);
+        *lhs_type = TYPE_INT;
+    }
+    else if (is_integral(*rhs_type)) {
+        conv_instruction = promote(*rhs_type);
+        *rhs_type = TYPE_INT;
+    }
+    return conv_instruction;
+}
+
 static enum w_opcode sign_extend(type_index type) {
     switch (type) {
     case TYPE_BYTE:
@@ -1385,13 +1399,25 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = convert(lhs_type, rhs_type);
-            if (conversion.result_type == TYPE_ERROR) {
+            enum w_opcode comparison = W_OP_EQUALS;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                emit_simple_nnop(checker, convert_float_args(&lhs_type, &rhs_type));
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                comparison = (conversion.result_type == TYPE_F32)
+                    ? W_OP_EQUALS_F32
+                    : W_OP_EQUALS_F64;
+            }
+            else {
                 type_error(checker, "invalid types for `=`");
             }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, W_OP_EQUALS);
+            emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
         }
@@ -1402,15 +1428,27 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_GREATER_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = convert(lhs_type, rhs_type);
-            if (conversion.result_type == TYPE_ERROR) {
+            enum w_opcode comparison = W_OP_GREATER_EQUALS;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                if (is_signed(conversion.result_type)) {
+                    comparison =  W_OP_HIGHER_SAME;
+                }
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                emit_simple_nnop(checker, convert_float_args(&lhs_type, &rhs_type));
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                comparison = (conversion.result_type == TYPE_F32)
+                    ? W_OP_GREATER_EQUALS_F32
+                    : W_OP_GREATER_EQUALS_F64;
+            }
+            else {
                 type_error(checker, "invalid types for `>=`");
             }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            enum w_opcode comparison = (is_signed(conversion.result_type))
-                ? W_OP_GREATER_EQUALS
-                : W_OP_HIGHER_SAME;
             emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
@@ -1418,15 +1456,27 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_GREATER_THAN: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = convert(lhs_type, rhs_type);
-            if (conversion.result_type == TYPE_ERROR) {
+            enum w_opcode comparison = W_OP_GREATER_THAN;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                if (is_signed(conversion.result_type)) {
+                    comparison =  W_OP_HIGHER_THAN;
+                }
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                emit_simple_nnop(checker, convert_float_args(&lhs_type, &rhs_type));
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                comparison = (conversion.result_type == TYPE_F32)
+                    ? W_OP_GREATER_THAN_F32
+                    : W_OP_GREATER_THAN_F64;
+            }
+            else {
                 type_error(checker, "invalid types for `>`");
             }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            enum w_opcode comparison = (is_signed(conversion.result_type))
-                ? W_OP_GREATER_THAN
-                : W_OP_HIGHER_SAME;
             emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
@@ -1434,15 +1484,27 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_LESS_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = convert(lhs_type, rhs_type);
-            if (conversion.result_type == TYPE_ERROR) {
+            enum w_opcode comparison = W_OP_LESS_EQUALS;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                if (is_signed(conversion.result_type)) {
+                    comparison =  W_OP_LOWER_SAME;
+                }
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                emit_simple_nnop(checker, convert_float_args(&lhs_type, &rhs_type));
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                comparison = (conversion.result_type == TYPE_F32)
+                    ? W_OP_LESS_EQUALS_F32
+                    : W_OP_LESS_EQUALS_F64;
+            }
+            else {
                 type_error(checker, "invalid types for `<=`");
             }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            enum w_opcode comparison = (is_signed(conversion.result_type))
-                ? W_OP_LESS_EQUALS
-                : W_OP_LOWER_SAME;
             emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
@@ -1450,15 +1512,27 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_LESS_THAN: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = convert(lhs_type, rhs_type);
-            if (conversion.result_type == TYPE_ERROR) {
+            enum w_opcode comparison = W_OP_LESS_THAN;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                if (is_signed(conversion.result_type)) {
+                    comparison =  W_OP_LOWER_SAME;
+                }
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                emit_simple_nnop(checker, convert_float_args(&lhs_type, &rhs_type));
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                comparison = (conversion.result_type == TYPE_F32)
+                    ? W_OP_LESS_THAN_F32
+                    : W_OP_LESS_THAN_F64;
+            }
+            else {
                 type_error(checker, "invalid types for `<`");
             }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            enum w_opcode comparison = (is_signed(conversion.result_type))
-                ? W_OP_LESS_THAN
-                : W_OP_LOWER_THAN;
             emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
@@ -1487,14 +1561,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 result_type = conversion.result_type;
             }
             else if (is_float(lhs_type) || is_float(rhs_type)) {
-                if (is_integral(lhs_type)) {
-                    emit_simple_nnop(checker, promotel(lhs_type));
-                    lhs_type = TYPE_INT;
-                }
-                else if (is_integral(rhs_type)) {
-                    emit_simple_nnop(checker, promote(rhs_type));
-                    rhs_type = TYPE_INT;
-                }
+                emit_simple_nnop(checker, convert_float_args(&lhs_type, &rhs_type));
                 struct float_conv conversion = convert_float(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
@@ -1518,13 +1585,25 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_NOT_EQUALS: {
             type_index rhs_type = ts_pop(checker);
             type_index lhs_type = ts_pop(checker);
-            struct arithm_conv conversion = convert(lhs_type, rhs_type);
-            if (conversion.result_type == TYPE_ERROR) {
+            enum w_opcode comparison = W_OP_EQUALS;
+            if (is_integral(lhs_type) && is_integral(rhs_type)) {
+                struct arithm_conv conversion = convert(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+            }
+            else if (is_float(lhs_type) || is_float(rhs_type)) {
+                emit_simple_nnop(checker, convert_float_args(&lhs_type, &rhs_type));
+                struct float_conv conversion = convert_float(lhs_type, rhs_type);
+                emit_simple_nnop(checker, conversion.lhs_conv);
+                emit_simple_nnop(checker, conversion.rhs_conv);
+                comparison = (conversion.result_type == TYPE_F32)
+                    ? W_OP_EQUALS_F32
+                    : W_OP_EQUALS_F64;
+            }
+            else {
                 type_error(checker, "invalid types for `/=`");
             }
-            emit_simple_nnop(checker, conversion.lhs_conv);
-            emit_simple_nnop(checker, conversion.rhs_conv);
-            emit_simple(checker, W_OP_NOT_EQUALS);
+            emit_simple(checker, comparison);
             ts_push(checker, TYPE_INT);
             break;
         }
