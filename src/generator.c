@@ -328,7 +328,6 @@ static void generate_external_call_ms_x64(struct generator *generator,
     asm_write_inst2f(assembly, "lea", "rsp", "[rbp+%d]", 8 * param_count);
     if (overlong_ret) {
         int word_count = type_word_count(types, ret_type);
-        aux_alloc_count += word_count;
         for (int i = 0; i < word_count; ++i) {
             asm_write_inst1f(assembly, "push", "qword [rax+%d]", 8 * i);
         }
