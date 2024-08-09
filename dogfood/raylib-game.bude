@@ -149,13 +149,17 @@ while WindowShouldClose not do
 
     if 'D' to s32 IsKeyDown then
         player move-right <- player
-    elif 'A' to s32 IsKeyDown then
+    end
+    if 'A' to s32 IsKeyDown then
         player move-left <- player
-    elif 'W' to s32 IsKeyDown then
+    end
+    if 'W' to s32 IsKeyDown then
         player move-up <- player
-    elif 'S' to s32 IsKeyDown then
+    end
+    if 'S' to s32 IsKeyDown then
         player move-down <- player
-    elif ' ' to s32 IsKeyPressed then
+    end
+    if ' ' to s32 IsKeyPressed then
         player colour next-colour <- colour <- player
     end
 
