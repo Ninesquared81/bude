@@ -272,7 +272,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         assert(word_count > 0);                                         \
         if (word_count == 1 && !is_float(type)) {                       \
             asm_write_inst2f(assembly, "mov", intreg, "[rbp+%d]", 8 * offset); \
-            }                                                           \
+        }                                                               \
         else if (type == TYPE_F32) {                                    \
             asm_write_inst2f(assembly, "movd", floatreg, "dword [rbp+%d]", 8 * offset); \
         }                                                               \
