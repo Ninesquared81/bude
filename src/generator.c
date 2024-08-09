@@ -812,7 +812,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setge", "al");
+            asm_write_inst1(assembly, "setae", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
@@ -822,7 +822,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setge", "al");
+            asm_write_inst1(assembly, "setae", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
@@ -840,7 +840,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setg", "al");
+            asm_write_inst1(assembly, "seta", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
@@ -850,7 +850,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setg", "al");
+            asm_write_inst1(assembly, "seta", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
@@ -909,7 +909,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setle", "al");
+            asm_write_inst1(assembly, "setbe", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
@@ -919,7 +919,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setle", "al");
+            asm_write_inst1(assembly, "setbe", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
@@ -937,7 +937,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setl", "al");
+            asm_write_inst1(assembly, "setb", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
@@ -947,7 +947,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setl", "al");
+            asm_write_inst1(assembly, "setb", "al");
             asm_write_inst2(assembly, "movzx", "eax", "al");
             asm_write_inst1(assembly, "push", "rax");
             break;
