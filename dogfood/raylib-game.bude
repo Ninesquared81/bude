@@ -7,6 +7,16 @@ pack Color def
     a -> u8
 end
 
+pack Vector2 def
+    x -> f32
+    y -> f32
+end
+
+comp Vector3 def
+    xy -> Vector2
+    z -> f32
+end
+
 var RAYWHITE -> Color
     RED      -> Color
 end
@@ -23,6 +33,11 @@ import raylib def
     func Color ClearBackground end
     func ptr s32 s32 s32 Color DrawText end
     func ptr s32 MeasureText -> s32 end
+    func Vector2 f32 Color DrawCircleV end
+    func s32 IsKeyPressed -> s8 end
+    func s32 IsKeyDown -> s8 end
+    func Color ColorToHSV -> Vector3 end
+    func f32 f32 f32 ColorFromHSV -> Color end
 end
 
 ### END RAYLIB ###
@@ -32,18 +47,86 @@ func string to-cstr -> ptr def
      decomp pop
 end
 
+comp Player def
+    pos -> Vector2
+    colour -> Color
+    speed -> f32
+end
+
+func Player draw-player def
+    decomp pop 10f32 swap DrawCircleV
+end
+
+func Player move-right -> Player def
+    var player-speed -> f32 end
+    speed <- player-speed
+    pos x player-speed + <- x <- pos
+end
+
+func Player move-left -> Player def
+    var player-speed -> f32 end
+    speed <- player-speed
+    pos x player-speed - <- x <- pos
+end
+
+func Player move-down -> Player def
+    var player-speed -> f32 end
+    speed <- player-speed
+    pos y player-speed + <- y <- pos
+end
+
+func Player move-up -> Player def
+    var player-speed -> f32 end
+    speed <- player-speed
+    pos y player-speed - <- y <- pos
+end
+
+func Vector3 print-hsv def
+    decomp swap unpack swap
+    "h: " print print
+    "s: " print print
+    "v: " print print
+    "\n" print
+end
+
+func Color next-colour -> Color def
+    ColorToHSV
+    dupe print-hsv
+    decomp swap unpack  # v h s
+    swap 73f32 +  # v s (h+15)
+    if dupe 360f32 > then
+        360f32 -
+    end
+    swap rot  # h s v
+    ColorFromHSV
+end
 
 var screen-width  -> s32
     screen-height -> s32
     screen-title  -> string
+    screen-centre -> Vector2  # temporary patch
 end
+
+# func screen-centre -> Vector2 def
+#     screen-width 0.5f32 *
+#     screen-height 0.5f32 *
+#     Vector2
+# end
+
 
 1200s32 <- screen-width
 800s32  <- screen-height
 
 "Raylib Game in Bude" <- screen-title
 
+screen-width .5f32 *
+screen-height .5f32 *
+Vector2 <- screen-centre
+
 screen-width screen-height screen-title to-cstr InitWindow
+
+var player -> Player end
+screen-centre RED .2f32 Player <- player
 
 while WindowShouldClose not do
     BeginDrawing
@@ -55,12 +138,27 @@ while WindowShouldClose not do
     "Hello, Raylib!" to-cstr <- text
     80s32 <- font-size
 
-    text
-    screen-width text font-size MeasureText - 2s32 /  # x position
-    screen-height 2s32 /  # y position
-    font-size
-    RED
-    DrawText
+    # text
+    # screen-width text font-size MeasureText - 2s32 /  # x position
+    # screen-height 2s32 /  # y position
+    # font-size
+    # RED
+    # DrawText
+
+    player draw-player
+
+    if 'D' to s32 IsKeyDown then
+        player move-right <- player
+    elif 'A' to s32 IsKeyDown then
+        player move-left <- player
+    elif 'W' to s32 IsKeyDown then
+        player move-up <- player
+    elif 'S' to s32 IsKeyDown then
+        player move-down <- player
+    elif ' ' to s32 IsKeyPressed then
+        player colour next-colour <- colour <- player
+    end
+
 
     EndDrawing
 end
