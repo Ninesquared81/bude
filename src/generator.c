@@ -282,7 +282,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
         else {                                                          \
             move_comp_to_aux(generator, type, offset);                  \
             aux_alloc_count += word_count;                              \
-            asm_write_inst2f(assembly, "lea", "r9", "[rsi-%d]", 8 * word_count); \
+            asm_write_inst2f(assembly, "lea", intreg, "[rsi-%d]", 8 * word_count); \
         }                                                               \
     } while (0)
     /* It turns out switch fallthrough is useful in some rare cases. */
