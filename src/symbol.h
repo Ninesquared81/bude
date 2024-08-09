@@ -47,7 +47,8 @@ struct symbol {
             int index;
         } function;
         struct {
-            int var;
+            int var;  // Index of local variable.
+            int function;  // Index of owning function.
         } var;
         struct {
             int index;

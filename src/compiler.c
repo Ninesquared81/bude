@@ -28,11 +28,13 @@ struct compiler {
     struct module *module;
     struct region *temp;
     int for_loop_level;
+    int func_index;
 };
 
 static void init_compiler(struct compiler *compiler, const char *src, struct module *module,
                           struct symbol_dictionary *symbols) {
     compiler->function = NULL;  // Will be set later.
+    compiler->func_index = 0;
     init_lexer(&compiler->lexer, src, module->filename);
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
@@ -972,7 +974,10 @@ static void compile_var(struct compiler *compiler) {
         struct symbol symbol = {
             .name = name,
             .type = SYM_VAR,
-            .var.var = var_index,
+            .var = {
+                .var = var_index,
+                .function = compiler->func_index,
+            },
         };
         insert_symbol(compiler->symbols, &symbol);
     }
@@ -1072,6 +1077,22 @@ static struct signature parse_signature(struct compiler *compiler, struct string
     return sig;
 }
 
+static void reset_function(struct compiler *compiler) {
+    compiler->function = get_function(&compiler->module->functions, compiler->func_index);
+}
+
+static int enter_function(struct compiler *compiler, int callee_index) {
+    int caller_index = compiler->func_index;
+    compiler->func_index = callee_index;
+    reset_function(compiler);
+    return caller_index;
+}
+
+static void leave_function(struct compiler *compiler, int caller_index) {
+    compiler->func_index = caller_index;
+    reset_function(compiler);
+}
+
 static void compile_function(struct compiler *compiler) {
     /* `func` params... name [`->` rets...] `def` body... `end` */
     struct ir_block *block = &compiler->function->t_code;
@@ -1089,14 +1110,13 @@ static void compile_function(struct compiler *compiler) {
         .function.index = index
     };
     insert_symbol(compiler->symbols, &symbol);
-    struct function *previous_function = compiler->function;
-    compiler->function = get_function(&compiler->module->functions, index);
+    int prev_func_index = enter_function(compiler, index);
     compile_expr(compiler);  // Body.
     if (!check_last_instruction(compiler, T_OP_RET) || is_jump_dest(block, block->count)) {
         // Implicit return at end of function. Only emit if we need it.
         emit_simple(compiler, T_OP_RET);
     }
-    compiler->function = previous_function;
+    leave_function(compiler, prev_func_index);
     expect_consume(compiler, TOKEN_END, "Expect `end` after function body.");
 }
 
@@ -1199,6 +1219,11 @@ static void compile_function_symbol(struct compiler *compiler, struct symbol *sy
 }
 
 static void compile_var_symbol(struct compiler *compiler, struct symbol *symbol) {
+    if (symbol->var.function != compiler->func_index) {
+        compile_error(compiler, "Local variable '%"PRI_SV"' used outside owning function",
+                      SV_FMT(symbol->name));
+        exit(1);
+    }
     int var_index = symbol->var.var;
     emit_immediate_u16(compiler, T_OP_LOCAL_GET, var_index);
 }
@@ -1410,7 +1435,7 @@ void compile(const char *src, struct module *module, struct symbol_dictionary *s
     init_builtins(compiler.symbols);
     assert(module->functions.count == 0);  // We assume that the function table is empty.
     add_function(&module->functions, (struct signature){0});  // Main/script function.
-    compiler.function = get_function(&module->functions, 0);
+    enter_function(&compiler, 0);
     compile_expr(&compiler);
     emit_simple(&compiler, T_OP_RET);  // Return from main function.
     free_compiler(&compiler);
