@@ -64,8 +64,8 @@ static const struct type_info *expect_kind(struct type_checker *checker, enum ty
         assert(0 && "Invalid state");
     }
     if (info->kind != kind) {
-        type_error(checker, "expected a '%s' type but got type '%s' instead",
-                   kind_name(kind), type_name(checker->types, type));
+        type_error(checker, "expected a '%s' type but got type '%"PRI_SV"' instead",
+                   kind_name(kind), SV_FMT(type_name(checker->types, type)));
         exit(1);
     }
     return info;
