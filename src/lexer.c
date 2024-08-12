@@ -267,8 +267,12 @@ static enum token_type symbol_type(struct lexer *lexer) {
     return TOKEN_SYMBOL;
 }
 
+static bool is_symbolic(char c) {
+    return !isspace(c) && c != '#';
+}
+
 static struct token symbol(struct lexer *lexer) {
-    while (!is_at_end(lexer) && !isspace(peek(lexer))) {
+    while (!is_at_end(lexer) && is_symbolic(peek(lexer))) {
         advance(lexer);
     }
     return make_token(lexer, symbol_type(lexer));
