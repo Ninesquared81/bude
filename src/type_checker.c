@@ -96,6 +96,7 @@ static void expect_keep_type(struct type_checker *checker, type_index expected_t
 
 static void expect_types(struct type_checker *checker,
                          int count, type_index expected_types[count]) {
+    assert(count >= 0);
     if (TSTACK_COUNT(checker->tstack) < count) {
         struct string_view expected_sv = type_array_to_sv(checker, count, expected_types);
         struct string_view actual_sv = type_array_to_sv(checker, TSTACK_COUNT(checker->tstack),
