@@ -43,9 +43,8 @@ static struct symdict_slot *find_slot(const struct symbol_dictionary *dict,
         if (slot < &dict->slots[dict->capacity] - stride) {
             slot += stride;
         } else {
-            index = slot - dict->slots;
-            index += stride;
-            slot = &dict->slots[index];
+            // Stay within table.
+            slot += stride - dict->capacity;
         }
     }
     return slot;
