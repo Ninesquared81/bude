@@ -335,7 +335,7 @@
     X(W_OP_MULTF32)                                                     \
     /* MULTF64 -- Double-precision floating-point multiplication of top two stack elements. */ \
     X(W_OP_MULTF64)                                                     \
-    /* NOT -- Logical not operation of the top two stack elements. */   \
+    /* NOT -- Logical not operation of the top stack element. */        \
     X(W_OP_NOT)                                                         \
     /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */ \
     X(W_OP_NOT_EQUALS)                                                  \
