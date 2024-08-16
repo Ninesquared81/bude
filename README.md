@@ -385,7 +385,7 @@ example above (in fact, in that example, "`hello`" _is_ the signature). The synt
 is best illustrated with an example:
 
 ```
-func int int diff-squares -> int
+func int int diff-squares -> int def
     dupe * swap
     dupe * swap
     -
