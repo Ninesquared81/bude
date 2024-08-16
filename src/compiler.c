@@ -743,6 +743,7 @@ static void compile_character(struct compiler *compiler) {
 static type_index parse_type(struct compiler *compiler, struct token *token) {
     switch (token->type) {
     case TOKEN_BYTE: return TYPE_BYTE;
+    case TOKEN_BOOL: return TYPE_BOOL;
     case TOKEN_CHAR: return TYPE_CHAR;
     case TOKEN_CHAR16: return TYPE_CHAR16;
     case TOKEN_CHAR32: return TYPE_CHAR32;
@@ -903,6 +904,7 @@ static void compile_as_conversion(struct compiler *compiler) {
         [TYPE_BYTE]   = T_OP_AS_BYTE,
         [TYPE_PTR]    = T_OP_AS_PTR,
         [TYPE_INT]    = T_OP_AS_INT,
+        [TYPE_BOOL]   = T_OP_AS_BOOL,
         [TYPE_U8]     = T_OP_AS_U8,
         [TYPE_U16]    = T_OP_AS_U16,
         [TYPE_U32]    = T_OP_AS_U32,
@@ -935,6 +937,7 @@ static void compile_to_conversion(struct compiler *compiler) {
         [TYPE_BYTE] = T_OP_TO_BYTE,
         [TYPE_PTR]  = T_OP_TO_PTR,
         [TYPE_INT]  = T_OP_TO_INT,
+        [TYPE_BOOL] = T_OP_TO_BOOL,
         [TYPE_U8]   = T_OP_TO_U8,
         [TYPE_U16]  = T_OP_TO_U16,
         [TYPE_U32]  = T_OP_TO_U32,

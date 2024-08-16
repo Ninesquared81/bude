@@ -27,6 +27,7 @@ struct string_view type_name(struct type_table *table, type_index type) {
         case TYPE_BYTE:   return SV_LIT("byte");
         case TYPE_PTR:    return SV_LIT("ptr");
         case TYPE_INT:    return SV_LIT("int");
+        case TYPE_BOOL:   return SV_LIT("bool");
         case TYPE_U8:     return SV_LIT("u8");
         case TYPE_U16:    return SV_LIT("u16");
         case TYPE_U32:    return SV_LIT("u32");
@@ -54,6 +55,7 @@ size_t type_size(struct type_table *table, type_index type) {
         case TYPE_BYTE:   return 1;
         case TYPE_PTR:    return 8;
         case TYPE_INT:    return 8;
+        case TYPE_BOOL:   return 1;
         case TYPE_U8:     return 1;
         case TYPE_U16:    return 2;
         case TYPE_U32:    return 4;

@@ -17,6 +17,7 @@ enum token_type {
     // Keywords.
     TOKEN_AND,
     TOKEN_AS,
+    TOKEN_BOOL,
     TOKEN_BYTE,
     TOKEN_CHAR,
     TOKEN_CHAR16,

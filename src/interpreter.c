@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <limits.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -733,6 +734,21 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             double floating_value = u64_to_f64(pop(interpreter->main_stack));
             sstack_word integer_value = floating_value;
             push(interpreter->main_stack, s64_to_u64(integer_value));
+            break;
+        }
+        case W_OP_ICONVB: {
+            stack_word integer_value = pop(interpreter->main_stack);
+            push(interpreter->main_stack, integer_value != 0);
+            break;
+        }
+        case W_OP_FCONVB32: {
+            float floating_value = u32_to_f32(pop(interpreter->main_stack));
+            push(interpreter->main_stack, floating_value != 0.0f && !isnan(floating_value));
+            break;
+        }
+        case W_OP_FCONVB64: {
+            double floating_value = u64_to_f64(pop(interpreter->main_stack));
+            push(interpreter->main_stack, floating_value != 0.0 && !isnan(floating_value));
             break;
         }
         case W_OP_ICONVC32: {

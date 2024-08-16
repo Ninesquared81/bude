@@ -22,7 +22,7 @@
   "Built-in Bude operations")
 
 (defconst bude-types
-  '("byte" "char" "char16" "char32" "f32" "f64" "int" "ptr" "s8" "s16" "s32" "string"
+  '("bool" "byte" "char" "char16" "char32" "f32" "f64" "int" "ptr" "s8" "s16" "s32" "string"
     "u8" "u16" "u32" "word")
   "Built-in Bude data types")
 

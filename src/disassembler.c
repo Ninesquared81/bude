@@ -386,6 +386,8 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_AS_PTR", block, offset);
     case T_OP_AS_INT:
         return simple_instruction("T_OP_AS_INT", block, offset);
+    case T_OP_AS_BOOL:
+        return simple_instruction("T_OP_AS_BOOL", block, offset);
     case T_OP_AS_U8:
         return simple_instruction("T_OP_AS_U8", block, offset);
     case T_OP_AS_U16:
@@ -416,6 +418,8 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("T_OP_TO_PTR", block, offset);
     case T_OP_TO_INT:
         return simple_instruction("T_OP_TO_INT", block, offset);
+    case T_OP_TO_BOOL:
+        return simple_instruction("T_OP_TO_BOOL", block, offset);
     case T_OP_TO_U8:
         return simple_instruction("T_OP_TO_U8", block, offset);
     case T_OP_TO_U16:
@@ -721,6 +725,12 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_FCONVI32", block, offset);
     case W_OP_FCONVI64:
         return simple_instruction("W_OP_FCONVI64", block, offset);
+    case W_OP_ICONVB:
+        return simple_instruction("W_OP_ICONVB", block, offset);
+    case W_OP_FCONVB32:
+        return simple_instruction("W_OP_FCONVB32", block, offset);
+    case W_OP_FCONVB64:
+        return simple_instruction("W_OP_FCONVB64", block, offset);
     case W_OP_ICONVC32:
         return simple_instruction("W_OP_ICONVC32", block, offset);
     case W_OP_CHAR_8CONV32:

@@ -17,6 +17,7 @@ enum simple_type {
     TYPE_BYTE,
     TYPE_PTR,
     TYPE_INT,
+    TYPE_BOOL,
 
     // Specific-width integral types.
     TYPE_U8,
@@ -36,7 +37,7 @@ enum simple_type {
     TYPE_CHAR32,
 };
 
-#define SIMPLE_TYPE_COUNT 16
+#define SIMPLE_TYPE_COUNT 17
 #define LAST_SIMPLE_TYPE TYPE_CHAR32
 static_assert(SIMPLE_TYPE_COUNT == LAST_SIMPLE_TYPE + 1);
 static_assert(TYPE_ERROR == 0);

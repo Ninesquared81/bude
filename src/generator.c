@@ -1279,6 +1279,31 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "cvtsd2si", "rax", "xmm0");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_ICONVB:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "xor", "ecx", "ecx");
+            asm_write_inst1(assembly, "setnz", "cl");
+            asm_write_inst1(assembly, "push", "rcx");
+            break;
+        case W_OP_FCONVB32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "xor", "ecx", "ecx");  // 0f32.
+            asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "movd", "xmm1", "ecx");
+            asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setne", "cl");  // Also handles unordered case.
+            asm_write_inst1(assembly, "push", "rcx");
+            break;
+        case W_OP_FCONVB64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "xor", "ecx", "ecx");  // 0f64.
+            asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rcx");
+            asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
+            asm_write_inst1(assembly, "setne", "cl");  // Also handles unordered case.
+            asm_write_inst1(assembly, "push", "rcx");
+            break;
         case W_OP_ICONVC32:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "xor", "ecx", "ecx");

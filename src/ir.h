@@ -103,7 +103,7 @@
     X(T_OP_MULT)                                                        \
     /* NEG -- Negate the top stack element. */                          \
     X(T_OP_NEG)                                                         \
-    /* NOT -- Logical not operation of the top stack element. */        \
+    /* NOT -- Logical not operation of the top stack element. Returns bool. */ \
     X(T_OP_NOT)                                                         \
     /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */ \
     X(T_OP_NOT_EQUALS)                                                  \
@@ -128,6 +128,7 @@
     X(T_OP_AS_BYTE)                                                     \
     X(T_OP_AS_PTR)                                                      \
     X(T_OP_AS_INT)                                                      \
+    X(T_OP_AS_BOOL)                                                     \
     X(T_OP_AS_U8)                                                       \
     X(T_OP_AS_U16)                                                      \
     X(T_OP_AS_U32)                                                      \
@@ -144,6 +145,7 @@
     X(T_OP_TO_BYTE)                                                     \
     X(T_OP_TO_PTR)                                                      \
     X(T_OP_TO_INT)                                                      \
+    X(T_OP_TO_BOOL)                                                     \
     X(T_OP_TO_U8)                                                       \
     X(T_OP_TO_U16)                                                      \
     X(T_OP_TO_U32)                                                      \
@@ -415,6 +417,14 @@
     /* FCONVI64 -- convert a 64-bit double-precision floating-point value to a \
        64-bit intger. */                                                \
     X(W_OP_FCONVI64)                                                    \
+    /* ICONVB -- convert a 64-bit integer to a Boolean value (0 for 0, 1 otherwise). */ \
+    X(W_OP_ICONVB)                                                      \
+    /* FCONVB32 -- convert a 32-bit single-precision floating-point value to a \
+       Boolean value (0 for 0 or NaN, 1 otherwise). */                  \
+    X(W_OP_FCONVB32)                                                    \
+    /* FCONVB64 -- convert a 64-bit double-precision floating-point value to a \
+       Boolean value (0 for 0 or NaN, 1 otherwise). */                  \
+    X(W_OP_FCONVB64)                                                    \
     /* ICONVC32 -- convert a signed 64-bit integer to a UTF-32 codepoint. Values \
        not in the range 0--0x10ffff are clamped. */                     \
     X(W_OP_ICONVC32)                                                    \

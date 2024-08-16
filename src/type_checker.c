@@ -209,6 +209,7 @@ static struct arithm_conv arithmetic_conversions[SIMPLE_TYPE_COUNT][SIMPLE_TYPE_
     [TYPE_INT][TYPE_WORD]  = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
     [TYPE_INT][TYPE_BYTE]  = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
     [TYPE_INT][TYPE_INT]   = {TYPE_INT,  W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
+    [TYPE_BOOL][TYPE_WORD] = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
 
     /* Fixed unsigned types. */
     [TYPE_WORD][TYPE_U8]   = {TYPE_WORD, W_OP_NOP,   W_OP_NOP,   W_OP_NOP},
@@ -935,6 +936,28 @@ static void check_to_integral(struct type_checker *checker, type_index to_type) 
     ts_push(checker, to_type);
 }
 
+static void check_to_bool(struct type_checker *checker) {
+    type_index from_type = ts_pop(checker);
+    if (is_integral(from_type)) {
+        emit_simple(checker, W_OP_ICONVB);  // NOTE: no need to sign/zero-extend value.
+    }
+    else if (from_type == TYPE_F32) {
+        emit_simple(checker, W_OP_FCONVB32);
+    }
+    else if (from_type == TYPE_F64) {
+        emit_simple(checker, W_OP_FCONVB64);
+    }
+    else if (from_type == TYPE_BOOL) {
+        // Do nothing.
+    }
+    else {
+        struct string_view from_name = type_name(checker->types, from_type);
+        type_error(checker, "Cannot convert type '%"PRI_SV"' to 'bool'",
+                   SV_FMT(from_name));
+    }
+    ts_push(checker, TYPE_BOOL);
+}
+
 static void check_to_float(struct type_checker *checker, type_index to_type) {
     assert(is_float(to_type));
     type_index from_type = ts_pop(checker);
@@ -1423,7 +1446,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 type_error(checker, "invalid types for `=`");
             }
             emit_simple(checker, comparison);
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_BOOL);
             break;
         }
         case T_OP_GET_LOOP_VAR:
@@ -1455,7 +1478,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 type_error(checker, "invalid types for `>=`");
             }
             emit_simple(checker, comparison);
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_BOOL);
             break;
         }
         case T_OP_GREATER_THAN: {
@@ -1483,7 +1506,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 type_error(checker, "invalid types for `>`");
             }
             emit_simple(checker, comparison);
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_BOOL);
             break;
         }
         case T_OP_LESS_EQUALS: {
@@ -1511,7 +1534,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 type_error(checker, "invalid types for `<=`");
             }
             emit_simple(checker, comparison);
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_BOOL);
             break;
         }
         case T_OP_LESS_THAN: {
@@ -1539,7 +1562,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 type_error(checker, "invalid types for `<`");
             }
             emit_simple(checker, comparison);
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_BOOL);
             break;
         }
         case T_OP_LOCAL_GET: {
@@ -1602,8 +1625,20 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             break;
         }
         case T_OP_NOT: {
-            ts_peek(checker);  // Emits error if the stack is empty.
-            emit_simple(checker, W_OP_NOT);
+            type_index type = ts_pop(checker);
+            if (is_integral(type)) {
+                emit_simple(checker, W_OP_NOT);
+            }
+            else if (is_float(type)) {
+                ts_push(checker, type);  // Needed for `check_to_bool()`.
+                check_to_bool(checker);  // Convert to bool first, then invert.
+                emit_simple(checker, W_OP_NOT);
+            }
+            else {
+                struct string_view name = type_name(checker->types, type);
+                type_error(checker, "Invalid type for `not`: '%"PRI_SV"'.", SV_FMT(name));
+            }
+            ts_push(checker, TYPE_BOOL);
             break;
         }
         case T_OP_NOT_EQUALS: {
@@ -1628,7 +1663,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 type_error(checker, "invalid types for `/=`");
             }
             emit_simple(checker, comparison);
-            ts_push(checker, TYPE_INT);
+            ts_push(checker, TYPE_BOOL);
             break;
         }
         case T_OP_OR: {
@@ -1771,6 +1806,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_AS_INT:
             check_as_simple(checker, TYPE_INT);
             break;
+        case T_OP_AS_BOOL:
+            check_as_simple(checker, TYPE_BOOL);
+            emit_simple(checker, W_OP_ZX8);
+            break;
         case T_OP_AS_U8:
             check_as_simple(checker, TYPE_U8);
             emit_simple(checker, W_OP_ZX8);
@@ -1827,6 +1866,9 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             break;
         case T_OP_TO_INT:
             check_to_integral(checker, TYPE_INT);
+            break;
+        case T_OP_TO_BOOL:
+            check_to_bool(checker);
             break;
         case T_OP_TO_U8:
             check_to_integral(checker, TYPE_U8);
