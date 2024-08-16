@@ -256,6 +256,11 @@ _R<sub>1</sub>_, _R<sub>2</sub>_, _R<sub>3</sub>_.
 
 `var` <_var-name_> `->` <_var-type_> &hellip; `end`
 
+`import` <_lib-name_> `def`
+(`func` <_param-type_> &hellip; <_ext-func-name_> [`->` <_ret-type_> &hellip;]
+[`from` <_alias_>] [`with` <_call-conv_>] `end`)
+&hellip; `end`
+
 ## Language Features
 
 ### Packs and Comps
