@@ -1301,6 +1301,10 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_EXIT:
         emit_simple(compiler, T_OP_EXIT);
         break;
+    case TOKEN_FALSE:
+        emit_immediate_u8(compiler, T_OP_PUSH8, 0);  // TODO: PUSH_ZERO instruction?
+        emit_simple(compiler, T_OP_AS_BOOL);
+        break;
     case TOKEN_GREATER_EQUALS:
         emit_simple(compiler, T_OP_GREATER_EQUALS);
         break;
@@ -1365,6 +1369,10 @@ static bool compile_simple(struct compiler *compiler) {
         break;
     case TOKEN_TILDE:
         emit_simple(compiler, T_OP_NEG);
+        break;
+    case TOKEN_TRUE:
+        emit_immediate_u8(compiler, T_OP_PUSH8, 1);  // TODO: PUSH_ONE instruction?
+        emit_simple(compiler, T_OP_AS_BOOL);
         break;
     case TOKEN_UNPACK:
         emit_simple(compiler, T_OP_UNPACK);
