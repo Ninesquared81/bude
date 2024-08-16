@@ -1077,6 +1077,18 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2c(assembly, "mov", "rsp", "rbp", "Restore cached version of rsp.");
             break;
+        case W_OP_PRINT_BOOL:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "lea", "rcx", "[fmt_bool_false]");
+            asm_write_inst2(assembly, "lea", "rdx", "[fmt_bool_true]");
+            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "cmovnz", "rcx", "rdx");
+            asm_write_inst2(assembly, "mov", "rbp", "rsp");
+            asm_write_inst2(assembly, "and", "spl", "0F0h");
+            asm_write_inst2(assembly, "sub", "rsp", "32");
+            asm_write_inst1(assembly, "call", "[printf]");
+            asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            break;
         case W_OP_PRINT_CHAR:
             // NOTE: We treat a 'char' as an array of 4 bytes and print it as a string.
             // We get the null terminator for free since the upper 4 bytes will be zero,
@@ -1864,6 +1876,12 @@ static void generate_constants(struct generator *generator) {
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_f64");
     asm_write_inst3(assembly, "db", "'%%g'", "10", "0");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "fmt_bool_false");
+    asm_write_inst3(assembly, "db", "'false'", "10", "0");
+    asm_write(assembly, "\n");
+    asm_label(assembly, "fmt_bool_true");
+    asm_write_inst3(assembly, "db", "'true'", "10", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_char");
     asm_write_inst2(assembly, "db", "'%%s'", "0");

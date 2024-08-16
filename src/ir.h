@@ -359,6 +359,8 @@
     X(W_OP_OR)                                                          \
     /* (W)PRINT -- Print the top element of the stack as a word. */     \
     X(W_OP_PRINT)                                                       \
+    /* PRINT_BOOL -- Print the top element of the stack as a Boolean value */ \
+    X(W_OP_PRINT_BOOL)                                                  \
     /* PRINT_CHAR -- Print the top element of the stack as a character. */ \
     X(W_OP_PRINT_CHAR)                                                  \
     /* PRINT_FLOAT -- Print the top element of the stack as an IEEE 754 double-precision \

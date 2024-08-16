@@ -661,6 +661,8 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_OR", block, offset);
     case W_OP_PRINT:
         return simple_instruction("W_OP_PRINT", block, offset);
+    case W_OP_PRINT_BOOL:
+        return simple_instruction("W_OP_PRINT_BOOL", block, offset);
     case W_OP_PRINT_CHAR:
         return simple_instruction("W_OP_PRINT_CHAR", block, offset);
     case W_OP_PRINT_FLOAT:

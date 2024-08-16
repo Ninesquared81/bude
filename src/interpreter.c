@@ -558,6 +558,9 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             printf("%s", bytes);
             break;
         }
+        case W_OP_PRINT_BOOL:
+            printf("%s\n", pop(interpreter->main_stack) ? "true" : "false");
+            break;
         case W_OP_PRINT_FLOAT: {
             uint64_t bits = pop(interpreter->main_stack);
             double value = u64_to_f64(bits);

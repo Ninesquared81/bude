@@ -828,6 +828,9 @@ static void emit_print_instruction(struct type_checker *checker, type_index type
         emit_simple(checker, W_OP_CHAR_32CONV8);
         emit_simple(checker, W_OP_PRINT_CHAR);
     }
+    else if (type == TYPE_BOOL) {
+        emit_simple(checker, W_OP_PRINT_BOOL);
+    }
     else {
         emit_simple(checker, W_OP_PRINT);
     }
