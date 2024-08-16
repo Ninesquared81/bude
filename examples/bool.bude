@@ -1,0 +1,7 @@
+42 to bool print
+
+0.5 to bool print
+
+-0.0 to bool print
+
+0f32 0f32 / to bool print
