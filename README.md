@@ -57,7 +57,10 @@ Data:
 
 * _w_ &ndash; arbitrary stack word
 * _i_ &ndash; signed integer value
+* _f_ &ndash; floating-point value (either 32- or 64-bit)
+* _n_ &ndash; number value (integer or floating-point)
 * _p_ &ndash; pointer value
+* _b_ &ndash; Boolean value
 * _c_ &ndash; UTF-8 codepoint
 * `<literal>` &ndash; the literal value denoted
 * _pk_ &ndash; structural "pack" type
@@ -75,18 +78,23 @@ Syntax:
 
 ### Push instructions
 
-`"Lorem ipsum"` &rarr; _p_ _i_ : Push the specified string to the stack
-along with its length.
+`"Lorem ipsum"` &rarr; ( _p_<sub>start</sub> _i_<sub>length</sub> ) :
+Push the specified string to the stack.
 
 `'q'` &rarr; _c_ : Push the specified character to the stack.
 
 `42` &rarr; _i_ : Push the specified integer to the stack.
 
+`true` &rarr; _b_ : Push the Boolean "true" value to the stack.
+
+`false` &rarr; _b_ : Push the Boolean "false" value to the stack.
+
 ### Pop instructions
 
 _w_ `pop` &rarr; &varnothing; : Pop the top element from the stack and discard it.
 
-_i_ `print` &rarr; &varnothing; : Pop the top element from the stack and print it as an integer.
+_w_ `print` &rarr; &varnothing; : Pop the top element from the stack and print it in a format
+based on its type.
 
 _c_ `print-char` &rarr; &varnothing; : Pop the top element from the stack and print it as a
 unicode character.
@@ -107,15 +115,15 @@ Pop the top stack value and use it to set the specified field of the comp undern
 
 ### Arithmetic operations
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `+` &rarr;
-(_i<sub>1</sub>_ + _i<sub>2</sub>_) :
+_n<sub>1</sub>_ _n<sub>2</sub>_ `+` &rarr;
+(_n<sub>1</sub>_ + _n<sub>2</sub>_) :
 Pop the top two elements and push their sum.
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `-` &rarr; (_i<sub>1</sub>_ - _i<sub>2</sub>_) :
+_n<sub>1</sub>_ _n<sub>2</sub>_ `-` &rarr; (_n<sub>1</sub>_ - _n<sub>2</sub>_) :
 Pop the top two elements and push their difference.
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `*` &rarr;
-(_i<sub>1</sub>_ \* _i<sub>2</sub>_) :
+_n<sub>1</sub>_ _n<sub>2</sub>_ `*` &rarr;
+(_n<sub>1</sub>_ \* _n<sub>2</sub>_) :
 Pop the top two elements and push their product.
 
 _i<sub>1</sub>_ _i<sub>2</sub>_ `divmod` &rarr;
@@ -137,47 +145,56 @@ Pop the top two elements and push the quotient and remainder of their Euclidean 
 The quotient is rounded towards negative infinity and the remainder is always non-negative.
 
 _i<sub>1</sub>_ _i<sub>2</sub>_ `/` &rarr; (_i<sub>1</sub>_ / _i<sub>2</sub>_) :
-Pop the top two stack elements and push the quotient fromtheir division.
+Pop the top two stack elements and push the quotient from their division.
 Acts like `divmod pop` to pop the remainder.
+
+_f<sub>1</sub>_ _f<sub>2</sub>_ `/` &rarr; (_f<sub>1</sub>_ / _f<sub>2</sub>_) :
+Pop the top two floating-point stack elements and push their ratio. Unlike the integer version,
+this is exact division and thus has no remainder.
 
 _i<sub>1</sub>_ _i<sub>2</sub>_ `%` &rarr; (_i<sub>1</sub>_ \% _i<sub>2</sub>_) :
 Pop the top two stack elements and push the remainder from their division.
 Acts like `divmod swap pop` to pop the quotient.
 
+_n_ `~` &rarr; (-_n_) :
+Negate the top stack element.
+
 ### Comparison operations
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `<` &rarr; (_i<sub>1</sub>_ < _i<sub>2</sub>_) :
-Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ < _i<sub>2</sub>_
-or 0 if not.
+_n<sub>1</sub>_ _n<sub>2</sub>_ `<` &rarr; (_n<sub>1</sub>_ < _n<sub>2</sub>_) :
+Pop _n<sub>2</sub>_ and _n<sub>1</sub>_ and push back whether
+_n<sub>1</sub>_ < _n<sub>2</sub>_.
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `<=` &rarr; (_i<sub>1</sub>_ <= _i<sub>2</sub>_) :
-Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if  _i<sub>1</sub>_ &le; _i<sub>2</sub>_
-or 0 if not.
+_n<sub>1</sub>_ _n<sub>2</sub>_ `<=` &rarr; (_n<sub>1</sub>_ <= _n<sub>2</sub>_) :
+Pop _n<sub>2</sub>_ and _n<sub>1</sub>_ and push back whether
+_n<sub>1</sub>_ &le; _n<sub>2</sub>_.
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `=` &rarr; (_i<sub>1</sub>_ == _i<sub>2</sub>_) :
-Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ = _i<sub>2</sub>_
-or 0 if not.
+_n<sub>1</sub>_ _n<sub>2</sub>_ `=` &rarr; (_n<sub>1</sub>_ == _n<sub>2</sub>_) :
+Pop _n<sub>2</sub>_ and _n<sub>1</sub>_ and push back whether
+_n<sub>1</sub>_ = _n<sub>2</sub>_.
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `>=` &rarr; (_i<sub>1</sub>_ >= _i<sub>2</sub>_) :
-Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ &ge; _i<sub>2</sub>_
-or 0 if not.
+_n<sub>1</sub>_ _n<sub>2</sub>_ `>=` &rarr; (_n<sub>1</sub>_ >= _n<sub>2</sub>_) :
+Pop _n<sub>2</sub>_ and _n<sub>1</sub>_ and push back whether
+_n<sub>1</sub>_ &ge; _n<sub>2</sub>_.
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `>` &rarr; (_i<sub>1</sub>_ > _i<sub>2</sub>_) :
-Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ > _i<sub>2</sub>_
-or 0 if not.
+_n<sub>1</sub>_ _n<sub>2</sub>_ `>` &rarr; (_n<sub>1</sub>_ > _n<sub>2</sub>_) :
+Pop _n<sub>2</sub>_ and _n<sub>1</sub>_ and push back whether
+_n<sub>1</sub>_ > _n<sub>2</sub>_.
 
-_i<sub>1</sub>_ _i<sub>2</sub>_ `/=` &rarr; (_i<sub>1</sub>_ != _i<sub>2</sub>_) :
-Pop _i<sub>2</sub>_ and _i<sub>1</sub>_ and push back 1 if _i<sub>1</sub>_ &ne; _i<sub>2</sub>_
-or 0 if not.
+_n<sub>1</sub>_ _n<sub>2</sub>_ `/=` &rarr; (_n<sub>1</sub>_ != _n<sub>2</sub>_) :
+Pop _n<sub>2</sub>_ and _n<sub>1</sub>_ and push back whether
+_n<sub>1</sub>_ &ne; _n<sub>2</sub>_.
 
 ### Logical operations
 
 _w_ `not` &rarr; !_w_ :
-Replace the top element with its logical inverse (i.e. non-zero &rarr; 0, 0 &rarr; 1).
+Replace the top element with its logical inverse (i.e. non-zero &rarr; `false`, 0 &rarr; `true`).
 
-_w<sub>1</sub>_ _w<sub>2</sub>_ `or` &rarr; (_w<sub>1</sub>_ or _w<sub>2</sub>_) : Drop _w<sub>1</sub>_ if it is equal to zero, else drop _w<sub>2</sub>_.
+_w<sub>1</sub>_ _w<sub>2</sub>_ `or` &rarr; (_w<sub>1</sub>_ or _w<sub>2</sub>_) :
+Drop _w<sub>1</sub>_ if it is equal to zero, else drop _w<sub>2</sub>_.
 
-_w<sub>1</sub>_ _w<sub>2</sub>_ `and` &rarr; (_w<sub>1</sub>_ and _w<sub>2</sub>_) : Drop _w<sub>1</sub>_ if it is non-zero, else drop _w<sub>2</sub>_.
+_w<sub>1</sub>_ _w<sub>2</sub>_ `and` &rarr; (_w<sub>1</sub>_ and _w<sub>2</sub>_) :
+Drop _w<sub>1</sub>_ if it is non-zero, else drop _w<sub>2</sub>_.
 
 ### Memory operations
 
@@ -202,6 +219,13 @@ Copy the next element over the top element.
 _w<sub>1</sub>_ _w<sub>2</sub>_ _w<sub>3</sub>_ `rot` &rarr;
 _w<sub>2</sub>_ _w<sub>3</sub>_ _w<sub>1</sub>_ :
 Rotate the top three stack elements.
+
+### Conversions
+
+_w_ `to` <_type_: _T_> &rarr; _T_ : Convert top stack element to type _T_ (value-preserving)
+
+_w_ `as` <_type_: _T_> &rarr; _T_ : Coerce top stack element to type _T_
+(bit-pattern--preserving, with truncation)
 
 ### Constructors
 
