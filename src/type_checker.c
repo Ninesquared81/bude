@@ -341,6 +341,10 @@ static enum w_opcode promotel(type_index type) {
     return convert(type, TYPE_INT).lhs_conv;
 }
 
+static enum w_opcode demote(type_index type) {
+    return convert(type, type).result_conv;
+}
+
 static enum w_opcode promote_float(type_index type) {
     if (type == TYPE_F32) return W_OP_FPROM;
     return W_OP_NOP;
@@ -1576,6 +1580,25 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_simple(checker, mult_instruction);
             emit_simple_nnop(checker, result_conv);
             ts_push(checker, result_type);
+            break;
+        }
+        case T_OP_NEG: {
+            type_index type = ts_peek(checker);  // Type preserved by instruction.
+            if (is_integral(type)) {
+                emit_simple_nnop(checker, promote(type));
+                emit_simple(checker, W_OP_NEG);
+                emit_simple_nnop(checker, demote(type));
+            }
+            else if (type == TYPE_F32) {
+                emit_simple(checker, W_OP_NEGF32);
+            }
+            else if (type == TYPE_F64) {
+                emit_simple(checker, W_OP_NEGF64);
+            }
+            else {
+                struct string_view name = type_name(checker->types, type);
+                type_error(checker, "Invalid type for `~`: '%"PRI_SV"'", SV_FMT(name));
+            }
             break;
         }
         case T_OP_NOT: {

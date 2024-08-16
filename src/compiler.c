@@ -1360,6 +1360,9 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_SWAP:
         emit_simple(compiler, T_OP_SWAP);
         break;
+    case TOKEN_TILDE:
+        emit_simple(compiler, T_OP_NEG);
+        break;
     case TOKEN_UNPACK:
         emit_simple(compiler, T_OP_UNPACK);
         break;

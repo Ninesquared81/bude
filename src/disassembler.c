@@ -356,6 +356,8 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return immediate_u16_instruction("T_OP_LOCAL_SET", block, offset);
     case T_OP_MULT:
         return simple_instruction("T_OP_MULT", block, offset);
+    case T_OP_NEG:
+        return simple_instruction("T_OP_NEG", block, offset);
     case T_OP_NOT:
         return simple_instruction("T_OP_NOT", block, offset);
     case T_OP_NOT_EQUALS:
@@ -637,6 +639,12 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
         return simple_instruction("W_OP_MULTF32", block, offset);
     case W_OP_MULTF64:
         return simple_instruction("W_OP_MULTF64", block, offset);
+    case W_OP_NEG:
+        return simple_instruction("W_OP_NEG", block, offset);
+    case W_OP_NEGF32:
+        return simple_instruction("W_OP_NEGF32", block, offset);
+    case W_OP_NEGF64:
+        return simple_instruction("W_OP_NEGF64", block, offset);
     case W_OP_NOT:
         return simple_instruction("W_OP_NOT", block, offset);
     case W_OP_NOT_EQUALS:

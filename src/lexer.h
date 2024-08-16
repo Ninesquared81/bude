@@ -71,6 +71,7 @@ enum token_type {
     TOKEN_STRING,
     TOKEN_SWAP,
     TOKEN_THEN,
+    TOKEN_TILDE,
     TOKEN_TO,
     TOKEN_U8,
     TOKEN_U16,

@@ -460,6 +460,23 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_MULT: BIN_OP(*, interpreter->main_stack); break;
         case W_OP_MULTF32: BINF32_OP(*, interpreter->main_stack); break;
         case W_OP_MULTF64: BINF64_OP(*, interpreter->main_stack); break;
+        case W_OP_NEG: {
+            stack_word a = pop(interpreter->main_stack);
+            push(interpreter->main_stack, -a);
+            break;
+        }
+        case W_OP_NEGF32: {
+            stack_word a = pop(interpreter->main_stack);
+            float x = u32_to_f32(a);
+            push(interpreter->main_stack, f32_to_u32(-x));
+            break;
+        }
+        case W_OP_NEGF64: {
+            stack_word a = pop(interpreter->main_stack);
+            double x = u64_to_f64(a);
+            push(interpreter->main_stack, f64_to_u64(-x));
+            break;
+        }
         case W_OP_NOT: {
             bool condition = pop(interpreter->main_stack);
             push(interpreter->main_stack, !condition);

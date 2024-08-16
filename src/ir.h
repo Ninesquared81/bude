@@ -101,6 +101,8 @@
     X(T_OP_LOCAL_SET)                                                   \
     /* MULT -- Multiply the top two stack elements. */                  \
     X(T_OP_MULT)                                                        \
+    /* NEG -- Negate the top stack element. */                          \
+    X(T_OP_NEG)                                                         \
     /* NOT -- Logical not operation of the top stack element. */        \
     X(T_OP_NOT)                                                         \
     /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */ \
@@ -335,6 +337,12 @@
     X(W_OP_MULTF32)                                                     \
     /* MULTF64 -- Double-precision floating-point multiplication of top two stack elements. */ \
     X(W_OP_MULTF64)                                                     \
+    /* NEG -- Negate integer at top of stack. */                        \
+    X(W_OP_NEG)                                                         \
+    /* NEGF32 -- Negate 32-bit floating point value at top of stack. */ \
+    X(W_OP_NEGF32)                                                      \
+    /* NEGF64 -- Negate 64-bit floating point value at top of stack. */ \
+    X(W_OP_NEGF64)                                                      \
     /* NOT -- Logical not operation of the top stack element. */        \
     X(W_OP_NOT)                                                         \
     /* NOT_EQUALS -- Pop top two stack elements and push 1 if they're different or 0 if not. */ \

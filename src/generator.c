@@ -1010,6 +1010,21 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movq", "rax", "xmm0");
             asm_write_inst1(assembly, "push", "rax");
             break;
+        case W_OP_NEG:
+            asm_write_inst1(assembly, "neg", "qword [rsp]");
+            break;
+        case W_OP_NEGF32:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "mov", "rcx", "8000'0000h");
+            asm_write_inst2(assembly, "xor", "rax", "rcx");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
+        case W_OP_NEGF64:
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "mov", "rcx", "8000'0000'0000'0000h");
+            asm_write_inst2(assembly, "xor", "rax", "rcx");
+            asm_write_inst1(assembly, "push", "rax");
+            break;
         case W_OP_NOT:
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2c(assembly, "xor", "edx", "edx", "Zero out rdx.");
