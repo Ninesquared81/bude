@@ -17,6 +17,11 @@ comp Vector3 def
     z -> f32
 end
 
+comp Rectangle def
+    Rec.pos -> Vector2
+    Rec.size -> Vector2
+end
+
 var RAYWHITE -> Color
     RED      -> Color
 end
@@ -34,6 +39,9 @@ import raylib def
     func ptr s32 s32 s32 Color DrawText end
     func ptr s32 MeasureText -> s32 end
     func Vector2 f32 Color DrawCircleV end
+    func Vector2 Vector2 Color DrawRectangleV end
+    func Vector2 Vector2 Vector2 Color DrawTriangle end
+    func Vector2 s32 f32 f32 Color DrawPoly end
     func s32 IsKeyPressed -> s8 end
     func s32 IsKeyDown -> s8 end
     func Color ColorToHSV -> Vector3 end
@@ -53,8 +61,93 @@ comp Player def
     speed -> f32
 end
 
+comp Triangle def
+    v1 -> Vector2
+    v2 -> Vector2
+    v3 -> Vector2
+end
+
+func Player get-body -> Rectangle def
+    # pos is in centre of body
+    pos
+    var player-width -> f32
+        player-height -> f32
+    end
+    40f32 <- player-width
+    80f32 <- player-height
+    x player-width 0.5f32 * - <- x
+    y player-height 0.5f32 * - <- y
+    player-width player-height Vector2
+    Rectangle
+    swap pop
+end
+
+func Player get-nose-cone -> Triangle def
+    get-body decomp over  # top corner of body
+    # corner1 size corner2
+    x rot x rot +
+    rot swap <- x
+    # corner1 corner2 corner2 size (c.x-s.x/2)
+    swap over
+    x rot x 0.5f32 * rot swap -
+    # corner1 corner2 (c.x-s.x/2) corner2 (c.y+s.x)
+    swap unpack pop
+    rot y rot - <- y
+    swap <- x
+    Triangle
+end
+
+# func Player get-left-fin -> Triangle def
+# end
+
+# func Player get-right-fin -> Triangle def
+# end
+
+func Vector3 print-hsv def
+    decomp swap unpack swap
+    "h: " print print
+    "s: " print print
+    "v: " print print
+    "\n" print
+end
+
+func Color next-colour -> Color def
+    ColorToHSV
+    # dupe print-hsv
+    decomp swap unpack  # v h s
+    swap 157f32 +  # v s (h+15)
+    if dupe 360f32 > then
+        360f32 -
+    end
+    swap rot  # h s v
+    ColorFromHSV
+end
+
 func Player draw-player def
-    decomp pop 10f32 swap DrawCircleV
+    # dupe
+    # pos swap
+    # 50f32 swap
+    # colour swap pop
+    # DrawCircleV
+    # pos swap
+    # 3s32 swap
+    # 50f32 swap
+    # 15f32 swap
+    # colour next-colour swap pop
+    # DrawPoly
+    # pos 50f32 80f32 Vector2 Rectangle
+    # over colour swap pop
+    # swap decomp rot DrawRectangleV
+    # pos 10f32 rot colour swap pop
+    # DrawCircleV
+    var player-colour -> Color end
+    colour <- player-colour
+    dupe get-body decomp player-colour DrawRectangleV
+    get-nose-cone decomp
+    # "3" to-cstr swap unpack to s32 swap to s32 swap 5s32 player-colour DrawText
+    # "2" to-cstr swap unpack to s32 swap to s32 swap 5s32 player-colour DrawText
+    # "1" to-cstr swap unpack to s32 swap to s32 swap 5s32 player-colour DrawText
+    player-colour DrawTriangle
 end
 
 func Player move-right -> Player def
@@ -79,26 +172,6 @@ func Player move-up -> Player def
     var player-speed -> f32 end
     speed <- player-speed
     pos y player-speed - <- y <- pos
-end
-
-func Vector3 print-hsv def
-    decomp swap unpack swap
-    "h: " print print
-    "s: " print print
-    "v: " print print
-    "\n" print
-end
-
-func Color next-colour -> Color def
-    ColorToHSV
-    dupe print-hsv
-    decomp swap unpack  # v h s
-    swap 73f32 +  # v s (h+15)
-    if dupe 360f32 > then
-        360f32 -
-    end
-    swap rot  # h s v
-    ColorFromHSV
 end
 
 var screen-width  -> s32
