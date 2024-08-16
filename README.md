@@ -222,10 +222,10 @@ Rotate the top three stack elements.
 
 ### Conversions
 
-_w_ `to` <_type_: _T_> &rarr; _T_ : Convert top stack element to type _T_ (value-preserving)
+_w_ `to` <_type_: _T_> &rarr; _T_ : Convert top stack element to type _T_ (value-preserving).
 
 _w_ `as` <_type_: _T_> &rarr; _T_ : Coerce top stack element to type _T_
-(bit-pattern--preserving, with truncation)
+(bit-pattern--preserving, with truncation).
 
 ### Constructors
 
