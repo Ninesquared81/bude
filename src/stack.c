@@ -88,7 +88,7 @@ void set_nth(struct stack *stack, int n, stack_word value) {
         fprintf(stderr, "Stack underflow in set_nth()\n");
         exit(1);
     }
-    assert(n > 0);
+    assert(n >= 0);
     stack->top[-1 - n] = value;
 }
 
