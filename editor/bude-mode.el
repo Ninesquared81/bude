@@ -17,8 +17,8 @@
 
 (defconst bude-builtins
   '("+" "-" "*" "/" "%" "=" "/=" "<" "<=" "=>" ">" "->" "<-"
-    "and" "as" "decomp" "deref" "divmod" "dupe" "edivmod" "false" "idivmod" "not" "or"
-    "over" "pop" "print" "print-char" "rot" "swap" "true" "unpack")
+    "and" "as" "decomp" "deref" "divmod" "dupe" "edivmod" "exit" "false" "idivmod" "not"
+    "or" "over" "pop" "print" "print-char" "rot" "swap" "true" "unpack")
   "Built-in Bude operations")
 
 (defconst bude-types
