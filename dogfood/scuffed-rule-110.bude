@@ -1,0 +1,148 @@
+comp r110-array14 def
+    c0  -> int
+    c1  -> int
+    c2  -> int
+    c3  -> int
+    c4  -> int
+    c5  -> int
+    c6  -> int
+    c7  -> int
+    c8  -> int
+    c9  -> int
+    c10 -> int
+    c11 -> int
+    c12 -> int
+    c13 -> int
+end
+
+comp window def
+    a -> int
+    b -> int
+    c -> int
+end
+
+func window window-to-base10 -> int def
+    decomp
+    rot 100 *
+    rot 10 *
+    + +
+end
+
+func window next-cell -> int def
+    window-to-base10
+    if   dupe 111 = then 0
+    elif dupe 110 = then 1
+    elif dupe 101 = then 1
+    elif dupe 100 = then 0
+    elif dupe 011 = then 1
+    elif dupe 010 = then 1
+    elif dupe 001 = then 1
+    elif dupe 000 = then 0
+    else "Invalid window\n" print exit  # Use cell contents as (non-zero) exit code.
+    end
+    swap pop
+end
+
+func r110-array14 next-generation -> r110-array14 def
+    0 0 0 window
+    swap c13 rot swap <- a
+    swap c0 rot swap <- b
+    swap c1 rot swap <- c
+    dupe next-cell
+    rot swap <- c0
+    c2 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c1
+    c3 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c2
+    c4 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c3
+    c5 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c4
+    c6 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c5
+    c7 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c6
+    c8 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c7
+    c9 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c8
+    c10 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c9
+    c11 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c10
+    c12 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c11
+    c13 rot
+    decomp rot pop rot window
+    dupe next-cell
+    rot swap <- c12
+    c0 rot
+    decomp rot pop rot window
+    next-cell <- c13
+end
+
+func int display-cell def
+    if dupe 1 = then
+        '*' print
+    elif dupe 0 = then
+        ' ' print
+    else
+        "Invalid cell: " print
+        print
+        1 exit
+    end
+    pop
+end
+
+func r110-array14 display-r110 def
+    c0  display-cell
+    c1  display-cell
+    c2  display-cell
+    c3  display-cell
+    c4  display-cell
+    c5  display-cell
+    c6  display-cell
+    c7  display-cell
+    c8  display-cell
+    c9  display-cell
+    c10 display-cell
+    c11 display-cell
+    c12 display-cell
+    c13 display-cell
+    '\n' print
+    pop
+end
+
+func main def
+    0 0 0 1 0 0 1 1 0 1 1 1 1 1
+    r110-array14
+    for 20 do
+        dupe display-r110
+        next-generation
+    end
+    pop
+end
+
+main
