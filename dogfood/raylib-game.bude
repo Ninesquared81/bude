@@ -32,7 +32,7 @@ end
 import raylib def
     func s32 s32 ptr InitWindow end
     func CloseWindow end
-    func WindowShouldClose -> s8 end  # TODO: bool type
+    func WindowShouldClose -> bool end
     func BeginDrawing end
     func EndDrawing end
     func Color ClearBackground end
@@ -42,8 +42,8 @@ import raylib def
     func Vector2 Vector2 Color DrawRectangleV end
     func Vector2 Vector2 Vector2 Color DrawTriangle end
     func Vector2 s32 f32 f32 Color DrawPoly end
-    func s32 IsKeyPressed -> s8 end
-    func s32 IsKeyDown -> s8 end
+    func s32 IsKeyPressed -> bool end
+    func s32 IsKeyDown -> bool end
     func Color ColorToHSV -> Vector3 end
     func f32 f32 f32 ColorFromHSV -> Color end
 end
