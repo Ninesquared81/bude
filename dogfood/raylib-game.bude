@@ -201,6 +201,30 @@ screen-width screen-height screen-title to-cstr InitWindow
 var player -> Player end
 screen-centre RED .2f32 Player <- player
 
+func should-go-right -> bool def
+    'D' to s32 IsKeyDown
+    262s32 IsKeyDown
+    or
+end
+
+func should-go-left -> bool def
+    'A' to s32 IsKeyDown
+    263s32 IsKeyDown
+    or
+end
+
+func should-go-down -> bool def
+    'S' to s32 IsKeyDown
+    264s32 IsKeyDown
+    or
+end
+
+func should-go-up -> bool def
+    'W' to s32 IsKeyDown
+    265s32 IsKeyDown
+    or
+end
+
 while WindowShouldClose not do
     BeginDrawing
     RAYWHITE ClearBackground
@@ -220,16 +244,16 @@ while WindowShouldClose not do
 
     player draw-player
 
-    if 'D' to s32 IsKeyDown then
+    if should-go-right then
         player move-right <- player
     end
-    if 'A' to s32 IsKeyDown then
+    if should-go-left then
         player move-left <- player
     end
-    if 'W' to s32 IsKeyDown then
+    if should-go-up then
         player move-up <- player
     end
-    if 'S' to s32 IsKeyDown then
+    if should-go-down then
         player move-down <- player
     end
     if ' ' to s32 IsKeyPressed then
