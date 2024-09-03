@@ -66,8 +66,8 @@ struct symdict_slot {
 };
 
 struct symbol_dictionary {
-    size_t capacity;
-    size_t count;
+    int capacity;
+    int count;
     struct symdict_slot *slots;
 };
 

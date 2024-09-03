@@ -33,10 +33,10 @@ static bool check_name(const struct symdict_slot *slot, uint32_t hash,
 
 static struct symdict_slot *find_slot(const struct symbol_dictionary *dict,
                                       const struct string_view *name, uint32_t hash) {
-    size_t index = hash % dict->capacity;
+    int index = hash % dict->capacity;
     struct symdict_slot *slot = &dict->slots[index];
-    size_t stride = hash2(hash);
-    size_t visit_count = 1;
+    int stride = hash2(hash);
+    int visit_count = 1;
     while (slot->is_occupied && !check_name(slot, hash, name)) {
         if (visit_count >= dict->capacity) return NULL;  // Not enough space.
         ++visit_count;
