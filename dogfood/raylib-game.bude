@@ -22,12 +22,13 @@ comp Rectangle def
     Rec.size -> Vector2
 end
 
-var RAYWHITE -> Color
-    RED      -> Color
+func RAYWHITE -> Color def
+    245u8 245u8 245u8 255u8 Color
 end
 
-245u8 245u8 245u8 255u8 Color <- RAYWHITE
-230u8 41u8 55u8 255u8 Color   <- RED
+func RED -> Color def
+    230u8 41u8 55u8 255u8 Color
+end
 
 import raylib def
     func s32 s32 ptr InitWindow end
