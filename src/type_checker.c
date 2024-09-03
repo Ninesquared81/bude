@@ -1629,7 +1629,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         }
         case T_OP_NOT: {
             type_index type = ts_pop(checker);
-            if (is_integral(type)) {
+            if (is_integral(type) || type == TYPE_BOOL) {
                 emit_simple(checker, W_OP_NOT);
             }
             else if (is_float(type)) {
