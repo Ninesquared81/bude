@@ -1,5 +1,6 @@
 ### BEGIN RAYLIB ###
 
+# Data type definitions
 pack Color def
     r -> u8
     g -> u8
@@ -22,14 +23,17 @@ comp Rectangle def
     Rec.size -> Vector2
 end
 
-func RAYWHITE -> Color def
-    245u8 245u8 245u8 255u8 Color
-end
+# Colours
+func RAYWHITE -> Color def 245u8 245u8 245u8 255u8 Color end
+func RED      -> Color def 230u8 41u8 55u8 255u8 Color end
 
-func RED -> Color def
-    230u8 41u8 55u8 255u8 Color
-end
+# Keys
+func KEY_RIGHT -> s32 def 262s32 end
+func KEY_LEFT  -> s32 def 263s32 end
+func KEY_DOWN  -> s32 def 264s32 end
+func KEY_UP    -> s32 def 265s32 end
 
+# Raylib functions
 import raylib def
     func s32 s32 ptr InitWindow end
     func CloseWindow end
@@ -204,25 +208,25 @@ screen-centre RED .2f32 Player <- player
 
 func should-go-right -> bool def
     'D' to s32 IsKeyDown
-    262s32 IsKeyDown
+    KEY_RIGHT IsKeyDown
     or
 end
 
 func should-go-left -> bool def
     'A' to s32 IsKeyDown
-    263s32 IsKeyDown
+    KEY_LEFT IsKeyDown
     or
 end
 
 func should-go-down -> bool def
     'S' to s32 IsKeyDown
-    264s32 IsKeyDown
+    KEY_DOWN IsKeyDown
     or
 end
 
 func should-go-up -> bool def
     'W' to s32 IsKeyDown
-    265s32 IsKeyDown
+    KEY_UP IsKeyDown
     or
 end
 
