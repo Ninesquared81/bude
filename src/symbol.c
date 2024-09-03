@@ -55,7 +55,10 @@ void insert_symbol(struct symbol_dictionary *dict, const struct symbol *symbol) 
     struct symdict_slot *slot = find_slot(dict, &symbol->name, hash);
     assert(slot);  // Todo: grow dict when there isn't space.
     memcpy(&slot->symbol, symbol, sizeof *symbol);
-    slot->is_occupied = true;
+    if (!slot->is_occupied) {
+        ++dict->count;
+        slot->is_occupied = true;
+    }
     slot->hash = hash;
 }
 
