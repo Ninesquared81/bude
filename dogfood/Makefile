@@ -1,9 +1,9 @@
 .PHONY: all
 
-all: raylib-game.exe ;
+all: game.exe ;
 
-raylib-game.exe: raylib-game.asm
-	fasm raylib-game.asm
+game.exe: game.asm
+	fasm game.asm
 
-raylib-game.asm: raylib-game.bude ../bin/bude.exe
-	../bin/bude.exe raylib-game.bude -a -o raylib-game.asm --lib raylib=raylib.dll
+game.asm: game.bude ../bin/bude.exe
+	../bin/bude.exe game.bude -a -o game.asm --lib raylib=raylib.dll
