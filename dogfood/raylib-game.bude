@@ -179,27 +179,17 @@ func Player move-up -> Player def
     pos y player-speed - <- y <- pos
 end
 
-var screen-width  -> s32
-    screen-height -> s32
-    screen-title  -> string
-    screen-centre -> Vector2  # temporary patch
+
+func screen-width  -> s32 def 1200s32 end
+func screen-height -> s32 def 800s32 end
+func screen-title  -> string def "Raylib Game in Bude" end
+
+func screen-centre -> Vector2 def
+    screen-width 0.5f32 *
+    screen-height 0.5f32 *
+    Vector2
 end
 
-# func screen-centre -> Vector2 def
-#     screen-width 0.5f32 *
-#     screen-height 0.5f32 *
-#     Vector2
-# end
-
-
-1200s32 <- screen-width
-800s32  <- screen-height
-
-"Raylib Game in Bude" <- screen-title
-
-screen-width .5f32 *
-screen-height .5f32 *
-Vector2 <- screen-centre
 
 screen-width screen-height screen-title to-cstr InitWindow
 
