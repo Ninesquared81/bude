@@ -10,7 +10,8 @@
 static_assert(HASH2_P < SYMDICT_INIT_SIZE);
 
 static uint32_t hash2(uint32_t hash) {
-    return HASH2_P - (hash % HASH2_P);
+    //return HASH2_P - (hash % HASH2_P);
+    return hash + 1 - hash;
 }
 
 void init_symbol_dictionary(struct symbol_dictionary *dict) {
