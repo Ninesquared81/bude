@@ -14,6 +14,7 @@ static void set_position(struct lexer *lexer, struct location position) {
 
 void init_lexer(struct lexer *lexer, const char *src, const char *src_end, const char *filename) {
     lexer->start = src;
+    lexer->end = src_end;
     lexer->current = src;
     set_position(lexer, (struct location) {LINE_START, COLUMN_START});
     lexer->filename = filename;
@@ -50,6 +51,7 @@ static char peek(struct lexer *lexer) {
 }
 
 static bool is_at_end(struct lexer *lexer) {
+    if (lexer->end != NULL) return lexer->current == lexer->end;
     return *lexer->current == '\0';
 }
 
@@ -80,14 +82,59 @@ static void consume_whitespace(struct lexer *lexer) {
     }
 }
 
+static void lex_string(struct lexer *lexer) {
+    while (!is_at_end(lexer) && !check(lexer, '"')) {
+        char c = advance(lexer);
+        if (c == '\\') {
+            // Escape sequence.
+            advance(lexer);
+        }
+    }
+    if (is_at_end(lexer)) {
+        lex_error(lexer, "unterminated string literal.");
+        exit(1);
+    }
+    // Consume the closing '"'.
+    advance(lexer);
+}
+
+static void lex_subscript(struct lexer *lexer) {
+    while (!match(lexer, ']')) {
+        if (match(lexer, '[')) {
+            lex_subscript(lexer);
+        }
+        else if (match(lexer, '"')) {
+            lex_string(lexer);
+        }
+        else if (check(lexer, '#')) {
+            return;  // Comment; stop lexing.
+        }
+        if (is_at_end(lexer)) {
+            lex_error(lexer, "unexpected EOF in token subscript.");
+            exit(1);
+        }
+        advance(lexer);
+    }
+}
+
 static struct token make_token(struct lexer *lexer, enum token_type type) {
+    int length = lexer->start - lexer->current;
+    const char *subscript_start = lexer->current;
+    struct location subscript_location = lexer->position;
+    if (match(lexer, '[')) {
+        lex_subscript(lexer);
+    }
+    const char *subscript_end = lexer->current;
     return (struct token) {
         .type = type,
         .value = {
             .start = lexer->start,
-            .length = lexer->current - lexer->start
+            .length = length
         },
         .location = lexer->start_position,
+        .subscript_start = subscript_start,
+        .subscript_end = subscript_end,
+        .subscript_location = subscript_location,
     };
 }
 
@@ -278,8 +325,13 @@ static enum token_type symbol_type(struct lexer *lexer) {
     return TOKEN_SYMBOL;
 }
 
+static bool is_special(char c) {
+    const char *const special_chars = "#[]";
+    return strchr(special_chars, c) != NULL;
+}
+
 static bool is_symbolic(char c) {
-    return !isspace(c) && c != '#';
+    return !isspace(c) && !is_special(c);
 }
 
 static struct token symbol(struct lexer *lexer) {
@@ -413,19 +465,7 @@ static struct token number(struct lexer *lexer) {
 }
 
 static struct token string(struct lexer *lexer) {
-    while (!is_at_end(lexer) && !check(lexer, '"')) {
-        char c = advance(lexer);
-        if (c == '\\') {
-            // Escape sequence.
-            advance(lexer);
-        }
-    }
-    if (is_at_end(lexer)) {
-        lex_error(lexer, "unterminated string literal.");
-        exit(1);
-    }
-    // Consume the closing '"'.
-    advance(lexer);
+    lex_string(lexer);
     return make_token(lexer, TOKEN_STRING_LIT);
 }
 
@@ -477,3 +517,15 @@ struct token next_token(struct lexer *lexer) {
 
     return symbol(lexer);
 }
+
+struct lexer get_subscript_lexer(struct token token, const char *filename) {
+    return (struct lexer) {
+        .start = token.subscript_start,
+        .end = token.subscript_end,
+        .current = token.subscript_start,
+        .position = token.subscript_location,
+        .start_position = token.subscript_location,
+        .filename = filename,
+    };
+}
+

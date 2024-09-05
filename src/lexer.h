@@ -93,17 +93,24 @@ struct token {
     enum token_type type;
     struct string_view value;
     struct location location;
+    const char *subscript_start;
+    const char *subscript_end;
+    struct location subscript_location;
 };
 
 struct lexer {
     const char *start;
+    const char *end;  // If NULL, lex until EOF.
     const char *current;
     struct location position;
     struct location start_position;
     const char *filename;
 };
 
-void init_lexer(struct lexer *lexer, const char *src, const char *filename);
+#define HAS_SUBSCRIPT(token) ((token).start != (token).end)
+
+void init_lexer(struct lexer *lexer, const char *src, const char *src_end, const char *filename);
 struct token next_token(struct lexer *lexer);
+struct lexer get_subscript_lexer(struct token token, const char *filename);
 
 #endif
