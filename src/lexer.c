@@ -7,12 +7,15 @@
 
 #include "lexer.h"
 
-void init_lexer(struct lexer *lexer, const char *src, const char *filename) {
+static void set_position(struct lexer *lexer, struct location position) {
+    lexer->position = position;
+    lexer->start_position = position;
+}
+
+void init_lexer(struct lexer *lexer, const char *src, const char *src_end, const char *filename) {
     lexer->start = src;
     lexer->current = src;
-    struct location init_location = {1, 1};
-    lexer->position = init_location;
-    lexer->start_position = init_location;
+    set_position(lexer, (struct location) {LINE_START, COLUMN_START});
     lexer->filename = filename;
 }
 
@@ -30,7 +33,7 @@ static char advance(struct lexer *lexer) {
     struct location *pos = &lexer->position;
     if (*lexer->current == '\n') {
         ++pos->line;
-        pos->column = 1;
+        pos->column = COLUMN_START;
     }
     else {
         ++pos->column;

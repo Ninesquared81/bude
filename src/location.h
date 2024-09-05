@@ -3,6 +3,14 @@
 
 #include <stddef.h>
 
+#ifndef LINE_START
+#define LINE_START 1
+#endif
+
+#ifndef COLUMN_START
+#define COLUMN_START 1
+#endif
+
 struct location {
     size_t line, column;
 };
