@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "region.h"
 #include "type_punning.h"
+#include "utils.h"
 
 #ifndef BLOCK_INIT_SIZE
 #define BLOCK_INIT_SIZE 128
@@ -17,7 +18,7 @@
 #define JUMP_INFO_TABLE_INIT_SIZE 8
 #endif
 
-#define X(opcode) [opcode] = #opcode,
+#define X(opcode) STRING_TABLE(opcode)
 const char *t_opcode_names[] = {
     T_OPCODES
 };
