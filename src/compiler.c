@@ -35,7 +35,7 @@ static void init_compiler(struct compiler *compiler, const char *src, struct mod
                           struct symbol_dictionary *symbols) {
     compiler->function = NULL;  // Will be set later.
     compiler->func_index = 0;
-    init_lexer(&compiler->lexer, src, module->filename);
+    init_lexer(&compiler->lexer, src, NULL, module->filename);
     compiler->current_token = next_token(&compiler->lexer);
     compiler->previous_token = (struct token){0};
     compiler->symbols = symbols;
