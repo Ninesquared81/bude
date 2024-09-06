@@ -7,7 +7,6 @@
 
 #include "string_builder.h"
 #include "string_view.h"
-#include "utils.h"
 
 /* Documenation:
  * Below is a mini-grammar for the language used to informally document each IR instruction:
