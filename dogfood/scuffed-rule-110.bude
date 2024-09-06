@@ -1,20 +1,3 @@
-comp r110-array14 def
-    c0  -> int
-    c1  -> int
-    c2  -> int
-    c3  -> int
-    c4  -> int
-    c5  -> int
-    c6  -> int
-    c7  -> int
-    c8  -> int
-    c9  -> int
-    c10 -> int
-    c11 -> int
-    c12 -> int
-    c13 -> int
-end
-
 comp window def
     a -> int
     b -> int
@@ -43,64 +26,22 @@ func window next-cell -> int def
     swap pop
 end
 
-func r110-array14 next-generation -> r110-array14 def
+func array[14 int] next-generation -> array[14 int] def
     0 0 0 window
-    swap c13 rot swap <- a
-    swap c0 rot swap <- b
-    swap c1 rot swap <- c
+    swap [13] rot swap <- a
+    swap [0]  rot swap <- b
+    swap [1]  rot swap <- c
+    for i to 12 do
+        dupe next-cell
+        rot swap <- [i]
+        [i 2 +] rot
+        decomp rot pop rot window
+    end
     dupe next-cell
-    rot swap <- c0
-    c2 rot
+    rot swap <- [12]
+    [0] rot
     decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c1
-    c3 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c2
-    c4 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c3
-    c5 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c4
-    c6 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c5
-    c7 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c6
-    c8 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c7
-    c9 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c8
-    c10 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c9
-    c11 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c10
-    c12 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c11
-    c13 rot
-    decomp rot pop rot window
-    dupe next-cell
-    rot swap <- c12
-    c0 rot
-    decomp rot pop rot window
-    next-cell <- c13
+    next-cell <- [13]
 end
 
 func int display-cell def
@@ -116,28 +57,17 @@ func int display-cell def
     pop
 end
 
-func r110-array14 display-r110 def
-    c0  display-cell
-    c1  display-cell
-    c2  display-cell
-    c3  display-cell
-    c4  display-cell
-    c5  display-cell
-    c6  display-cell
-    c7  display-cell
-    c8  display-cell
-    c9  display-cell
-    c10 display-cell
-    c11 display-cell
-    c12 display-cell
-    c13 display-cell
+func array[14 int] display-r110 def
+    for i to 14 do
+        [i] display-cell
+    end
     '\n' print
     pop
 end
 
 func main def
     0 0 0 1 0 0 1 1 0 1 1 1 1 1
-    r110-array14
+    array[14 int]
     for 20 do
         dupe display-r110
         next-generation
