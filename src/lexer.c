@@ -120,7 +120,7 @@ static void lex_subscript(struct lexer *lexer) {
 }
 
 static struct token make_token(struct lexer *lexer, enum token_type type) {
-    int length = lexer->start - lexer->current;
+    int length = lexer->current - lexer->start;
     const char *subscript_start = lexer->current;
     struct location subscript_location = lexer->position;
     if (match(lexer, '[')) {
