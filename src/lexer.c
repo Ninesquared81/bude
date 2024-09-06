@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -6,6 +7,7 @@
 #include <string.h>
 
 #include "lexer.h"
+#include "string_view.h"
 
 static void set_position(struct lexer *lexer, struct location position) {
     lexer->position = position;
@@ -529,3 +531,19 @@ struct lexer get_subscript_lexer(struct token token, const char *filename) {
     };
 }
 
+const char *token_type_name(enum token_type type) {
+    static const char *const type_names[] = {
+#define X(token) #token,
+        TOKENS
+#undef X
+    };
+    static_assert(sizeof type_names / sizeof type_names[0] == TOKEN_EOT + 1);
+    assert(0 <= type && type <= TOKEN_EOT);
+    return type_names[type];
+}
+
+void print_token(struct token token) {
+    printf("%s: %"PRI_SV"%.*s\n", token_type_name(token.type),
+           SV_FMT(token.value),
+           (int)(token.subscript_end - token.subscript_start), token.subscript_start);
+}

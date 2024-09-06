@@ -6,87 +6,90 @@
 #include "location.h"
 #include "string_view.h"
 
+#define TOKENS                                  \
+    /* Literals. */                             \
+    X(TOKEN_INT_LIT)                            \
+    X(TOKEN_FLOAT_LIT)                          \
+    X(TOKEN_CHAR_LIT)                           \
+    X(TOKEN_STRING_LIT)                         \
+    X(TOKEN_SYMBOL)                             \
+    /* Keywords. */                             \
+    X(TOKEN_AND)                                \
+    X(TOKEN_AS)                                 \
+    X(TOKEN_BOOL)                               \
+    X(TOKEN_BYTE)                               \
+    X(TOKEN_CHAR)                               \
+    X(TOKEN_CHAR16)                             \
+    X(TOKEN_CHAR32)                             \
+    X(TOKEN_COMP)                               \
+    X(TOKEN_DECOMP)                             \
+    X(TOKEN_DEF)                                \
+    X(TOKEN_DEREF)                              \
+    X(TOKEN_DIVMOD)                             \
+    X(TOKEN_DO)                                 \
+    X(TOKEN_DUPE)                               \
+    X(TOKEN_EDIVMOD)                            \
+    X(TOKEN_ELIF)                               \
+    X(TOKEN_ELSE)                               \
+    X(TOKEN_END)                                \
+    X(TOKEN_EQUALS)                             \
+    X(TOKEN_EXIT)                               \
+    X(TOKEN_FALSE)                              \
+    X(TOKEN_FOR)                                \
+    X(TOKEN_FROM)                               \
+    X(TOKEN_FUNC)                               \
+    X(TOKEN_F32)                                \
+    X(TOKEN_F64)                                \
+    X(TOKEN_GREATER_EQUALS)                     \
+    X(TOKEN_GREATER_THAN)                       \
+    X(TOKEN_IDIVMOD)                            \
+    X(TOKEN_IF)                                 \
+    X(TOKEN_IMPORT)                             \
+    X(TOKEN_INT)                                \
+    X(TOKEN_LEFT_ARROW)                         \
+    X(TOKEN_LESS_EQUALS)                        \
+    X(TOKEN_LESS_THAN)                          \
+    X(TOKEN_MINUS)                              \
+    X(TOKEN_NOT)                                \
+    X(TOKEN_OR)                                 \
+    X(TOKEN_OVER)                               \
+    X(TOKEN_PACK)                               \
+    X(TOKEN_PERCENT)                            \
+    X(TOKEN_PLUS)                               \
+    X(TOKEN_POP)                                \
+    X(TOKEN_PRINT)                              \
+    X(TOKEN_PRINT_CHAR)                         \
+    X(TOKEN_PTR)                                \
+    X(TOKEN_RET)                                \
+    X(TOKEN_RIGHT_ARROW)                        \
+    X(TOKEN_ROT)                                \
+    X(TOKEN_S8)                                 \
+    X(TOKEN_S16)                                \
+    X(TOKEN_S32)                                \
+    X(TOKEN_SLASH)                              \
+    X(TOKEN_SLASH_EQUALS)                       \
+    X(TOKEN_STAR)                               \
+    X(TOKEN_STRING)                             \
+    X(TOKEN_SWAP)                               \
+    X(TOKEN_THEN)                               \
+    X(TOKEN_TILDE)                              \
+    X(TOKEN_TO)                                 \
+    X(TOKEN_TRUE)                               \
+    X(TOKEN_U8)                                 \
+    X(TOKEN_U16)                                \
+    X(TOKEN_U32)                                \
+    X(TOKEN_UNPACK)                             \
+    X(TOKEN_VAR)                                \
+    X(TOKEN_WHILE)                              \
+    X(TOKEN_WITH)                               \
+    X(TOKEN_WORD)                               \
+    /* Special. */                              \
+    X(TOKEN_EOT)
+
 enum token_type {
-    // Literals.
-    TOKEN_INT_LIT,
-    TOKEN_FLOAT_LIT,
-    TOKEN_CHAR_LIT,
-    TOKEN_STRING_LIT,
-    TOKEN_SYMBOL,
-
-    // Keywords.
-    TOKEN_AND,
-    TOKEN_AS,
-    TOKEN_BOOL,
-    TOKEN_BYTE,
-    TOKEN_CHAR,
-    TOKEN_CHAR16,
-    TOKEN_CHAR32,
-    TOKEN_COMP,
-    TOKEN_DECOMP,
-    TOKEN_DEF,
-    TOKEN_DEREF,
-    TOKEN_DIVMOD,
-    TOKEN_DO,
-    TOKEN_DUPE,
-    TOKEN_EDIVMOD,
-    TOKEN_ELIF,
-    TOKEN_ELSE,
-    TOKEN_END,
-    TOKEN_EQUALS,
-    TOKEN_EXIT,
-    TOKEN_FALSE,
-    TOKEN_FOR,
-    TOKEN_FROM,
-    TOKEN_FUNC,
-    TOKEN_F32,
-    TOKEN_F64,
-    TOKEN_GREATER_EQUALS,
-    TOKEN_GREATER_THAN,
-    TOKEN_IDIVMOD,
-    TOKEN_IF,
-    TOKEN_IMPORT,
-    TOKEN_INT,
-    TOKEN_LEFT_ARROW,
-    TOKEN_LESS_EQUALS,
-    TOKEN_LESS_THAN,
-    TOKEN_MINUS,
-    TOKEN_NOT,
-    TOKEN_OR,
-    TOKEN_OVER,
-    TOKEN_PACK,
-    TOKEN_PERCENT,
-    TOKEN_PLUS,
-    TOKEN_POP,
-    TOKEN_PRINT,
-    TOKEN_PRINT_CHAR,
-    TOKEN_PTR,
-    TOKEN_RET,
-    TOKEN_RIGHT_ARROW,
-    TOKEN_ROT,
-    TOKEN_S8,
-    TOKEN_S16,
-    TOKEN_S32,
-    TOKEN_SLASH,
-    TOKEN_SLASH_EQUALS,
-    TOKEN_STAR,
-    TOKEN_STRING,
-    TOKEN_SWAP,
-    TOKEN_THEN,
-    TOKEN_TILDE,
-    TOKEN_TO,
-    TOKEN_TRUE,
-    TOKEN_U8,
-    TOKEN_U16,
-    TOKEN_U32,
-    TOKEN_UNPACK,
-    TOKEN_VAR,
-    TOKEN_WHILE,
-    TOKEN_WITH,
-    TOKEN_WORD,
-
-    // Special.
-    TOKEN_EOT,
+#define X(token) token,
+    TOKENS
+#undef X
 };
 
 struct token {
@@ -112,5 +115,7 @@ struct lexer {
 void init_lexer(struct lexer *lexer, const char *src, const char *src_end, const char *filename);
 struct token next_token(struct lexer *lexer);
 struct lexer get_subscript_lexer(struct token token, const char *filename);
+const char *token_type_name(enum token_type type);
+void print_token(struct token token);
 
 #endif

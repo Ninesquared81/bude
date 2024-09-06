@@ -11,6 +11,7 @@
 #include "generator.h"
 #include "interpreter.h"
 #include "ir.h"
+#include "lexer.h"
 #include "memory.h"
 //#include "optimiser.h"
 #include "reader.h"
@@ -32,6 +33,7 @@ struct cmdopts {
     bool generate_asm;
     bool generate_bytecode;
     bool from_bytecode;
+    bool show_tokens;
     // Parameterised options.
     const char *output_filename;
     // Positional args.
@@ -71,6 +73,8 @@ static void print_help(FILE *file, const char *name) {
             "                    This option can be used multiple times and affects "
                                        "subsequent uses of --lib.\n"
             "  -O, --optimise    optimise ir code\n"
+            "  -t                print the token stream and exit "
+                                       "unless -i or -a are specified\n"
             "  -v, --version     display the version number and exit\n"
             "  --                treat all following arguments as positional\n"
         );
@@ -142,6 +146,11 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
         case 'O':
             opts->optimise = true;
             break;
+        case 't':
+            opts->show_tokens = true;
+            opts->interpret = opts->_had_i;
+            opts->generate_asm = opts->_had_a;
+            break;
         case 'v':
             print_version(stderr);
             exit(0);
@@ -181,6 +190,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts,
             case 'h': case '?':
             case 'i':
             case 'O':
+            case 't':
             case 'v':
                 parse_short_opt(name, arg, opts);
                 break;
@@ -328,7 +338,14 @@ int main(int argc, char *argv[]) {
         load_source(opts.filename, inbuf);
 
         module.filename = opts.filename;
-
+        if (opts.show_tokens) {
+            struct lexer lexer = {0};
+            init_lexer(&lexer, inbuf, NULL, module.filename);
+            struct token token = {0};
+            while ((token = next_token(&lexer)).type != TOKEN_EOT) {
+                print_token(token);
+            }
+        }
         compile(inbuf, &module, &symbols);
         free(inbuf);
         inbuf = NULL;
