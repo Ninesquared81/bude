@@ -68,6 +68,8 @@
     X(TOKEN_S32)                                \
     X(TOKEN_SLASH)                              \
     X(TOKEN_SLASH_EQUALS)                       \
+    X(TOKEN_SQUARE_BRACKET_LEFT)                \
+    X(TOKEN_SQUARE_BRACKET_RIGHT)               \
     X(TOKEN_STAR)                               \
     X(TOKEN_STRING)                             \
     X(TOKEN_SWAP)                               \

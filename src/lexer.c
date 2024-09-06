@@ -119,11 +119,11 @@ static void lex_subscript(struct lexer *lexer) {
     }
 }
 
-static struct token make_token(struct lexer *lexer, enum token_type type) {
+static struct token make_token(struct lexer *lexer, enum token_type type, bool allow_subscript) {
     int length = lexer->current - lexer->start;
     const char *subscript_start = lexer->current;
     struct location subscript_location = lexer->position;
-    if (match(lexer, '[')) {
+    if (allow_subscript && match(lexer, '[')) {
         lex_subscript(lexer);
     }
     const char *subscript_end = lexer->current;
@@ -340,7 +340,7 @@ static struct token symbol(struct lexer *lexer) {
     while (!is_at_end(lexer) && is_symbolic(peek(lexer))) {
         advance(lexer);
     }
-    return make_token(lexer, symbol_type(lexer));
+    return make_token(lexer, symbol_type(lexer), true);
 }
 
 static int lex_decimal(struct lexer *lexer) {
@@ -422,7 +422,7 @@ static struct token decimal_lit(struct lexer *lexer) {
         if ((!float_had_mantissa && !float_had_frac) || !lex_float_suffix(lexer)) {
             return symbol(lexer);
         }
-        return make_token(lexer, TOKEN_FLOAT_LIT);
+        return make_token(lexer, TOKEN_FLOAT_LIT, false);
     }
 
     if (check(lexer, 'f')) {
@@ -430,25 +430,25 @@ static struct token decimal_lit(struct lexer *lexer) {
         // NOTE: if we lexed it as an integer, then we know we had a non-zero
         // number of digits in the mantissa.
         if (!lex_float_suffix(lexer)) return symbol(lexer);
-        return make_token(lexer, TOKEN_FLOAT_LIT);
+        return make_token(lexer, TOKEN_FLOAT_LIT, false);
     }
 
     if (!lex_int_suffix(lexer)) return symbol(lexer);
-    return make_token(lexer, TOKEN_INT_LIT);
+    return make_token(lexer, TOKEN_INT_LIT, false);
 }
 
 static struct token hexadecimal_lit(struct lexer *lexer) {
     if (!lex_hexadecimal(lexer) || !lex_int_suffix(lexer)) {
         return symbol(lexer);
     }
-    return make_token(lexer, TOKEN_INT_LIT);
+    return make_token(lexer, TOKEN_INT_LIT, false);
 }
 
 static struct token binary_lit(struct lexer *lexer) {
     if (!lex_binary(lexer) || !lex_int_suffix(lexer)) {
         return symbol(lexer);
     }
-    return make_token(lexer, TOKEN_INT_LIT);
+    return make_token(lexer, TOKEN_INT_LIT, false);
 }
 
 static struct token number(struct lexer *lexer) {
@@ -468,7 +468,7 @@ static struct token number(struct lexer *lexer) {
 
 static struct token string(struct lexer *lexer) {
     lex_string(lexer);
-    return make_token(lexer, TOKEN_STRING_LIT);
+    return make_token(lexer, TOKEN_STRING_LIT, true);
 }
 
 static struct token character(struct lexer *lexer) {
@@ -488,7 +488,7 @@ static struct token character(struct lexer *lexer) {
         exit(1);
     }
 
-    return make_token(lexer, TOKEN_CHAR_LIT);
+    return make_token(lexer, TOKEN_CHAR_LIT, true);
 }
 
 static bool is_number(struct lexer *lexer) {
@@ -505,7 +505,7 @@ struct token next_token(struct lexer *lexer) {
     consume_whitespace(lexer);
     start_token(lexer);
 
-    if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOT);
+    if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOT, false);
 
     if (is_number(lexer)) {
         return number(lexer);
@@ -515,6 +515,12 @@ struct token next_token(struct lexer *lexer) {
     }
     if (match(lexer, '\'')) {
         return character(lexer);
+    }
+    if (match(lexer, '[')) {
+        return make_token(lexer, TOKEN_SQUARE_BRACKET_LEFT, false);
+    }
+    if (match(lexer, ']')) {
+        return make_token(lexer, TOKEN_SQUARE_BRACKET_RIGHT, false);
     }
 
     return symbol(lexer);
