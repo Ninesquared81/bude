@@ -62,6 +62,16 @@ void clear_region(struct region *region) {
     }
 }
 
+REGION_RESTORE record_region(const struct region *region) {
+    return &region->bytes[region->alloc_count];
+}
+
+void restore_region(struct region *region, REGION_RESTORE restore_point) {
+    ptrdiff_t diff = &region->bytes[region->alloc_count] - (const char *)restore_point;
+    region->alloc_count -= diff;
+    memset(&region->bytes[region->alloc_count], 0, diff);
+}
+
 void *region_alloc(struct region *region, size_t size) {
     if (size == 0) return NULL;
     if (size > region->size) return NULL;
