@@ -14,6 +14,7 @@ const char *kind_name(enum type_kind kind) {
     case KIND_SIMPLE: return "simple";
     case KIND_PACK:   return "pack";
     case KIND_COMP:   return "comp";
+    case KIND_ARRAY:  return "array";
     }
     assert(0 && "Invalid kind");
     return "<Invalid kind>";

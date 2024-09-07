@@ -129,6 +129,11 @@ static int write_type_entry(struct module *module, type_index type, FILE *f, int
         word_count = info->comp.word_count;
         fields = info->comp.fields;
         break;
+    case KIND_ARRAY:
+        field_count = 1;
+        word_count = info->array.element_count;
+        fields = &info->array.element_type;
+        break;
     case KIND_UNINIT:
     case KIND_SIMPLE:
         // Do nothing.

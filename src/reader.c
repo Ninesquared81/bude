@@ -138,6 +138,11 @@ static bool parse_type(FILE *f, int version_number, struct type_info *info,
         info->comp.field_count = field_count;
         info->comp.word_count = word_count;
         break;
+    case KIND_ARRAY:
+        fields = &info->array.element_type;
+        info->array.element_count = word_count;
+        assert(field_count == 1);
+        break;
     case KIND_UNINIT:
     case KIND_SIMPLE:
         // Do nothing.

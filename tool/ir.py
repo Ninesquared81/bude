@@ -492,13 +492,14 @@ class TypeKind(enum.IntEnum):
     SIMPLE = enum.auto()
     PACK   = enum.auto()
     COMP   = enum.auto()
+    ARRAY  = enum.auto()
 
 @dataclasses.dataclass
 class UserDefinedType:
-    """A Bude 'UserDefinedType' which can be a pack or comp."""
+    """A Bude 'UserDefinedType' which can be a pack, comp, or array."""
 
     kind: TypeKind
-    word_count: int
+    word_count: int  # Also element count for array type.
     fields: list[int]
 
     def __iter__(self):

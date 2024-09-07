@@ -57,6 +57,9 @@ int get_type_entry_size(const struct type_info *info, int version_number) {
             return 3*4 + info->pack.field_count*4;
         case KIND_COMP:
             return 3*4 + info->comp.field_count*4;
+        case KIND_ARRAY:
+            return 3*4 + 1*4;  // field-count = 1; word-count = element_count;
+                               // fields[0] = element_type.
         }
         break;
     default:

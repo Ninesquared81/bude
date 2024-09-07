@@ -72,6 +72,7 @@ struct type_info {
         KIND_SIMPLE = 0,
         KIND_PACK,
         KIND_COMP,
+        KIND_ARRAY,
     } kind;
     union {
         struct {
@@ -85,6 +86,10 @@ struct type_info {
             type_index *fields;
             int *offsets;
         } comp;
+        struct {
+            int element_count;
+            type_index element_type;
+        } array;
     };
     struct string_view name;
 };
