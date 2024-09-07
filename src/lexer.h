@@ -15,6 +15,7 @@
     X(TOKEN_SYMBOL)                             \
     /* Keywords. */                             \
     X(TOKEN_AND)                                \
+    X(TOKEN_ARRAY)                              \
     X(TOKEN_AS)                                 \
     X(TOKEN_BOOL)                               \
     X(TOKEN_BYTE)                               \
@@ -112,7 +113,7 @@ struct lexer {
     const char *filename;
 };
 
-#define HAS_SUBSCRIPT(token) ((token).start != (token).end)
+#define HAS_SUBSCRIPT(token) ((token).subscript_start != (token).subscript_end)
 
 void init_lexer(struct lexer *lexer, const char *src, const char *src_end, const char *filename);
 struct token next_token(struct lexer *lexer);
