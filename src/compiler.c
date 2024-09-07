@@ -31,6 +31,11 @@ struct compiler {
     int func_index;
 };
 
+#define START_TEMP(compiler) \
+    REGION_RESTORE temp_restore = record_region((compiler)->temp)
+#define END_TEMP(compiler) \
+    restore_region((compiler)->temp, temp_restore)
+
 static void init_compiler(struct compiler *compiler, const char *src, struct module *module,
                           struct symbol_dictionary *symbols) {
     compiler->function = NULL;  // Will be set later.
@@ -707,9 +712,10 @@ static struct string_builder parse_string(struct compiler *compiler) {
 }
 
 static void compile_string(struct compiler *compiler) {
+    START_TEMP(compiler);
     struct string_builder builder = parse_string(compiler);
     uint32_t index = write_string(compiler->module, &builder);
-    clear_region(compiler->temp);
+    END_TEMP(compiler);
     emit_immediate_uv(compiler, T_OP_LOAD_STRING8, index);
 }
 
@@ -825,6 +831,7 @@ static void compile_pack(struct compiler *compiler) {
 }
 
 static void compile_comp(struct compiler *compiler) {
+    START_TEMP(compiler);
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `comp`.");
     struct string_view name = peek_previous(compiler).value;
     type_index index = new_type(&compiler->module->types, &name);
@@ -893,7 +900,7 @@ static void compile_comp(struct compiler *compiler) {
         current = current->next;
     }
     init_type(&compiler->module->types, index, &info);
-    clear_region(compiler->temp);
+    END_TEMP(compiler);
 }
 
 static void compile_as_conversion(struct compiler *compiler) {
@@ -1014,6 +1021,7 @@ static void compile_assignment(struct compiler *compiler) {
 }
 
 static struct signature parse_signature(struct compiler *compiler, struct string_view *name) {
+    START_TEMP(compiler);
     struct token prev = advance(compiler);
     struct signature sig = {0};
     /* Because we want to allocate the param and ret lists in a region, we cannot use
@@ -1076,7 +1084,7 @@ static struct signature parse_signature(struct compiler *compiler, struct string
         sig.rets[i] = ret_list->type;
         ret_list = ret_list->next;  // Again, no memory leak because regions.
     }
-    clear_region(temp_region);
+    END_TEMP(compiler);
     return sig;
 }
 
@@ -1125,6 +1133,7 @@ static void compile_function(struct compiler *compiler) {
 
 static void compile_import(struct compiler *compiler) {
     /* `import` name `def` (`func` sig [`from` name] [`with` call-conv] `end`) ... `end` */
+    START_TEMP(compiler);
     struct ext_lib_table *ext_libraries = &compiler->module->ext_libraries;
     expect_consume(compiler, TOKEN_SYMBOL, "Expect external library name.");
     struct string_view lib_name = peek_previous(compiler).value;
@@ -1183,7 +1192,7 @@ static void compile_import(struct compiler *compiler) {
         expect_consume(compiler, TOKEN_END, "Expect `end` after external function declaration.");
     }
     expect_consume(compiler, TOKEN_END, "Expect `end` after external function list.");
-    clear_region(compiler->temp);
+    END_TEMP(compiler);
 }
 
 static void compile_loop_var_symbol(struct compiler *compiler, struct symbol *symbol) {
