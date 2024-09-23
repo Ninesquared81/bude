@@ -56,8 +56,20 @@ static void type_error(struct type_checker *checker, const char *restrict messag
     fprintf(stderr, ".\n");
 }
 
-static const struct type_info *expect_kind(struct type_checker *checker, enum type_kind kind) {
-    type_index type = ts_pop(checker);
+static void expect_types_equal(struct type_checker *checker, type_index expected_type,
+                          type_index actual_type) {
+    if (actual_type != expected_type) {
+        struct string_view expected_sv = type_name(checker->types, expected_type);
+        struct string_view actual_sv = type_name(checker->types, actual_type);
+        type_error(checker, "expected type %"PRI_SV" but got type %"PRI_SV,
+                   SV_FMT(expected_sv), SV_FMT(actual_sv));
+        exit(1);
+    }
+}
+
+static const struct type_info *expect_keep_kind(struct type_checker *checker,
+                                                enum type_kind kind) {
+    type_index type = ts_peek(checker);
     const struct type_info *info = lookup_type(checker->types, type);
     if (info == NULL) {
         type_error(checker, "unknown type");
@@ -71,27 +83,18 @@ static const struct type_info *expect_kind(struct type_checker *checker, enum ty
     return info;
 }
 
-static void expect_type(struct type_checker *checker, type_index expected_type) {
-    type_index actual_type = ts_pop(checker);
-    if (actual_type != expected_type) {
-        struct string_view expected_sv = type_name(checker->types, expected_type);
-        struct string_view actual_sv = type_name(checker->types, actual_type);
-        type_error(checker, "expected type %"PRI_SV" but got type %"PRI_SV,
-                   SV_FMT(expected_sv), SV_FMT(actual_sv));
-        exit(1);
-    }
+static const struct type_info *expect_kind(struct type_checker *checker, enum type_kind kind) {
+    const struct type_info *info = expect_keep_kind(checker, kind);
+    ts_pop(checker);
+    return info;
 }
 
 static void expect_keep_type(struct type_checker *checker, type_index expected_type) {
-    type_index actual_type = ts_peek(checker);
-    if (actual_type != expected_type) {
-        struct string_view expected_sv = type_name(checker->types, expected_type);
-        struct string_view actual_sv = type_name(checker->types, actual_type);
-        type_error(checker, "expected type %"PRI_SV" but got type %"PRI_SV,
-                   SV_FMT(expected_sv),
-                   SV_FMT(actual_sv));
-        exit(1);
-    }
+    expect_types_equal(checker, expected_type, ts_peek(checker));
+}
+
+static void expect_type(struct type_checker *checker, type_index expected_type) {
+    expect_types_equal(checker, expected_type, ts_pop(checker));
 }
 
 static void expect_types(struct type_checker *checker,
@@ -791,6 +794,13 @@ static void emit_comp_field_set(struct type_checker *checker, type_index index, 
         int word_count = field_info->comp.word_count;
         emit_comp_subcomp(checker, W_OP_COMP_SUBCOMP_SET8, offset_from_end, word_count);
     }
+}
+
+static void emit_array_instruction(struct type_checker *checker, enum w_opcode instruction8,
+                                   type_index index_type, const struct type_info *info) {
+    emit_simple_nnop(checker, promote(index_type));
+    emit_immediate_uv(checker, instruction8,
+                      type_word_count(checker->types, info->array.element_type));
 }
 
 static void emit_print_instruction(struct type_checker *checker, type_index type) {
@@ -2145,12 +2155,29 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             check_array_create(checker, index);
             break;
         }
-        case T_OP_ARRAY_GET:
-            assert(0 && "Not implemented");
+        case T_OP_ARRAY_GET: {
+            type_index index_type = ts_pop(checker);
+            if (!is_integral(index_type)) {
+                type_error(checker, "Array index must be an integer.");
+            }
+            const struct type_info *info = expect_keep_kind(checker, KIND_ARRAY);
+            assert(info && info->kind == KIND_ARRAY);
+            ts_push(checker, info->array.element_type);
+            emit_array_instruction(checker, W_OP_ARRAY_GET8, index_type, info);
             break;
-        case T_OP_ARRAY_SET:
-            assert(0 && "Not implemented");
+        }
+        case T_OP_ARRAY_SET: {
+            type_index index_type = ts_pop(checker);
+            type_index element_type = ts_pop(checker);
+            if (!is_integral(index_type)) {
+                type_error(checker, "Array index must be an integer.");
+            }
+            const struct type_info *info = expect_keep_kind(checker, KIND_ARRAY);
+            assert(info && info->kind == KIND_ARRAY);
+            expect_types_equal(checker, info->array.element_type, element_type);
+            emit_array_instruction(checker, W_OP_ARRAY_SET8, index_type, info);
             break;
+        }
         case T_OP_CALL8: {
             uint8_t index = read_u8(checker->in_block, checker->ip + 1);
             checker->ip += 1;
