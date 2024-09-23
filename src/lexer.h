@@ -5,6 +5,7 @@
 
 #include "location.h"
 #include "string_view.h"
+#include "region.h"
 
 #define TOKENS                                  \
     /* Literals. */                             \
@@ -119,6 +120,7 @@ void init_lexer(struct lexer *lexer, const char *src, const char *src_end, const
 struct token next_token(struct lexer *lexer);
 struct lexer get_subscript_lexer(struct token token, const char *filename);
 const char *token_type_name(enum token_type type);
+struct string_view token_to_sv(struct token token, struct region *region);
 void print_token(struct token token);
 
 #endif

@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "lexer.h"
+#include "string_builder.h"
 #include "string_view.h"
 
 static void set_position(struct lexer *lexer, struct location position) {
@@ -555,6 +556,23 @@ const char *token_type_name(enum token_type type) {
     static_assert(sizeof type_names / sizeof type_names[0] == TOKEN_EOT + 1);
     assert(0 <= type && type <= TOKEN_EOT);
     return type_names[type];
+}
+
+static struct string_builder token_to_sb(struct token token, struct region *region) {
+    struct string_builder sb = SB_FROM_SV(token.value);
+    if (!HAS_SUBSCRIPT(token)) return sb;
+    struct lexer sublexer = get_subscript_lexer(token, NULL);  // There shouldn't be any errors.
+    struct token subtoken = next_token(&sublexer);
+    while (subtoken.type != TOKEN_EOT) {
+        sb_append(&sb, token_to_sb(subtoken, region), region);
+        subtoken = next_token(&sublexer);
+    }
+    return sb;
+}
+
+struct string_view token_to_sv(struct token token, struct region *region) {
+    struct string_builder sb = token_to_sb(token, region);
+    return join_string_in_region(&sb, " ", region);  // Join tokens with a space.
 }
 
 void print_token(struct token token) {
