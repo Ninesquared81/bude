@@ -804,6 +804,12 @@ static void emit_print_instruction(struct type_checker *checker, type_index type
             emit_print_instruction(checker, info->comp.fields[i]);
         }
     }
+    else if (info->kind == KIND_ARRAY) {
+        for (int i = 0; i < info->array.element_count; ++i) {
+            // Print elements in reverse order.
+            emit_print_instruction(checker, info->array.element_type);
+        }
+    }
     else if (is_signed(type)) {
         // Promote signed type to int.
         enum w_opcode conv_instruction = promote(type);
@@ -831,8 +837,12 @@ static void emit_print_instruction(struct type_checker *checker, type_index type
     else if (type == TYPE_BOOL) {
         emit_simple(checker, W_OP_PRINT_BOOL);
     }
-    else {
+    else if (type_word_count(checker->types, type) == 1) {
         emit_simple(checker, W_OP_PRINT);
+    }
+    else {
+        type_error(checker, "Cannot print type '%"PRI_SV"'",
+                   SV_FMT(type_name(checker->types, type)));
     }
 }
 
