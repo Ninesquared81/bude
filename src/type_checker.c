@@ -1105,6 +1105,17 @@ static void check_comp_field_set(struct type_checker *checker, type_index index,
     expect_type(checker, info->comp.fields[offset]);
 }
 
+static void check_array_create(struct type_checker *checker, type_index index) {
+    const struct type_info *info = lookup_type(checker->types, index);
+    assert(info != NULL && info->kind == KIND_ARRAY);
+    int element_count = info->array.element_count;
+    assert(element_count > 0);
+    for (int i = 0; i < element_count; ++i) {
+        expect_type(checker, info->array.element_type);
+    }
+    ts_push(checker, index);
+}
+
 static void check_signature(struct type_checker *checker, struct signature sig) {
     expect_types(checker, sig.param_count, sig.params);
     for (int i = 0; i < sig.ret_count; ++i) {
@@ -2104,11 +2115,24 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_comp_field_set(checker, index, offset);
             break;
         }
-        case T_OP_ARRAY_CREATE8:
-        case T_OP_ARRAY_CREATE16:
-        case T_OP_ARRAY_CREATE32:
-            assert(0 && "Not implemented");
+        case T_OP_ARRAY_CREATE8: {
+            int32_t index = read_s8(checker->in_block, checker->ip + 1);
+            checker->ip += 1;
+            check_array_create(checker, index);
             break;
+        }
+        case T_OP_ARRAY_CREATE16: {
+            int32_t index = read_s16(checker->in_block, checker->ip + 1);
+            checker->ip += 2;
+            check_array_create(checker, index);
+            break;
+        }
+        case T_OP_ARRAY_CREATE32: {
+            int32_t index = read_s32(checker->in_block, checker->ip + 1);
+            checker->ip += 5;
+            check_array_create(checker, index);
+            break;
+        }
         case T_OP_ARRAY_GET:
             assert(0 && "Not implemented");
             break;
