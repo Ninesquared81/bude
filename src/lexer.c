@@ -528,12 +528,20 @@ struct token next_token(struct lexer *lexer) {
 }
 
 struct lexer get_subscript_lexer(struct token token, const char *filename) {
+    const char *start = token.subscript_start;
+    const char *end = token.subscript_end;
+    struct location location = token.subscript_location;
+    if (HAS_SUBSCRIPT(token)) {
+        ++start;
+        --end;
+        ++location.column;
+    }
     return (struct lexer) {
-        .start = token.subscript_start,
-        .end = token.subscript_end,
-        .current = token.subscript_start,
-        .position = token.subscript_location,
-        .start_position = token.subscript_location,
+        .start = start,
+        .end = end,
+        .current = start,
+        .position = location,
+        .start_position = location,
         .filename = filename,
     };
 }
