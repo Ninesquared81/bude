@@ -37,9 +37,15 @@ struct string_builder *start_view(struct string_builder *builder, const char *st
 struct string_builder *store_char(struct string_builder *builder, char ch, struct region *region);
 struct string_builder *store_view(struct string_builder *builder, const struct string_view *view,
                                   struct region *region);
+
+void sb_append(struct string_builder *start, struct string_builder rest, struct region* region);
+
 void build_string(struct string_builder *builder, char *buffer);
+void join_string(struct string_builder *builder, const char *fill, char *buffer);
 
 struct string_view build_string_in_region(struct string_builder *builder, struct region *region);
+struct string_view join_string_in_region(struct string_builder *builder, const char *fill,
+                                         struct region *region);
 
 size_t sb_length(struct string_builder *builder);
 

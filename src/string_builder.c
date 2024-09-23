@@ -48,22 +48,51 @@ struct string_builder *store_view(struct string_builder *builder, const struct s
     return builder;
 }
 
+void sb_append(struct string_builder *start, struct string_builder rest, struct region *region) {
+    while (start->next != NULL) {
+        start = start->next;
+    }
+    start->next = region_alloc(region, sizeof *start->next);
+    *start->next = rest;
+}
+
 void build_string(struct string_builder *builder, char *buffer) {
+    join_string(builder, "", buffer);
+}
+
+void join_string(struct string_builder *builder, const char *fill, char *buffer) {
+    assert(fill != NULL);  // Pass "" for no fill value.
+    assert(buffer != NULL);
+    assert(builder != NULL);
+    int fill_length = strlen(fill);
     // This function assumes the buffer is large enough.
-    for (; builder != NULL; builder = builder->next) {
-        struct string_view view = SB_NODE_AS_VIEW(builder);
+    struct string_view view = SB_NODE_AS_VIEW(builder);
+    memcpy(buffer, view.start, view.length);
+    buffer += view.length;
+    for (builder = builder->next; builder != NULL; builder = builder->next) {
+        view = SB_NODE_AS_VIEW(builder);
+        memcpy(buffer, fill, fill_length);
         memcpy(buffer, view.start, view.length);
-        buffer += view.length;
+        buffer += fill_length + view.length;
     }
     // buffer now points to the end of the string.
     *buffer = '\0';
 }
 
 struct string_view build_string_in_region(struct string_builder *builder, struct region *region) {
+    return join_string_in_region(builder, "", region);
+}
+
+struct string_view join_string_in_region(struct string_builder *builder, const char *fill,
+                                         struct region *region) {
+    int fill_length = strlen(fill);
     size_t length = sb_length(builder);
+    for (struct string_builder *sb = builder->next; sb != NULL; sb = sb->next) {
+        length += fill_length;
+    }
     char *buffer = region_alloc(region, length + 1);
     if (buffer == NULL) return (struct string_view) {0};
-    build_string(builder, buffer);
+    join_string(builder, fill, buffer);
     return (struct string_view) {.start = buffer, .length = length};
 }
 
