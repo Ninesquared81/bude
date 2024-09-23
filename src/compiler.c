@@ -440,86 +440,64 @@ static void compile_floating_point(struct compiler *compiler) {
     }
 }
 
-static void compile_integer(struct compiler *compiler) {
-    struct string_view value = peek_previous(compiler).value;
+struct integer {
+    enum integer_type type;
+    union pun64 as;
+};
+
+static bool is_integer_signed(struct integer integer) {
+    switch (integer.type) {
+    case INT_WORD:
+    case INT_BYTE:
+    case INT_U8:
+    case INT_U16:
+    case INT_U32:
+        return false;
+    case INT_INT:
+    case INT_S8:
+    case INT_S16:
+    case INT_S32:
+        return true;
+    }
+    assert(0 && "Unreachable");
+    return false;
+}
+
+static struct integer parse_integer(struct compiler *compiler, struct token token) {
+    struct integer integer = {0};
+    struct string_view value = token.value;
     struct integer_prefix prefix = parse_integer_prefix(&value);
-    enum integer_type type = parse_integer_suffix(&value);
+    integer.type = parse_integer_suffix(&value);
     uint64_t magnitude = strtoull(value.start, NULL, prefix.base);
     if (magnitude >= UINT64_MAX && errno == ERANGE) {
         parse_error(compiler, "integer literal not in representable range.");
         exit(1);
     }
-    if (!check_range(magnitude, prefix.sign, type)) {
+    if (!check_range(magnitude, prefix.sign, integer.type)) {
         parse_error(compiler,
                     "integer literal not in representable range for type '%s'.\n",
-                    integer_type_name(type));
+                    integer_type_name(integer.type));
         exit(1);
     }
-    switch (type) {
-    case INT_INT: {
-        int64_t integer = 0;  // Zero-initialized in case we want to continue after errors.
-        // NOTE: we get one extra value for negative literals.
-        if (prefix.sign == '-' && magnitude <= -s64_to_u64(INT64_MIN)) {
-            integer = -(int64_t)magnitude;
-        }
-        else if (magnitude <= INT64_MAX) {
-            integer = magnitude;
-        }
-        else {
-            parse_error(compiler, "magnitude of signed integer literal too large.");
-            exit(1);
-        }
-        emit_immediate_sv(compiler, T_OP_PUSH_INT8, integer);
-        break;
-    }
-    case INT_WORD: {
-        uint64_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        emit_immediate_uv(compiler, T_OP_PUSH8, integer);
-        break;
-    }
-    case INT_BYTE: {
-        uint8_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        emit_immediate_uv(compiler, T_OP_PUSH8, integer);
-        emit_simple(compiler, T_OP_AS_BYTE);
-        break;
-    }
-    case INT_U8: {
-        uint8_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        emit_immediate_uv(compiler, T_OP_PUSH8, integer);
-        emit_simple(compiler, T_OP_AS_U8);
-        break;
-    }
-    case INT_U16: {
-        uint16_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        emit_immediate_uv(compiler, T_OP_PUSH8, integer);
-        emit_simple(compiler, T_OP_AS_U16);
-        break;
-    }
-    case INT_U32: {
-        uint32_t integer = (prefix.sign == '-') ? -magnitude : magnitude;
-        emit_immediate_uv(compiler, T_OP_PUSH8, integer);
-        emit_simple(compiler, T_OP_AS_U32);
-        break;
-    }
-    case INT_S8: {
-        int8_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        emit_immediate_sv(compiler, T_OP_PUSH_INT8, integer);
-        emit_simple(compiler, T_OP_AS_S8);
-        break;
-    }
-    case INT_S16: {
-        int16_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        emit_immediate_sv(compiler, T_OP_PUSH_INT8, integer);
-        emit_simple(compiler, T_OP_AS_S16);
-        break;
-    }
-    case INT_S32: {
-        int32_t integer = (prefix.sign == '-') ? -(int64_t)magnitude : (int64_t)magnitude;
-        emit_immediate_sv(compiler, T_OP_PUSH_INT8, integer);
-        emit_simple(compiler, T_OP_AS_S32);
-        break;
-    }
-    }
+    // Signedness doesn't matter because 2's complement.
+    integer.as.u64 = (prefix.sign != '-') ? magnitude : -magnitude;
+    return integer;
+}
+
+static void compile_integer(struct compiler *compiler) {
+    struct integer integer = parse_integer(compiler, peek_previous(compiler));
+    enum t_opcode push_instruction8 = (is_integer_signed(integer)) ? T_OP_PUSH_INT8 : T_OP_PUSH8;
+    static const enum t_opcode conv_instructions[] = {
+        [INT_BYTE] = T_OP_AS_BYTE,
+        [INT_U8]   = T_OP_AS_U8,
+        [INT_U16]  = T_OP_AS_U16,
+        [INT_U32]  = T_OP_AS_U32,
+        [INT_S8]   = T_OP_AS_S8,
+        [INT_S16]  = T_OP_AS_S16,
+        [INT_S32]  = T_OP_AS_S32,
+    };
+    emit_immediate_uv(compiler, push_instruction8, integer.as.u64);
+    emit_simple_nnop(compiler, conv_instructions[integer.type]);
 }
 
 static int start_jump(struct compiler *compiler, enum t_opcode jump_instruction) {
