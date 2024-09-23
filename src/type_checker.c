@@ -1430,6 +1430,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             ts_push(checker, type);
             ts_push(checker, type);
             int word_count = type_word_count(checker->types, type);
+            assert(word_count > 0);
             if (word_count == 1) {
                 emit_simple(checker, W_OP_DUPE);
             }
@@ -1799,6 +1800,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             ts_push(checker, lhs_type);
             int lhs_size = type_word_count(checker->types, lhs_type);
             int rhs_size = type_word_count(checker->types, rhs_type);
+            assert(lhs_size > 0 && rhs_size > 0);
             if (lhs_size == 1 && rhs_size == 1) {
                 emit_simple(checker, W_OP_SWAP);
             }
