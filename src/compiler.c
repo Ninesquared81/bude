@@ -19,10 +19,14 @@
 
 #define TEMP_REGION_SIZE 4096
 
-struct compiler {
+struct parser {
     struct lexer lexer;
     struct token current_token;
     struct token previous_token;
+};
+
+struct compiler {
+    struct parser parser;
     struct symbol_dictionary *symbols;
     struct function *function;
     struct module *module;
@@ -36,13 +40,21 @@ struct compiler {
 #define END_TEMP(compiler) \
     restore_region((compiler)->temp, temp_restore)
 
+static struct parser new_parser(struct lexer lexer) {
+    return (struct parser) {
+        .lexer = lexer,
+        .current_token = next_token(&lexer),
+        /* Other fields set to zero. */
+    };
+}
+
 static void init_compiler(struct compiler *compiler, const char *src, struct module *module,
                           struct symbol_dictionary *symbols) {
     compiler->function = NULL;  // Will be set later.
     compiler->func_index = 0;
-    init_lexer(&compiler->lexer, src, NULL, module->filename);
-    compiler->current_token = next_token(&compiler->lexer);
-    compiler->previous_token = (struct token){0};
+    struct lexer lexer = {0};  // TODO: introduce `new_lexer()`.
+    init_lexer(&lexer, src, NULL, module->filename);
+    compiler->parser = new_parser(lexer);
     compiler->symbols = symbols;
     compiler->for_loop_level = 0;
     compiler->module = module;
@@ -56,7 +68,7 @@ static void free_compiler(struct compiler *compiler) {
 }
 
 static void parse_error(struct compiler *compiler, const char *restrict message, ...) {
-    report_location(compiler->lexer.filename, &compiler->previous_token.location);
+    report_location(compiler->parser.lexer.filename, &compiler->parser.previous_token.location);
     fprintf(stderr, "Parse error: ");
     va_list args;
     va_start(args, message);
@@ -66,7 +78,7 @@ static void parse_error(struct compiler *compiler, const char *restrict message,
 }
 
 static void compile_error(struct compiler *compiler, const char *restrict message, ...) {
-    report_location(compiler->lexer.filename, &compiler->previous_token.location);
+    report_location(compiler->parser.lexer.filename, &compiler->parser.previous_token.location);
     fprintf(stderr, "Compile error: ");
     va_list args;
     va_start(args, message);
@@ -76,7 +88,7 @@ static void compile_error(struct compiler *compiler, const char *restrict messag
 }
 
 static bool is_at_end(struct compiler *compiler) {
-    return compiler->current_token.type == TOKEN_EOT;
+    return compiler->parser.current_token.type == TOKEN_EOT;
 }
 
 static struct token advance(struct compiler *compiler) {
@@ -84,13 +96,13 @@ static struct token advance(struct compiler *compiler) {
         parse_error(compiler, "Unexpected EOF.");
         exit(1);
     }
-    compiler->previous_token = compiler->current_token;
-    compiler->current_token = next_token(&compiler->lexer);
-    return compiler->previous_token;
+    compiler->parser.previous_token = compiler->parser.current_token;
+    compiler->parser.current_token = next_token(&compiler->parser.lexer);
+    return compiler->parser.previous_token;
 }
 
 static bool check(struct compiler *compiler, enum token_type type) {
-    return compiler->current_token.type == type;
+    return compiler->parser.current_token.type == type;
 }
 
 static bool match(struct compiler *compiler, enum token_type type) {
@@ -101,79 +113,86 @@ static bool match(struct compiler *compiler, enum token_type type) {
     return false;
 }
 
+static struct token peek(struct compiler *compiler) {
+    return compiler->parser.current_token;
+}
+
+static struct token peek_previous(struct compiler *compiler) {
+    return compiler->parser.previous_token;
+}
+
 static void expect_consume(struct compiler *compiler, enum token_type type,
                            const char *message) {
     if (!match(compiler, type)) {
         parse_error(compiler, "%s", message);
+        fprintf(stderr, "Got '%s'\n", token_type_name(peek(compiler).type));
         exit(1);
     }
 }
 
-static struct token peek(struct compiler *compiler) {
-    return compiler->current_token;
-}
-
-static struct token peek_previous(struct compiler *compiler) {
-    return compiler->previous_token;
-}
-
 static void emit_simple(struct compiler *compiler, enum t_opcode instruction) {
-    write_simple(&compiler->function->t_code, instruction, &compiler->previous_token.location);
+    write_simple(&compiler->function->t_code, instruction, &compiler->parser.previous_token.location);
+}
+
+static void emit_simple_nnop(struct compiler *compiler, enum t_opcode instruction) {
+    if (instruction != T_OP_NOP) {
+        emit_simple(compiler, instruction);
+    }
 }
 
 [[maybe_unused]]
 static void emit_immediate_u8(struct compiler *compiler, enum t_opcode instruction,
                               uint8_t operand) {
     write_immediate_u8(&compiler->function->t_code, instruction, operand,
-                       &compiler->previous_token.location);
+                       &compiler->parser.previous_token.location);
 }
 
 static void emit_immediate_s8(struct compiler *compiler, enum t_opcode instruction,
                               int8_t operand) {
     write_immediate_s8(&compiler->function->t_code, instruction, operand,
-                       &compiler->previous_token.location);
+                       &compiler->parser.previous_token.location);
 }
 
 static void emit_immediate_u16(struct compiler *compiler, enum t_opcode instruction,
                                uint16_t operand) {
     write_immediate_u16(&compiler->function->t_code, instruction, operand,
-                        &compiler->previous_token.location);
+                        &compiler->parser.previous_token.location);
 }
 
 static void emit_immediate_s16(struct compiler *compiler, enum t_opcode instruction,
                                int16_t operand) {
     write_immediate_s16(&compiler->function->t_code, instruction, operand,
-                        &compiler->previous_token.location);
+                        &compiler->parser.previous_token.location);
 }
 
 static void emit_immediate_u32(struct compiler *compiler, enum t_opcode instruction,
                                uint32_t operand) {
     write_immediate_u32(&compiler->function->t_code, instruction, operand,
-                        &compiler->previous_token.location);
+                        &compiler->parser.previous_token.location);
 }
 
 static void emit_immediate_s32(struct compiler *compiler, enum t_opcode instruction,
                                int32_t operand) {
     write_immediate_s32(&compiler->function->t_code, instruction, operand,
-                        &compiler->previous_token.location);
+                        &compiler->parser.previous_token.location);
 }
 
 static void emit_immediate_u64(struct compiler *compiler, enum t_opcode instruction,
                                uint64_t operand) {
     write_immediate_u64(&compiler->function->t_code, instruction, operand,
-                        &compiler->previous_token.location);
+                        &compiler->parser.previous_token.location);
 }
 
 static void emit_s8(struct compiler *compiler, int8_t value) {
-    write_u8(&compiler->function->t_code, value, &compiler->previous_token.location);
+    write_u8(&compiler->function->t_code, value, &compiler->parser.previous_token.location);
 }
 
 static void emit_s16(struct compiler *compiler, int16_t value) {
-    write_u16(&compiler->function->t_code, value, &compiler->previous_token.location);
+    write_u16(&compiler->function->t_code, value, &compiler->parser.previous_token.location);
 }
 
 static void emit_s32(struct compiler *compiler, int32_t value) {
-    write_u32(&compiler->function->t_code, value, &compiler->previous_token.location);
+    write_u32(&compiler->function->t_code, value, &compiler->parser.previous_token.location);
 }
 
 static void emit_immediate_uv(struct compiler *compiler, enum t_opcode instruction8,
@@ -183,19 +202,19 @@ static void emit_immediate_uv(struct compiler *compiler, enum t_opcode instructi
     enum t_opcode instruction64 = instruction8 + 3;
     if (operand <= UINT8_MAX) {
         write_immediate_u8(&compiler->function->t_code, instruction8, operand,
-                           &compiler->previous_token.location);
+                           &compiler->parser.previous_token.location);
     }
     else if (operand <= UINT16_MAX) {
         write_immediate_u16(&compiler->function->t_code, instruction16, operand,
-                            &compiler->previous_token.location);
+                            &compiler->parser.previous_token.location);
     }
     else if (operand <= UINT32_MAX) {
         write_immediate_u32(&compiler->function->t_code, instruction32, operand,
-                            &compiler->previous_token.location);
+                            &compiler->parser.previous_token.location);
     }
     else {
         write_immediate_u64(&compiler->function->t_code, instruction64, operand,
-                            &compiler->previous_token.location);
+                            &compiler->parser.previous_token.location);
     }
 }
 
@@ -208,19 +227,19 @@ static void emit_immediate_sv(struct compiler *compiler, enum t_opcode instructi
     enum t_opcode instruction64 = instruction8 + 3;
     if (IN_RANGE(operand, INT8_MIN, INT8_MAX)) {
         write_immediate_s8(&compiler->function->t_code, instruction8, operand,
-                           &compiler->previous_token.location);
+                           &compiler->parser.previous_token.location);
     }
     else if (IN_RANGE(operand, INT16_MIN, INT16_MAX)) {
         write_immediate_s16(&compiler->function->t_code, instruction16, operand,
-                            &compiler->previous_token.location);
+                            &compiler->parser.previous_token.location);
     }
     else if (IN_RANGE(operand, INT32_MIN, INT32_MAX)) {
         write_immediate_s32(&compiler->function->t_code, instruction32, operand,
-                            &compiler->previous_token.location);
+                            &compiler->parser.previous_token.location);
     }
     else {
         write_immediate_s64(&compiler->function->t_code, instruction64, operand,
-                            &compiler->previous_token.location);
+                            &compiler->parser.previous_token.location);
     }
 }
 
