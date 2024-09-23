@@ -2104,14 +2104,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_comp_field_set(checker, index, offset);
             break;
         }
-        case T_OP_ARRAY_GET8:
-        case T_OP_ARRAY_GET16:
-        case T_OP_ARRAY_GET32:
+        case T_OP_ARRAY_GET:
             assert(0 && "Not implemented");
             break;
-        case T_OP_ARRAY_SET8:
-        case T_OP_ARRAY_SET16:
-        case T_OP_ARRAY_SET32:
+        case T_OP_ARRAY_SET:
             assert(0 && "Not implemented");
             break;
         case T_OP_CALL8: {

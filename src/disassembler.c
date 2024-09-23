@@ -213,33 +213,6 @@ static int t_comp_field32_instruction(const char *name, struct ir_block *block,
     return offset + 9;
 }
 
-static int t_array8_instruction(const char *name, struct ir_block *block,
-                                struct module *module, int offset) {
-    print_instruction(name, block, offset, 1 + 1);
-    type_index array = read_s8(block, offset + 1);
-    struct string_view array_name = type_name(&module->types, array);
-    printf("%d '%"PRI_SV"'\n", array, SV_FMT(array_name));
-    return offset + 2;
-}
-
-static int t_array16_instruction(const char *name, struct ir_block *block,
-                                struct module *module, int offset) {
-    print_instruction(name, block, offset, 1 + 2);
-    type_index array = read_s8(block, offset + 1);
-    struct string_view array_name = type_name(&module->types, array);
-    printf("%d '%"PRI_SV"'\n", array, SV_FMT(array_name));
-    return offset + 3;
-}
-
-static int t_array32_instruction(const char *name, struct ir_block *block,
-                                struct module *module, int offset) {
-    print_instruction(name, block, offset, 1 + 4);
-    type_index array = read_s32(block, offset + 1);
-    struct string_view array_name = type_name(&module->types, array);
-    printf("%d '%"PRI_SV"'\n", array, SV_FMT(array_name));
-    return offset + 5;
-}
-
 static int w_pack_field_instruction(const char *name, struct ir_block *block, int offset) {
     print_instruction(name, block, offset, 1 + 1 + 1);
     int field = read_u8(block, offset + 1);
@@ -509,18 +482,10 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return t_comp_field16_instruction("T_OP_COMP_FIELD_SET16", block, module, offset);
     case T_OP_COMP_FIELD_SET32:
         return t_comp_field32_instruction("T_OP_COMP_FIELD_SET32", block, module, offset);
-    case T_OP_ARRAY_GET8:
-        return t_array8_instruction("T_OP_ARRAY_GET8", block, module, offset);
-    case T_OP_ARRAY_GET16:
-        return t_array16_instruction("T_OP_ARRAY_GET16", block, module, offset);
-    case T_OP_ARRAY_GET32:
-        return t_array32_instruction("T_OP_ARRAY_GET32", block, module, offset);
-    case T_OP_ARRAY_SET8:
-        return t_array8_instruction("T_OP_ARRAY_SET8", block, module, offset);
-    case T_OP_ARRAY_SET16:
-        return t_array16_instruction("T_OP_ARRAY_SET16", block, module, offset);
-    case T_OP_ARRAY_SET32:
-        return t_array32_instruction("T_OP_ARRAY_SET32", block, module, offset);
+    case T_OP_ARRAY_GET:
+        return simple_instruction("T_OP_ARRAY_GET8", block, offset);
+    case T_OP_ARRAY_SET:
+        return simple_instruction("T_OP_ARRAY_SET8", block, offset);
     case T_OP_CALL8:
         return immediate_u8_instruction("T_OP_CALL8", block, offset);
     case T_OP_CALL16:
