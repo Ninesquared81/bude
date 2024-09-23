@@ -509,9 +509,6 @@ struct token next_token(struct lexer *lexer) {
 
     if (is_at_end(lexer)) return make_token(lexer, TOKEN_EOT, false);
 
-    if (is_number(lexer)) {
-        return number(lexer);
-    }
     if (match(lexer, '"')) {
         return string(lexer);
     }
@@ -523,6 +520,10 @@ struct token next_token(struct lexer *lexer) {
     }
     if (match(lexer, ']')) {
         return make_token(lexer, TOKEN_SQUARE_BRACKET_RIGHT, false);
+    }
+    // NOTE: This consumes any `+` or `-` characters, even if not in a number.
+    if (is_number(lexer)) {
+        return number(lexer);
     }
 
     return symbol(lexer);
