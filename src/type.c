@@ -49,7 +49,12 @@ struct string_view type_name(struct type_table *table, type_index type) {
 }
 
 size_t type_size(struct type_table *table, type_index type) {
-    if (IS_SIMPLE_TYPE(type)) {
+    const struct type_info *info = lookup_type(table, type);
+    assert(info != NULL);
+    switch (info->kind) {
+    case KIND_UNINIT:
+        return 0;
+    case KIND_SIMPLE:
         switch ((enum simple_type)type) {
         case TYPE_ERROR:  return 0;
         case TYPE_WORD:   return 8;
@@ -69,18 +74,16 @@ size_t type_size(struct type_table *table, type_index type) {
         case TYPE_CHAR16: return 4;
         case TYPE_CHAR32: return 4;
         }
-        assert(0 && "unreachable");
-    }
-    const struct type_info *info = lookup_type(table, type);
-    if (info == NULL) return 0;
-    switch (info->kind) {
+        break;
     case KIND_PACK:
         return info->pack.size;
     case KIND_COMP:
         return info->comp.word_count * sizeof(stack_word);
-    default:
-        return 0;
+    case KIND_ARRAY:
+        return type_word_count(table, type) * sizeof(stack_word);
     }
+    assert(0 && "unreachable");
+    return 0;
 }
 
 size_t type_word_count(struct type_table *table, type_index type) {
