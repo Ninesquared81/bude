@@ -1180,6 +1180,14 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             free(words);
             break;
         }
+        case W_OP_ARRAY_GET8:
+        case W_OP_ARRAY_GET16:
+        case W_OP_ARRAY_GET32:
+        case W_OP_ARRAY_SET8:
+        case W_OP_ARRAY_SET16:
+        case W_OP_ARRAY_SET32:
+            assert(0 && "Not implemented");
+            break;
         case W_OP_CALL8: {
             uint8_t index = read_u8(interpreter->block, ip + 1);
             ip += 1;

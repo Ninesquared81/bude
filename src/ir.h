@@ -488,6 +488,14 @@
     X(W_OP_COMP_SUBCOMP_SET8)                                           \
     X(W_OP_COMP_SUBCOMP_SET16)                                          \
     X(W_OP_COMP_SUBCOMP_SET32)                                          \
+    /* (W)ARRAY_GETn Imm_un -- Get an element from an array with the specified element size. */ \
+    X(W_OP_ARRAY_GET8)                                                  \
+    X(W_OP_ARRAY_GET16)                                                 \
+    X(W_OP_ARRAY_GET32)                                                 \
+    /* (W)ARRAY_SETn Imm_un -- Set an element from an array with the specified element size. */ \
+    X(W_OP_ARRAY_SET8)                                                  \
+    X(W_OP_ARRAY_SET16)                                                 \
+    X(W_OP_ARRAY_SET32)                                                 \
     /* CALLn Idx_un -- Call the function specified by the index in the function table. */ \
     X(W_OP_CALL8)                                                       \
     X(W_OP_CALL16)                                                      \
