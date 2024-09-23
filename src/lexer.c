@@ -386,7 +386,7 @@ static bool lex_int_suffix(struct lexer *lexer) {
     else {
         (void)(match(lexer, 'w') || match(lexer, 't'));
     }
-    return is_at_end(lexer) || isspace(peek(lexer));
+    return is_at_end(lexer) || !is_symbolic(peek(lexer));
 }
 
 static bool lex_float_suffix(struct lexer *lexer) {
@@ -397,7 +397,7 @@ static bool lex_float_suffix(struct lexer *lexer) {
         default: return false;
         }
     }
-    return is_at_end(lexer) || isspace(peek(lexer));
+    return is_at_end(lexer) || !is_symbolic(peek(lexer));
 }
 
 static struct token decimal_lit(struct lexer *lexer) {
