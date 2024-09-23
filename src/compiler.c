@@ -1038,6 +1038,11 @@ static void compile_var(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_END, "Expect `end` after `var` block.");
 }
 
+static void compile_array(struct compiler *compiler) {
+    type_index array = parse_type(compiler, peek_previous(compiler));
+    emit_immediate_sv(compiler, T_OP_ARRAY_CREATE8, array);
+}
+
 static void compile_array_index(struct compiler *compiler, enum t_opcode instruction) {
     compile_expr(compiler);  // Index value.
     expect_consume(compiler, TOKEN_SQUARE_BRACKET_RIGHT, "Expect ']' after array index.");
@@ -1454,7 +1459,10 @@ static bool compile_simple(struct compiler *compiler) {
 
 static void compile_expr(struct compiler *compiler) {
     while (!is_at_end(compiler)) {
-        if (match(compiler, TOKEN_AS)) {
+        if (match(compiler, TOKEN_ARRAY)) {
+            compile_array(compiler);
+        }
+        else if (match(compiler, TOKEN_AS)) {
             compile_as_conversion(compiler);
         }
         else if (match(compiler, TOKEN_CHAR_LIT)) {
