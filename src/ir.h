@@ -185,6 +185,16 @@
     X(T_OP_COMP_FIELD_SET8)                                             \
     X(T_OP_COMP_FIELD_SET16)                                            \
     X(T_OP_COMP_FIELD_SET32)                                            \
+    /* (T)ARRAY_GETn Idx_sn -- Retrieve the element of the array at an index obtained
+       from the stack. */                                               \
+    X(T_OP_ARRAY_GET8)                                                  \
+    X(T_OP_ARRAY_GET16)                                                 \
+    X(T_OP_ARRAY_GET32)                                                 \
+    /* (T)ARRAY_SETn Idx_sn -- Set the element of the array at an index obtained
+       from the stack. */                                               \
+    X(T_OP_ARRAY_SET8)                                                  \
+    X(T_OP_ARRAY_SET16)                                                 \
+    X(T_OP_ARRAY_SET32)                                                 \
     /* CALLn Idx_un -- Call the function specified by the index in the function table. */ \
     X(T_OP_CALL8)                                                       \
     X(T_OP_CALL16)                                                      \

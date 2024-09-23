@@ -2104,6 +2104,16 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             emit_comp_field_set(checker, index, offset);
             break;
         }
+        case T_OP_ARRAY_GET8:
+        case T_OP_ARRAY_GET16:
+        case T_OP_ARRAY_GET32:
+            assert(0 && "Not implemented");
+            break;
+        case T_OP_ARRAY_SET8:
+        case T_OP_ARRAY_SET16:
+        case T_OP_ARRAY_SET32:
+            assert(0 && "Not implemented");
+            break;
         case T_OP_CALL8: {
             uint8_t index = read_u8(checker->in_block, checker->ip + 1);
             checker->ip += 1;
