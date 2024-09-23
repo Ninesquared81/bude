@@ -181,10 +181,14 @@
     X(T_OP_PACK_FIELD_SET8)                                             \
     X(T_OP_PACK_FIELD_SET16)                                            \
     X(T_OP_PACK_FIELD_SET32)                                            \
-    /* (T)COMP_FIELD_SETn Idx_un Imm_un -- Set the field of the comp at the given offset. */ \
+    /* (T)COMP_FIELD_SETn Idx_sn Imm_un -- Set the field of the comp at the given offset. */ \
     X(T_OP_COMP_FIELD_SET8)                                             \
     X(T_OP_COMP_FIELD_SET16)                                            \
     X(T_OP_COMP_FIELD_SET32)                                            \
+    /* ARRAY_CREATEn Idx_sn -- Create an array from elements on the stack. */ \
+    X(T_OP_ARRAY_CREATE8)                                               \
+    X(T_OP_ARRAY_CREATE16)                                              \
+    X(T_OP_ARRAY_CREATE32)                                              \
     /* (T)ARRAY_GET -- Retrieve the element of the array at an index both obtained
        from the stack. */                                               \
     X(T_OP_ARRAY_GET)                                                   \

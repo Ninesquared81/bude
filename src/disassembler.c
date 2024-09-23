@@ -482,6 +482,12 @@ static int disassemble_t_instruction(struct ir_block *block, struct module *modu
         return t_comp_field16_instruction("T_OP_COMP_FIELD_SET16", block, module, offset);
     case T_OP_COMP_FIELD_SET32:
         return t_comp_field32_instruction("T_OP_COMP_FIELD_SET32", block, module, offset);
+    case T_OP_ARRAY_CREATE8:
+        return t_packcomp8_instruction("T_OP_ARRAY_CREATE", block, module, offset);
+    case T_OP_ARRAY_CREATE16:
+        return t_packcomp16_instruction("T_OP_ARRAY_CREATE", block, module, offset);
+    case T_OP_ARRAY_CREATE32:
+        return t_packcomp32_instruction("T_OP_ARRAY_CREATE", block, module, offset);
     case T_OP_ARRAY_GET:
         return simple_instruction("T_OP_ARRAY_GET8", block, offset);
     case T_OP_ARRAY_SET:
