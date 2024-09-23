@@ -1052,7 +1052,7 @@ static void compile_array_index(struct compiler *compiler, enum t_opcode instruc
 static void compile_assignment(struct compiler *compiler) {
     if (match(compiler, TOKEN_SQUARE_BRACKET_LEFT)) {
         // Array; special handling.
-        compile_array_index(compiler, T_OP_ARRAY_GET);
+        compile_array_index(compiler, T_OP_ARRAY_SET);
         return;
     }
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `<-`");
