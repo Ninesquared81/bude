@@ -1038,7 +1038,18 @@ static void compile_var(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_END, "Expect `end` after `var` block.");
 }
 
+static void compile_array_index(struct compiler *compiler, enum t_opcode instruction) {
+    compile_expr(compiler);  // Index value.
+    expect_consume(compiler, TOKEN_SQUARE_BRACKET_RIGHT, "Expect ']' after array index.");
+    emit_simple(compiler, instruction);
+}
+
 static void compile_assignment(struct compiler *compiler) {
+    if (match(compiler, TOKEN_SQUARE_BRACKET_LEFT)) {
+        // Array; special handling.
+        compile_array_index(compiler, T_OP_ARRAY_GET);
+        return;
+    }
     expect_consume(compiler, TOKEN_SYMBOL, "Expect symbol after `<-`");
     struct string_view name = peek_previous(compiler).value;
     struct symbol *symbol = lookup_symbol(compiler->symbols, &name);
@@ -1475,6 +1486,9 @@ static void compile_expr(struct compiler *compiler) {
         }
         else if (match(compiler, TOKEN_PACK)) {
             compile_pack(compiler);
+        }
+        else if (match(compiler, TOKEN_SQUARE_BRACKET_LEFT)) {
+            compile_array_index(compiler, T_OP_ARRAY_GET);
         }
         else if (match(compiler, TOKEN_STRING_LIT)) {
             compile_string(compiler);
