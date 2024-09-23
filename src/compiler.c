@@ -743,8 +743,56 @@ static void compile_character(struct compiler *compiler) {
     emit_immediate_uv(compiler, T_OP_PUSH_CHAR8, codepoint);
 }
 
-static type_index parse_type(struct compiler *compiler, struct token *token) {
-    switch (token->type) {
+static struct parser swap_parsers(struct compiler *compiler, struct parser new_parser) {
+    struct parser old_parser = compiler->parser;
+    compiler->parser = new_parser;
+    return old_parser;
+}
+
+static type_index parse_type(struct compiler *compiler, struct token token) {
+    switch (token.type) {
+    case TOKEN_ARRAY: {
+        REGION_RESTORE temp_restore = record_region(compiler->temp);
+        if (!HAS_SUBSCRIPT(token)) {
+            parse_error(compiler, "Expect subscript with size and type after `array`.");
+            exit(1);
+        }
+        /* ----- BEGIN SWAPPED PARSERS ----- */
+        struct lexer sublexer = get_subscript_lexer(token, compiler->parser.lexer.filename);
+        struct parser main_parser = swap_parsers(compiler, new_parser(sublexer));
+        expect_consume(compiler, TOKEN_INT_LIT, "Expect array size.");
+        struct integer count = parse_integer(compiler, compiler->parser.previous_token);
+        type_index element_type = parse_type(compiler, advance(compiler));
+        swap_parsers(compiler, main_parser);
+        /* ----- END SWAPPED PARSERS ------ */
+        struct string_view token_sv = token_to_sv(token, compiler->temp);
+        struct symbol *symbol = lookup_symbol(compiler->symbols, &token_sv);
+        type_index array_type = TYPE_ERROR;
+        if (symbol == NULL) {
+            // Define type and add symbol to symbol table.
+            array_type = new_type(&compiler->module->types, &token_sv);
+            struct type_info info = {
+                .kind = KIND_ARRAY,
+                .array = {
+                    .element_count = count.as.s64,
+                    .element_type = element_type,
+                },
+            };
+            init_type(&compiler->module->types, array_type, &info);
+            symbol = &(struct symbol) {
+                .name = token_sv,
+                .type = SYM_ARRAY,
+                .array.index = array_type,
+            };
+            insert_symbol(compiler->symbols, symbol);
+        }
+        else {
+            restore_region(compiler->temp, temp_restore);
+            array_type = symbol->array.index;
+        }
+        assert(array_type != TYPE_ERROR);
+        return array_type;
+    }
     case TOKEN_BYTE: return TYPE_BYTE;
     case TOKEN_BOOL: return TYPE_BOOL;
     case TOKEN_CHAR: return TYPE_CHAR;
@@ -763,11 +811,12 @@ static type_index parse_type(struct compiler *compiler, struct token *token) {
     case TOKEN_WORD: return TYPE_WORD;
     case TOKEN_STRING: return TYPE_STRING;
     case TOKEN_SYMBOL: {
-        struct symbol *symbol = lookup_symbol(compiler->symbols, &token->value);
+        struct symbol *symbol = lookup_symbol(compiler->symbols, &token.value);
         if (symbol == NULL) return TYPE_ERROR;
         switch (symbol->type) {
         case SYM_COMP: return symbol->comp.index;
         case SYM_PACK: return symbol->pack.index;
+        case SYM_ARRAY: assert(0 && "Invalid state."); break;
         default: break;
         }
         break;
@@ -803,8 +852,7 @@ static void compile_pack(struct compiler *compiler) {
         };
         insert_symbol(compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
-        struct token field_token = advance(compiler);
-        type_index field_type = parse_type(compiler, &field_token);
+        type_index field_type = parse_type(compiler, advance(compiler));
         if (field_type == TYPE_ERROR) {
             parse_error(compiler, "Expect type after `->`.");
             exit(1);
@@ -859,8 +907,7 @@ static void compile_comp(struct compiler *compiler) {
         };
         insert_symbol(compiler->symbols, &field);
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after field name.");
-        struct token field_token = advance(compiler);
-        type_index type = parse_type(compiler, &field_token);
+        type_index type = parse_type(compiler, advance(compiler));
         int field_word_count = 1;
         if (is_comp(&compiler->module->types, type)) {
             // NOTE: this includes strings.
@@ -902,7 +949,7 @@ static void compile_comp(struct compiler *compiler) {
 
 static void compile_as_conversion(struct compiler *compiler) {
     struct token type_token = advance(compiler);
-    type_index type = parse_type(compiler, &type_token);
+    type_index type = parse_type(compiler, type_token);
     static enum t_opcode conversions[] = {
         [TYPE_WORD]   = T_OP_AS_WORD,
         [TYPE_BYTE]   = T_OP_AS_BYTE,
@@ -935,7 +982,7 @@ static void compile_as_conversion(struct compiler *compiler) {
 
 static void compile_to_conversion(struct compiler *compiler) {
     struct token type_token = advance(compiler);
-    type_index type = parse_type(compiler, &type_token);
+    type_index type = parse_type(compiler, type_token);
     static enum t_opcode conversions[] = {
         [TYPE_WORD] = T_OP_TO_WORD,
         [TYPE_BYTE] = T_OP_TO_BYTE,
@@ -972,7 +1019,7 @@ static void compile_var(struct compiler *compiler) {
         struct string_view name = peek_previous(compiler).value;
         expect_consume(compiler, TOKEN_RIGHT_ARROW, "Expect `->` after variable name.");
         struct token type_token = advance(compiler);
-        type_index type = parse_type(compiler, &type_token);
+        type_index type = parse_type(compiler, type_token);
         if (type == TYPE_ERROR) {
             parse_error(compiler, "Invalid type '%"PRI_SV"'.", SV_FMT(type_token.value));
             exit(1);
@@ -1034,7 +1081,7 @@ static struct signature parse_signature(struct compiler *compiler, struct string
     struct region *data_region = compiler->module->functions.region;
     for (;;) {
         // Parameter types.
-        type_index param = parse_type(compiler, &prev);
+        type_index param = parse_type(compiler, prev);
         if (param == TYPE_ERROR) {
             // Assume anything that's not a type is the function name.
             break;
@@ -1055,7 +1102,7 @@ static struct signature parse_signature(struct compiler *compiler, struct string
     if (match(compiler, TOKEN_RIGHT_ARROW)) {
         // Return values.
         for (;;) {
-            type_index ret = parse_type(compiler, &compiler->current_token);
+            type_index ret = parse_type(compiler, compiler->parser.current_token);
             if (ret == TYPE_ERROR) {
                 // End of return types.
                 break;
@@ -1277,6 +1324,9 @@ static void compile_symbol(struct compiler *compiler) {
     case SYM_EXT_LIBRARY:
         parse_error(compiler, "Invalid use of external library symbol '%"PRI_SV"'.",
                     SV_FMT(symbol_text));
+        exit(1);
+    case SYM_ARRAY:
+        assert(0 && "Invalid state");
         exit(1);
     }
 }
