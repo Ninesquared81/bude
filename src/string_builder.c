@@ -72,8 +72,9 @@ void join_string(struct string_builder *builder, const char *fill, char *buffer)
     for (builder = builder->next; builder != NULL; builder = builder->next) {
         view = SB_NODE_AS_VIEW(builder);
         memcpy(buffer, fill, fill_length);
+        buffer += fill_length;
         memcpy(buffer, view.start, view.length);
-        buffer += fill_length + view.length;
+        buffer += view.length;
     }
     // buffer now points to the end of the string.
     *buffer = '\0';
