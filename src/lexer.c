@@ -562,12 +562,14 @@ const char *token_type_name(enum token_type type) {
 static struct string_builder token_to_sb(struct token token, struct region *region) {
     struct string_builder sb = SB_FROM_SV(token.value);
     if (!HAS_SUBSCRIPT(token)) return sb;
+    ++sb.view.length;  // Include '['.
     struct lexer sublexer = get_subscript_lexer(token, NULL);  // There shouldn't be any errors.
     struct token subtoken = next_token(&sublexer);
     while (subtoken.type != TOKEN_EOT) {
         sb_append(&sb, token_to_sb(subtoken, region), region);
         subtoken = next_token(&sublexer);
     }
+    sb_append(&sb, SB_FROM_SV(SV_LIT("]")), region);
     return sb;
 }
 
