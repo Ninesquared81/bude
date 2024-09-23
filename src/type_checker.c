@@ -1276,14 +1276,14 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             break;
         case T_OP_POP: {
             type_index type = ts_pop(checker);
-            const struct type_info *info = lookup_type(checker->types, type);
-            assert(info != NULL && "Unknown type");
-            if (info->kind != KIND_COMP) {
+            size_t word_count = type_word_count(checker->types, type);
+            assert(word_count > 0 && "Invalid type");
+            if (word_count == 1) {
                 emit_simple(checker, W_OP_POP);
             }
             else {
                 // NOTE: This includes the builtin type `string`.
-                emit_immediate_sv(checker, W_OP_POPN8, info->comp.field_count);
+                emit_immediate_sv(checker, W_OP_POPN8, word_count);
             }
             break;
         }
