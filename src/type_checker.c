@@ -1087,9 +1087,23 @@ static void check_comp_instruction(struct type_checker *checker, type_index inde
 }
 
 static void check_decomp_instruction(struct type_checker *checker) {
-    const struct type_info *info = expect_kind(checker, KIND_COMP);
-    for (int i = 0; i < info->comp.field_count; ++i) {
-        ts_push(checker, info->comp.fields[i]);
+    type_index type = ts_pop(checker);
+    const struct type_info *info = lookup_type(checker->types, type);
+    assert(info != NULL);
+    if (info->kind == KIND_COMP) {
+        for (int i = 0; i < info->comp.field_count; ++i) {
+            ts_push(checker, info->comp.fields[i]);
+        }
+    }
+    else if (info->kind == KIND_ARRAY) {
+        for (int i = 0; i < info->array.element_count; ++i) {
+            ts_push(checker, info->array.element_type);
+        }
+    }
+    else {
+        type_error(checker, "Invaid type for `decomp`: '%"PRI_SV"'.",
+                   SV_FMT(type_name(checker->types, type)));
+        ts_push(checker, type);
     }
 }
 

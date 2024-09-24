@@ -4,3 +4,7 @@ print
 
 1 2 array[2 int] 3 4 array[2 int] array[2 array[2 int]]
 print
+
+42 -5 31 array[3 int] dupe print
+decomp rot array[3 int] dupe print
+decomp rot array[3 int] print
