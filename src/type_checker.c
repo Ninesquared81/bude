@@ -799,7 +799,8 @@ static void emit_comp_field_set(struct type_checker *checker, type_index index, 
 static void emit_array_instruction(struct type_checker *checker, enum w_opcode instruction8,
                                    type_index index_type, const struct type_info *info) {
     emit_simple_nnop(checker, promote(index_type));
-    emit_immediate_uv(checker, instruction8,
+    // Re-use this function, even though we aren't using subcomps.
+    emit_comp_subcomp(checker, instruction8, info->array.element_count,
                       type_word_count(checker->types, info->array.element_type));
 }
 

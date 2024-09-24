@@ -488,11 +488,13 @@
     X(W_OP_COMP_SUBCOMP_SET8)                                           \
     X(W_OP_COMP_SUBCOMP_SET16)                                          \
     X(W_OP_COMP_SUBCOMP_SET32)                                          \
-    /* (W)ARRAY_GETn Imm_un -- Get an element from an array with the specified element size. */ \
+    /* (W)ARRAY_GETn Imm_un Imm_un -- Get an element from an array with the specified
+       element count and size. */                                       \
     X(W_OP_ARRAY_GET8)                                                  \
     X(W_OP_ARRAY_GET16)                                                 \
     X(W_OP_ARRAY_GET32)                                                 \
-    /* (W)ARRAY_SETn Imm_un -- Set an element from an array with the specified element size. */ \
+    /* (W)ARRAY_SETn Imm_un Imm_un -- Set an element from an array with the specified
+       element count and size. */                                       \
     X(W_OP_ARRAY_SET8)                                                  \
     X(W_OP_ARRAY_SET16)                                                 \
     X(W_OP_ARRAY_SET32)                                                 \

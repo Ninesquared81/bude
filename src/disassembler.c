@@ -814,17 +814,17 @@ static int disassemble_w_instruction(struct ir_block *block, struct module *modu
     case W_OP_COMP_SUBCOMP_SET32:
         return w_comp_subcomp32_instruction("W_OP_COMP_SUBCOMP_SET32", block, offset);
     case W_OP_ARRAY_GET8:
-        return immediate_u8_instruction("W_OP_ARRAY_GET8", block, offset);
+        return w_comp_subcomp8_instruction("W_OP_ARRAY_GET8", block, offset);
     case W_OP_ARRAY_GET16:
-        return immediate_u16_instruction("W_OP_ARRAY_GET16", block, offset);
+        return w_comp_subcomp16_instruction("W_OP_ARRAY_GET16", block, offset);
     case W_OP_ARRAY_GET32:
-        return immediate_u32_instruction("W_OP_ARRAY_GET32", block, offset);
+        return w_comp_subcomp32_instruction("W_OP_ARRAY_GET32", block, offset);
     case W_OP_ARRAY_SET8:
-        return immediate_u8_instruction("W_OP_ARRAY_SET8", block, offset);
+        return w_comp_subcomp8_instruction("W_OP_ARRAY_SET8", block, offset);
     case W_OP_ARRAY_SET16:
-        return immediate_u16_instruction("W_OP_ARRAY_SET16", block, offset);
+        return w_comp_subcomp16_instruction("W_OP_ARRAY_SET16", block, offset);
     case W_OP_ARRAY_SET32:
-        return immediate_u32_instruction("W_OP_ARRAY_SET32", block, offset);
+        return w_comp_subcomp32_instruction("W_OP_ARRAY_SET32", block, offset);
     case W_OP_CALL8:
         return immediate_u8_instruction("W_OP_CALL8", block, offset);
     case W_OP_CALL16:
