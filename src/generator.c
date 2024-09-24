@@ -220,6 +220,27 @@ static void generate_swap_comps(struct generator *generator, int lhs_size, int r
     }
 }
 
+static void generate_array_get(struct generator *generator, int element_count, int word_count) {
+    struct asm_block *assembly = generator->assembly;
+    asm_write_inst1(assembly, "pop", "rax");  // Index.
+    // TODO: Add optional bounds checking.
+    asm_write_inst1(assembly, "neg", "rax");
+    asm_write_inst2f(assembly, "add", "rax", "%d", element_count - 1);  // Offset - 1.
+    for (int i = 0; i < word_count; ++i) {
+        asm_write_inst1(assembly, "push", "qword [rsp+8*rax]");
+    }
+}
+
+static void generate_array_set(struct generator *generator, int element_count, int word_count) {
+    struct asm_block *assembly = generator->assembly;
+    asm_write_inst1(assembly, "pop", "rax");  // Index.
+    asm_write_inst1(assembly, "neg", "rax");
+    asm_write_inst2f(assembly, "add", "rax", "%d", element_count - 1);  // Offset - 1.
+    for (int i = 0; i < word_count; ++i) {
+        asm_write_inst1(assembly, "pop", "qword [rsp+8*rax]");
+    }
+}
+
 static void generate_external_call_bude(struct generator *generator,
                                         struct ext_function *external) {
     asm_write_inst1f(generator->assembly, "call", "%["PRI_SV"]", SV_FMT(external->name));
@@ -1578,7 +1599,7 @@ static void generate_function(struct generator *generator, int func_index) {
         }
         case W_OP_COMP_SUBCOMP_GET16: {
             int offset = read_s16(block, ip + 1);
-            int size = read_s16(block, ip + 2);
+            int size = read_s16(block, ip + 3);
             ip += 4;
             for (int i = 0; i < size; ++i) {
                 asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
@@ -1587,7 +1608,7 @@ static void generate_function(struct generator *generator, int func_index) {
         }
         case W_OP_COMP_SUBCOMP_GET32: {
             int offset = read_s32(block, ip + 1);
-            int size = read_s32(block, ip + 2);
+            int size = read_s32(block, ip + 5);
             ip += 8;
             for (int i = 0; i < size; ++i) {
                 asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
@@ -1605,7 +1626,7 @@ static void generate_function(struct generator *generator, int func_index) {
         }
         case W_OP_COMP_SUBCOMP_SET16: {
             int offset = read_s16(block, ip + 1);
-            int size = read_s16(block, ip + 2);
+            int size = read_s16(block, ip + 3);
             ip += 4;
             for (int i = 0; i < size; ++i) {
                 asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
@@ -1614,21 +1635,55 @@ static void generate_function(struct generator *generator, int func_index) {
         }
         case W_OP_COMP_SUBCOMP_SET32: {
             int offset = read_s32(block, ip + 1);
-            int size = read_s32(block, ip + 2);
+            int size = read_s32(block, ip + 5);
             ip += 8;
             for (int i = 0; i < size; ++i) {
                 asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
             }
             break;
         }
-        case W_OP_ARRAY_GET8:
-        case W_OP_ARRAY_GET16:
-        case W_OP_ARRAY_GET32:
-        case W_OP_ARRAY_SET8:
-        case W_OP_ARRAY_SET16:
-        case W_OP_ARRAY_SET32:
-            assert(0 && "Not implemented");
+        case W_OP_ARRAY_GET8: {
+            int element_count = read_u8(block, ip + 1);
+            int word_count = read_u8(block, ip + 2);
+            ip += 2;
+            generate_array_get(generator, element_count, word_count);
             break;
+        }
+        case W_OP_ARRAY_GET16: {
+            int element_count = read_u8(block, ip + 1);
+            int word_count = read_u8(block, ip + 3);
+            ip += 4;
+            generate_array_get(generator, element_count, word_count);
+            break;
+        }
+        case W_OP_ARRAY_GET32: {
+            int element_count = read_u8(block, ip + 1);
+            int word_count = read_u8(block, ip + 5);
+            ip += 8;
+            generate_array_get(generator, element_count, word_count);
+            break;
+        }
+        case W_OP_ARRAY_SET8: {
+            int element_count = read_u8(block, ip + 1);
+            int word_count = read_u8(block, ip + 2);
+            ip += 2;
+            generate_array_set(generator, element_count, word_count);
+            break;
+        }
+        case W_OP_ARRAY_SET16: {
+            int element_count = read_u8(block, ip + 1);
+            int word_count = read_u8(block, ip + 3);
+            ip += 4;
+            generate_array_set(generator, element_count, word_count);
+            break;
+        }
+        case W_OP_ARRAY_SET32: {
+            int element_count = read_u8(block, ip + 1);
+            int word_count = read_u8(block, ip + 5);
+            ip += 8;
+            generate_array_set(generator, element_count, word_count);
+            break;
+        }
         case W_OP_CALL8: {
             int func_index = read_u8(block, ip + 1);
             ip += 1;
