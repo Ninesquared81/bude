@@ -103,6 +103,10 @@ static void lex_string(struct lexer *lexer) {
 
 static void lex_subscript(struct lexer *lexer) {
     while (!match(lexer, ']')) {
+        if (is_at_end(lexer)) {
+            lex_error(lexer, "unexpected EOF in token subscript.");
+            exit(1);
+        }
         if (match(lexer, '[')) {
             lex_subscript(lexer);
         }
@@ -112,11 +116,9 @@ static void lex_subscript(struct lexer *lexer) {
         else if (check(lexer, '#')) {
             return;  // Comment; stop lexing.
         }
-        if (is_at_end(lexer)) {
-            lex_error(lexer, "unexpected EOF in token subscript.");
-            exit(1);
+        else {
+            advance(lexer);
         }
-        advance(lexer);
     }
 }
 
