@@ -65,6 +65,7 @@ Data:
 * `<literal>` &ndash; the literal value denoted
 * _pk_ &ndash; structural "pack" type
 * _cmp_ &ndash; structural "comp" type
+* _ary_ &ndash; array type where all elements are of the same type
 * _T_ &ndash; type variable "T"
 
 Syntax:
@@ -112,6 +113,12 @@ Push the specified field from the comp.
 
 _cmp_ _T_ `<-` <_field-name_: _T_> &rarr; _cmp_ :
 Pop the top stack value and use it to set the specified field of the comp underneath.
+
+_ary_ `[` _index_ `]` &rarr; _ary_ _E_ :
+Pop the index and push the specified element of the array.
+
+_ary_ _E_ `<-` `[` _index_ `]` &rarr; _ary_ :
+Pop the index and value and set the specified element of the array underneath.
 
 ### Arithmetic operations
 
@@ -237,6 +244,11 @@ _F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; <_comp-name_> &rarr; _p
 Construct a comp with the field types
 _F<sub>1</sub>_, _F<sub>2</sub>_, _F<sub>3</sub>_, &hellip;.
 
+_e<sub>1</sub>_ _e<sub>2</sub>_ _e<sub>3</sub>_ &hellip;
+`array[` <_element-count_> <_element-type_: _E_> `]` &rarr; _ary_ :
+Construct an array with the elements
+_e<sub>1</sub>_, _e<sub>2</sub>_, _e<sub>3</sub>_, &hellip;, all of type _E_.
+
 ### Destructors
 
 _pk_ `unpack` &rarr; _F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; :
@@ -246,6 +258,9 @@ _F<sub>1</sub>_, _F<sub>2</sub>_, _F<sub>3</sub>_, &hellip;.
 _cmp_ `decomp` &rarr; _F<sub>1</sub>_ _F<sub>2</sub>_ _F<sub>3</sub>_ &hellip; :
 Decompose the comp on the top of the stack into its fields with types
 _F<sub>1</sub>_, _F<sub>2</sub>_, _F<sub>3</sub>_, &hellip;.
+
+_ary_ `decomp` &rarr; _e<sub>1</sub>_ _e<sub>2</sub>_ _e<sub>3</sub>_ &hellip; :
+Decompose the array on the top of the stack into its elements, all of type _E_.
 
 ### Control flow constructs
 
