@@ -12,18 +12,18 @@ end
 
 foo
 dupe
-print
+println
 0x44ff77777777aaaa
-print
+println
 
-a print
+a println
 42u16 <- a
 
 unpack
-print
-print
-print
-print
+println
+println
+println
+println
 
 pack nested def
     inner -> foo
@@ -32,4 +32,4 @@ end
 
 1u16 2s32 3u8 4s8 foo
 # '0'
-nested print
+nested println

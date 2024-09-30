@@ -1,61 +1,61 @@
 func int int test= def
-    "\t" print
-    swap dupe print
-    "=\t" print
-    swap dupe print
-    "\t---\n\t" print
-    = print
-    "\n" print
+    "\t" println
+    swap dupe println
+    "=\t" println
+    swap dupe println
+    "\t---\n\t" println
+    = println
+    "\n" println
 end
 
 func int int test/= def
-    "\t" print
-    swap dupe print
-    "/=\t" print
-    swap dupe print
-    "\t---\n\t" print
-    /= print
-    "\n" print
+    "\t" println
+    swap dupe println
+    "/=\t" println
+    swap dupe println
+    "\t---\n\t" println
+    /= println
+    "\n" println
 end
 
 func int int test< def
-    "\t" print
-    swap dupe print
-    "<\t" print
-    swap dupe print
-    "\t---\n\t" print
-    < print
-    "\n" print
+    "\t" println
+    swap dupe println
+    "<\t" println
+    swap dupe println
+    "\t---\n\t" println
+    < println
+    "\n" println
 end
 
 func int int test<= def
-    "\t" print
-    swap dupe print
-    "<=\t" print
-    swap dupe print
-    "\t---\n\t" print
-    <= print
-    "\n" print
+    "\t" println
+    swap dupe println
+    "<=\t" println
+    swap dupe println
+    "\t---\n\t" println
+    <= println
+    "\n" println
 end
 
 func int int test> def
-    "\t" print
-    swap dupe print
-    ">\t" print
-    swap dupe print
-    "\t---\n\t" print
-    > print
-    "\n" print
+    "\t" println
+    swap dupe println
+    ">\t" println
+    swap dupe println
+    "\t---\n\t" println
+    > println
+    "\n" println
 end
 
 func int int test>= def
-    "\t" print
-    swap dupe print
-    ">=\t" print
-    swap dupe print
-    "\t---\n\t" print
-    >= print
-    "\n" print
+    "\t" println
+    swap dupe println
+    ">=\t" println
+    swap dupe println
+    "\t---\n\t" println
+    >= println
+    "\n" println
 end
 
 42 5 test=

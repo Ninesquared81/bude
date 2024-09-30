@@ -2,32 +2,26 @@
 "42 -5 divmod:\n" print
 " r = " print
 print
-" q = " print
-print
-
-"\n" print
+", q = " print
+println
 
 -42 5 divmod
-"-42 5 divmod:\n" print
-" r = " print
+"-42 5 divmod: " print
+"r = " print
 print
-" q = " print
-print
-
-"\n" print
+", q = " print
+println
 
 42 5 divmod
-"42 5 divmod:\n" print
-" r = " print
+"42 5 divmod: " print
+"r = " print
 print
-" q = " print
-print
-
-"\n" print
+", q = " print
+println
 
 -42 -5 divmod
 "-42 -5 divmod:\n" print
-" r = " print
+"r = " print
 print
-" q = " print
-print
+", q = " print
+println

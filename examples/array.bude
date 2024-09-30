@@ -1,10 +1,10 @@
 1 2 3 4 5 array[5 int]
 42 <- [2]
-print
+println
 
 1 2 array[2 int] 3 4 array[2 int] array[2 array[2 int]]
-print
+println
 
-42 -5 31 array[3 int] dupe print
-decomp rot array[3 int] dupe print
-decomp rot array[3 int] print
+42 -5 31 array[3 int] dupe println
+decomp rot array[3 int] dupe println
+decomp rot array[3 int] println

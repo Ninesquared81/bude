@@ -1,16 +1,16 @@
-42 dupe print
-~ print
+42 dupe println
+~ println
 
--0.5 dupe print
-~ print
+-0.5 dupe println
+~ println
 
 
-1023.43f32 dupe print
-~ print
+1023.43f32 dupe println
+~ println
 
-99w dupe print
-~ print
+99w dupe println
+~ println
 
-1s8 dupe print
-~ dupe print
-as word print
+1s8 dupe println
+~ dupe println
+as word println

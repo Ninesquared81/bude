@@ -6,19 +6,19 @@ comp bar def
 end
 
 5u16 -7s32 255u8 0s8 bar
-dupe print
+dupe println
 
-b print
+b println
 -11s32 <- b
 
 dupe
 decomp
-print
-print
-print
-print
+println
+println
+println
+println
 
-print  # print whole comp
+println  # print whole comp
 
 
 '\n' print-char
@@ -28,4 +28,4 @@ comp nested def
     other -> int
 end
 
-1u16 2s32 3u8 4s8 bar -42 nested print
+1u16 2s32 3u8 4s8 bar -42 nested println

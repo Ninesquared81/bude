@@ -1,7 +1,7 @@
-42 57 "Hi\n" rot
-print print print
+42 57 "Hi" rot
+printsp printsp println
 
-42 57 over print print print
+42 57 over printsp printsp println
 
 "Hey there\n" "Hello\n" over
 print print print

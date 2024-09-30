@@ -1,11 +1,11 @@
 3
 while dupe do
   if dupe 3 - not then
-    5 print
+    5 println
   elif dupe 2 - not then
-    3 print
+    3 println
   elif dupe 1 - not then
-    2 print
+    2 println
   end
   1 -
 end

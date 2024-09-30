@@ -1,7 +1,7 @@
 if 1 then
-    42 print
+    42 println
 else
-    54 print
+    54 println
 end
 
-5 print
+5 println

@@ -5,7 +5,7 @@
 
 dupe 1 +
 deref swap deref divmod
-print print
+printsp println
 
 # while 1 do
 #    42
@@ -19,13 +19,13 @@ else
     5
 end
 
-print
+println
 
 
-0xfft print
+0xfft println
 
--128s8 print
+-128s8 println
 
-55 4 divmod print
+55 4 divmod println
 
 pop

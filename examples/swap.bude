@@ -1,1 +1,1 @@
-42 5 swap print print
+42 5 swap printsp println

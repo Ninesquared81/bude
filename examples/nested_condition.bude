@@ -3,12 +3,12 @@
     54
   else
     42
-    34 35 + print
+    34 35 + println
   end
   6 9 *
   - not
   swap 1 - swap
 do
-  42 print
+  42 println
 end
 pop

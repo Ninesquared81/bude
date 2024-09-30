@@ -3,11 +3,11 @@ var a -> int
 end
 
 42 <- a
-a print
+a println
 -5 <- a
-a print
+a println
 
 a to f64 <- b
-b print
+b println
 b .5 * <- b
-b print
+b println

@@ -4,14 +4,14 @@ pack point def
 end
 
 -5s32 42s32 point  # Create 'point' pack.
-x print  # -5
-y print  # 42
+x printsp  # -5
+y println  # 42
 
 # Swap x and y fields.
 y swap     # Save old value of y.
 x <- y     # Set y to x.
 swap <- x  # Set x to old value of y.
 
-x print  # 42
-y print  # -5
+x printsp  # 42
+y println  # -5
 pop

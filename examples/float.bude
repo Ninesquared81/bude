@@ -6,26 +6,26 @@
 pop pop pop pop
 
 
-42. -5e0 + print
+42. -5e0 + println
 
--42f32 1.f32 + print
+-42f32 1.f32 + println
 
-36f32 -5. + print
+36f32 -5. + println
 
-73.4 0f32 + print
+73.4 0f32 + println
 
-123. 65.432f32 * print
+123. 65.432f32 * println
 
-42.5 1.234 / print
+42.5 1.234 / println
 
--78.351 650.5 - print
+-78.351 650.5 - println
 
-123.45 1s8 + print
+123.45 1s8 + println
 
-12.f32 0 * print
+12.f32 0 * println
 
-45. 8 - print
+45. 8 - println
 
-64.2 7 / print
+64.2 7 / println
 
-44f32 55f32 + print
+44f32 55f32 + println

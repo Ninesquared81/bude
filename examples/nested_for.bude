@@ -1,10 +1,5 @@
-"\n" decomp pop
-
 for i from 5 do
     for j from 3 do
-        i print
-        j print
-        dupe deref print-char
+        i printsp j println
     end
 end
-pop

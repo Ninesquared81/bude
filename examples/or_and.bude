@@ -1,5 +1,5 @@
-42 36 or print
-42 36 and print
+42 36 or println
+42 36 and println
 
 
 "Or is " decomp pop

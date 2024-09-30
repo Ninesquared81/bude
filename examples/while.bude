@@ -1,6 +1,6 @@
 5
 while dupe do
-    dupe print
+    dupe println
     1 -
 end
 pop

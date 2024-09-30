@@ -14,13 +14,13 @@ end
 bigcomp
 
 dupe
-print
+println
 
 decomp
 swap
 
-print
-print
+println
+println
 
 
 1 2 3 mycomp
@@ -29,6 +29,6 @@ print
 swap
 11 22 33 mycomp
 swap
-print
-print
-print
+println
+println
+println

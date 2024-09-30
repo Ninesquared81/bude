@@ -1,10 +1,10 @@
-42 to bool print
+42 to bool println
 
-0.5 to bool print
+0.5 to bool println
 
--0.0 to bool print
+-0.0 to bool println
 
-0f32 0f32 / to bool print
+0f32 0f32 / to bool println
 
-true print
-false print
+true println
+false println
