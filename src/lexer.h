@@ -62,6 +62,9 @@
     X(TOKEN_PRINT)                              \
     X(TOKEN_PRINT_CHAR)                         \
     X(TOKEN_PTR)                                \
+    X(TOKEN_PRINTLN)                            \
+    X(TOKEN_PRINTSP)                            \
+    X(TOKEN_PRINTTB)                            \
     X(TOKEN_RET)                                \
     X(TOKEN_RIGHT_ARROW)                        \
     X(TOKEN_ROT)                                \

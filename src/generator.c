@@ -1931,20 +1931,20 @@ static void generate_constants(struct generator *generator) {
     asm_section(assembly, ".rdata", "data", "readable");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_s64");
-    asm_write_inst3c(assembly, "db", "'%%I64d'", "10", "0",
+    asm_write_inst2c(assembly, "db", "'%%I64d'", "0",
                      "NOTE: I64 is a Non-ISO Microsoft extension.");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_u64");
-    asm_write_inst3(assembly, "db", "'%%I64u'", "10", "0");
+    asm_write_inst2(assembly, "db", "'%%I64u'", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_f64");
-    asm_write_inst3(assembly, "db", "'%%g'", "10", "0");
+    asm_write_inst2(assembly, "db", "'%%g'", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_bool_false");
-    asm_write_inst3(assembly, "db", "'false'", "10", "0");
+    asm_write_inst2(assembly, "db", "'false'", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_bool_true");
-    asm_write_inst3(assembly, "db", "'true'", "10", "0");
+    asm_write_inst2(assembly, "db", "'true'", "0");
     asm_write(assembly, "\n");
     asm_label(assembly, "fmt_char");
     asm_write_inst2(assembly, "db", "'%%s'", "0");

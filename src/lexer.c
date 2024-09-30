@@ -276,6 +276,9 @@ static enum token_type symbol_type(struct lexer *lexer) {
             if (check_middle(lexer, 2, 3, "int")) {
                 switch (lexer->start[5]) {
                 case '-': return check_keyword(lexer, 6, 4, "char", TOKEN_PRINT_CHAR);
+                case 'l': return check_keyword(lexer, 6, 1, "n", TOKEN_PRINTLN);
+                case 's': return check_keyword(lexer, 6, 1, "p", TOKEN_PRINTSP);
+                case 't': return check_keyword(lexer, 6, 1, "b", TOKEN_PRINTTB);
                 default: return check_terminal(lexer, 5, TOKEN_PRINT);
                 }
             }

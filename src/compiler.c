@@ -1421,6 +1421,21 @@ static bool compile_simple(struct compiler *compiler) {
     case TOKEN_PRINT_CHAR:
         emit_simple(compiler, T_OP_PRINT_CHAR);
         break;
+    case TOKEN_PRINTLN:
+        emit_simple(compiler, T_OP_PRINT);
+        emit_immediate_u8(compiler, T_OP_PUSH_CHAR8, '\n');
+        emit_simple(compiler, T_OP_PRINT);
+        break;
+    case TOKEN_PRINTSP:
+        emit_simple(compiler, T_OP_PRINT);
+        emit_immediate_u8(compiler, T_OP_PUSH_CHAR8, ' ');
+        emit_simple(compiler, T_OP_PRINT);
+        break;
+    case TOKEN_PRINTTB:
+        emit_simple(compiler, T_OP_PRINT);
+        emit_immediate_u8(compiler, T_OP_PUSH_CHAR8, '\t');
+        emit_simple(compiler, T_OP_PRINT);
+        break;
     case TOKEN_RET:
         emit_simple(compiler, T_OP_RET);
         break;

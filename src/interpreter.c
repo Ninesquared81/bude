@@ -579,7 +579,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_PRINT:
-            printf("%"PRIsw"\n", pop(interpreter->main_stack));
+            printf("%"PRIsw, pop(interpreter->main_stack));
             break;
         case W_OP_PRINT_CHAR: {
             stack_word value = pop(interpreter->main_stack);
@@ -589,16 +589,16 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_PRINT_BOOL:
-            printf("%s\n", pop(interpreter->main_stack) ? "true" : "false");
+            printf("%s", pop(interpreter->main_stack) ? "true" : "false");
             break;
         case W_OP_PRINT_FLOAT: {
             uint64_t bits = pop(interpreter->main_stack);
             double value = u64_to_f64(bits);
-            printf("%g\n", value);
+            printf("%g", value);
             break;
         }
         case W_OP_PRINT_INT:
-            printf("%"PRIssw"\n", u64_to_s64(pop(interpreter->main_stack)));
+            printf("%"PRIssw, u64_to_s64(pop(interpreter->main_stack)));
             break;
         case W_OP_PRINT_STRING: {
             stack_word length = pop(interpreter->main_stack);
