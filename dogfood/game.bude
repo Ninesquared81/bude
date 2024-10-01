@@ -25,7 +25,13 @@ end
 
 # Colours
 func RAYWHITE -> Color def 245u8 245u8 245u8 255u8 Color end
-func RED      -> Color def 230u8 41u8 55u8 255u8 Color end
+
+func RED      -> Color def 230u8  41u8  55u8 255u8 Color end
+func YELLOW   -> Color def 253u8 249u8   0u8 255u8 Color end
+func BLUE     -> Color def   0u8 121u8 241u8 255u8 Color end
+func MAGENTA  -> Color def 255u8   0u8 255u8 255u8 Color end
+func GREEN    -> Color def   0u8 228u8  48u8 255u8 Color end
+func SKYBLUE  -> Color def 102u8 191u8 255u8 255u8 Color end
 
 # Keys
 func KEY_RIGHT -> s32 def 262s32 end
@@ -60,9 +66,19 @@ func string to-cstr -> ptr def
      decomp pop
 end
 
+func colours -> array[6 Color] def
+    RED
+    YELLOW
+    BLUE
+    MAGENTA
+    GREEN
+    SKYBLUE
+    array[6 Color]
+end
+
 comp Player def
     pos -> Vector2
-    colour -> Color
+    colour -> int
     speed -> f32
 end
 
@@ -108,50 +124,26 @@ end
 # func Player get-right-fin -> Triangle def
 # end
 
-func Vector3 print-hsv def
-    decomp swap unpack swap
-    "h: " print print
-    "s: " print print
-    "v: " print print
-    "\n" print
+func int int int clamp-between -> int def
+    over -
+    swap rot over -
+    rot % +
 end
 
-func Color next-colour -> Color def
-    ColorToHSV
-    # dupe print-hsv
-    decomp swap unpack  # v h s
-    swap 157f32 +  # v s (h+15)
-    if dupe 360f32 > then
-        360f32 -
-    end
-    swap rot  # h s v
-    ColorFromHSV
+func int next-colour -> int def
+    1 + 0 6 clamp-between
+end
+
+func int get-colour -> Color def
+    colours [swap]
+    swap pop
 end
 
 func Player draw-player def
-    # dupe
-    # pos swap
-    # 50f32 swap
-    # colour swap pop
-    # DrawCircleV
-    # pos swap
-    # 3s32 swap
-    # 50f32 swap
-    # 15f32 swap
-    # colour next-colour swap pop
-    # DrawPoly
-    # pos 50f32 80f32 Vector2 Rectangle
-    # over colour swap pop
-    # swap decomp rot DrawRectangleV
-    # pos 10f32 rot colour swap pop
-    # DrawCircleV
     var player-colour -> Color end
-    colour <- player-colour
+    colour get-colour <- player-colour
     dupe get-body decomp player-colour DrawRectangleV
     get-nose-cone decomp
-    # "3" to-cstr swap unpack to s32 swap to s32 swap 5s32 player-colour DrawText
-    # "2" to-cstr swap unpack to s32 swap to s32 swap 5s32 player-colour DrawText
-    # "1" to-cstr swap unpack to s32 swap to s32 swap 5s32 player-colour DrawText
     player-colour DrawTriangle
 end
 
@@ -194,7 +186,7 @@ end
 screen-width screen-height screen-title to-cstr InitWindow
 
 var player -> Player end
-screen-centre RED .2f32 Player <- player
+screen-centre 0 .2f32 Player <- player
 
 func should-go-right -> bool def
     'D' to s32 IsKeyDown
@@ -229,13 +221,6 @@ while WindowShouldClose not do
     end
     "Hello, Raylib!" to-cstr <- text
     80s32 <- font-size
-
-    # text
-    # screen-width text font-size MeasureText - 2s32 /  # x position
-    # screen-height 2s32 /  # y position
-    # font-size
-    # RED
-    # DrawText
 
     player draw-player
 
