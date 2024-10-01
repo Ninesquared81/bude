@@ -114,7 +114,7 @@ static void expect_types(struct type_checker *checker,
                       count, expected_types, sizeof(type_index))) {
             struct string_view expected_sv = type_array_to_sv(checker, count, expected_types);
             struct string_view actual_sv = type_array_to_sv(checker, count,
-                                                            checker->tstack->types);
+                                                            &checker->tstack->top[-count]);
             type_error(checker, "expected types %"PRI_SV", but got types %"PRI_SV,
                        SV_FMT(expected_sv),
                        SV_FMT(actual_sv));
