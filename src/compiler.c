@@ -425,8 +425,37 @@ static bool check_range(uint64_t magnitude, char sign, enum integer_type type) {
     return magnitude <= maximum;
 }
 
+/* NOTE: This function uses temporary allocations (including the return value); fence it in
+ * `START_TEMP()` and `END_TEMP()` like so:
+ *     START_TEMP(compiler);
+ *     struct string_view normalised = normalise_number(compiler, num_view);
+ *     // Code using variable 'normalised'...
+ *     END_TEMP(compiler);
+ *     // Variable 'normalised' invalid hereafter...
+*/
+static struct string_view normalise_number(struct compiler *compiler, struct string_view num_view) {
+    const char *end = SV_END(num_view);
+    struct string_builder builder = {0};  // Empty builder.
+    struct string_builder *sb = &builder;
+    // NOTE: the update clause, `curr_start = curr_end + 1` may look like it could potentially invoke UB,
+    // since `curr_end` could be equal to `end`, making `curr_start == curr_end + 1`, or, 2-past-the-end
+    // of the string view. However, since we know the underlying string will be null-terminated, we can be
+    // safe in the knowledge that `end` points to at most the null terminator, so `end + 1` is actually
+    // only 1-past-the-end, which is fine -- no UB.
+    for (const char *curr_end, *curr_start = num_view.start; curr_start < end; curr_start = curr_end + 1) {
+        curr_end = strchr(curr_start, '_');
+        if (curr_end == NULL) {
+            // Why does strchr() return NULL on failure?! grrr...
+            curr_end = end;
+        }
+        sb = store_view(sb, &SV_BETWEEN(curr_start, curr_end), compiler->temp);
+    }
+    return build_string_in_region(&builder, compiler->temp);
+}
+
 static void compile_floating_point(struct compiler *compiler) {
-    struct string_view value = peek_previous(compiler).value;
+    START_TEMP(compiler);
+    struct string_view value = normalise_number(compiler, peek_previous(compiler).value);
     enum floating_point_type type = parse_floating_point_suffix(&value);
     if (type == FLOAT_F32) {
         // f32 -- single precision floating-point number.
@@ -438,6 +467,7 @@ static void compile_floating_point(struct compiler *compiler) {
         double f64 = strtod(value.start, NULL);
         emit_immediate_u64(compiler, T_OP_PUSH_FLOAT64, f64_to_u64(f64));
     }
+    END_TEMP(compiler);
 }
 
 struct integer {
@@ -465,10 +495,12 @@ static bool is_integer_signed(struct integer integer) {
 
 static struct integer parse_integer(struct compiler *compiler, struct token token) {
     struct integer integer = {0};
-    struct string_view value = token.value;
+    START_TEMP(compiler);
+    struct string_view value = normalise_number(compiler, token.value);  // Remove underscores.
     struct integer_prefix prefix = parse_integer_prefix(&value);
     integer.type = parse_integer_suffix(&value);
     uint64_t magnitude = strtoull(value.start, NULL, prefix.base);
+    END_TEMP(compiler);
     if (magnitude >= UINT64_MAX && errno == ERANGE) {
         parse_error(compiler, "integer literal not in representable range.");
         exit(1);
