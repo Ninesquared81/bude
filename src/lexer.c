@@ -64,6 +64,13 @@ static bool match(struct lexer *lexer, char c) {
     return true;
 }
 
+static bool match_any(struct lexer *lexer, const char *cs) {
+    for (; *cs != '\0'; ++cs ) {
+        if (match(lexer, *cs)) return true;
+    }
+    return false;
+}
+
 static void consume_comment(struct lexer *lexer) {
     while (!is_at_end(lexer) && advance(lexer) != '\n') {
         /* Do nothing. */
@@ -352,33 +359,57 @@ static struct token symbol(struct lexer *lexer) {
 
 static int lex_decimal(struct lexer *lexer) {
     int digit_count = 0;
-    while (isdigit(peek(lexer))) {
+    for (;;) {
+        char c = peek(lexer);
+        if (isdigit(c)) {
+            // Only count actual digits.
+            ++digit_count;
+        }
+        else if (c != '_') {
+            // Underscores are the only non-digit characters allowed.
+            break;
+        }
         advance(lexer);
-        ++digit_count;
     }
     return digit_count;
 }
 
 static int lex_hexadecimal(struct lexer *lexer) {
     int hexit_count = 0;
-    while (isxdigit(peek(lexer))) {
+    for (;;) {
+        char c = peek(lexer);
+        if (isxdigit(c)) {
+            // Only count actual hexits.
+            ++hexit_count;
+        }
+        else if (c != '_') {
+            // Underscores are the only non-hexit characters allowed.
+            break;
+        }
         advance(lexer);
-        ++hexit_count;
     }
     return hexit_count;
 }
 
 static int lex_binary(struct lexer *lexer) {
     int bit_count = 0;
-    for (char c = peek(lexer); c == '0' || c == '1'; c = peek(lexer)) {
+    for (;;) {
+        char c = peek(lexer);
+        if (c == '1' || c == '0') {
+            // Only count actual bits.
+            ++bit_count;
+        }
+        else if (c != '_') {
+            // Underscores are the only non-bit characters allowed.
+            break;
+        }
         advance(lexer);
-        ++bit_count;
     }
     return bit_count;
 }
 
 static bool lex_int_suffix(struct lexer *lexer) {
-    if (match(lexer, 'u') || match(lexer, 's')) {
+    if (match_any(lexer, "us")) {
         if (is_at_end(lexer)) return false;
 
         switch (advance(lexer)) {
@@ -389,7 +420,7 @@ static bool lex_int_suffix(struct lexer *lexer) {
         }
     }
     else {
-        (void)(match(lexer, 'w') || match(lexer, 't'));
+        match_any(lexer, "wt");
     }
     return is_at_end(lexer) || !is_symbolic(peek(lexer));
 }
@@ -418,7 +449,7 @@ static struct token decimal_lit(struct lexer *lexer) {
         num_type = NUMBER_FLOAT;
         // Exponent part.
         // (Optional) sign.
-        (void)(match(lexer, '+') || match(lexer, '-'));
+        match_any(lexer, "+-");
         if (!lex_decimal(lexer)) {
             // Must have at least one digit.
             return symbol(lexer);
@@ -499,7 +530,7 @@ static struct token character(struct lexer *lexer) {
 }
 
 static bool is_number(struct lexer *lexer) {
-    (void)(match(lexer, '-') || match(lexer, '+'));  // NOTE: We only allow one leading sign.
+    match_any(lexer, "-+");  // NOTE: We only allow one leading sign.
     return isdigit(peek(lexer)) || check(lexer, '.');
 }
 
