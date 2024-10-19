@@ -18,7 +18,7 @@ struct string_view copy_view(struct string_view *view, void *buf) {
 }
 
 struct string_view copy_view_in_region(struct string_view *view, struct region *region) {
-    void *chars = region_alloc(region, view->length);
+    void *chars = region_alloc(region, view->length + 1);  // Null-terminated.
     if (chars == NULL) return (struct string_view) {0};
     return copy_view(view, chars);
 }
@@ -26,4 +26,3 @@ struct string_view copy_view_in_region(struct string_view *view, struct region *
 bool sv_eq(const struct string_view *a, const struct string_view *b) {
     return a->length == b->length && strncmp(a->start, b->start, a->length) == 0;
 }
-
