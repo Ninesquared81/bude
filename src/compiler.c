@@ -435,8 +435,6 @@ static bool check_range(uint64_t magnitude, char sign, enum integer_type type) {
 */
 static struct string_view normalise_number(struct compiler *compiler, struct string_view num_view) {
     const char *end = SV_END(num_view);
-    char next_char = *end;
-    *(char *)end = '\0';  // Temporarily null-terminate `num_view` (so that `strchr()` works properly).
     struct string_builder builder = {0};  // Empty builder.
     struct string_builder *sb = &builder;
     // NOTE: the update clause, `curr_start = curr_end + 1` may look like it could potentially invoke UB,
@@ -445,14 +443,13 @@ static struct string_view normalise_number(struct compiler *compiler, struct str
     // safe in the knowledge that `end` points to at most the null terminator, so `end + 1` is actually
     // only 1-past-the-end, which is fine -- no UB.
     for (const char *curr_end, *curr_start = num_view.start; curr_start < end; curr_start = curr_end + 1) {
-        curr_end = strchr(curr_start, '_');
+        curr_end = memchr(curr_start, '_', end - curr_start);
         if (curr_end == NULL) {
-            // Why does strchr() return NULL on failure?! grrr...
+            // Why does memchr() return NULL on failure?! grrr...
             curr_end = end;
         }
         sb = store_view(sb, &SV_BETWEEN(curr_start, curr_end), compiler->temp);
     }
-    *(char *)end = next_char;
     return build_string_in_region(&builder, compiler->temp);
 }
 
