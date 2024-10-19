@@ -96,8 +96,8 @@ func Player get-body -> Rectangle def
     end
     40f32 <- player-width
     80f32 <- player-height
-    x player-width 0.5f32 * - <- x
-    y player-height 0.5f32 * - <- y
+    x player-width 0.5_f32 * - <- x
+    y player-height 0.5_f32 * - <- y
     player-width player-height Vector2
     Rectangle
     swap pop
@@ -110,7 +110,7 @@ func Player get-nose-cone -> Triangle def
     rot swap <- x
     # corner1 corner2 corner2 size (c.x-s.x/2)
     swap over
-    x rot x 0.5f32 * rot swap -
+    x rot x 0.5_f32 * rot swap -
     # corner1 corner2 (c.x-s.x/2) corner2 (c.y+s.x)
     swap unpack pop
     rot y rot - <- y
@@ -172,13 +172,13 @@ func Player move-up -> Player def
 end
 
 
-func screen-width  -> s32 def 1200s32 end
-func screen-height -> s32 def 800s32 end
+func screen-width  -> s32 def 1200_s32 end
+func screen-height -> s32 def 800_s32 end
 func screen-title  -> string def "Raylib Game in Bude" end
 
 func screen-centre -> Vector2 def
-    screen-width 0.5f32 *
-    screen-height 0.5f32 *
+    screen-width 0.5_f32 *
+    screen-height 0.5_f32 *
     Vector2
 end
 
@@ -186,7 +186,7 @@ end
 screen-width screen-height screen-title to-cstr InitWindow
 
 var player -> Player end
-screen-centre 0 .2f32 Player <- player
+screen-centre 0 0.2_f32 Player <- player
 
 func should-go-right -> bool def
     'D' to s32 IsKeyDown
