@@ -1,1 +1,2 @@
 "The speed of light is" printsp 299_792_458 printsp "m/s." println
+"0xFEEDBEEF = " print 0xFEEDBEEF_u32 println
