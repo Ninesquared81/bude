@@ -11,6 +11,19 @@
 #include "unicode.h"
 
 
+/* This module generates assembly code from Bude word-oriented IR bytecode (WIR), which can then be assembled using FASM.
+ *
+ * Notes about the codegen:
+ *  - Target: x86-64 (Windows)
+ *  - Bude calling convention: arguments passed and returned on stack, no alignment requirements (but the stack is always aligned to 8 bytes)
+ *  - Registers with special purposes:
+ *     = rsp: stack pointer
+ *     = rbx: auxiliary stack base pointer
+ *     = rsi: auxiliary stack pointer
+ *     = rax, rdx, rcx: temporary value storage
+ */
+
+
 struct generator {
     struct asm_block *assembly;
     struct module *module;
