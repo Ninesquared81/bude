@@ -256,7 +256,7 @@ static void generate_array_set(struct generator *generator, int element_count, i
 
 static void generate_external_call_bude(struct generator *generator,
                                         struct ext_function *external) {
-    asm_write_inst1f(generator->assembly, "call", "%["PRI_SV"]", SV_FMT(external->name));
+    asm_write_inst1f(generator->assembly, "call", "[%"PRI_SV"]", SV_FMT(external->name));
 }
 
 static int move_comp_to_aux(struct generator *generator, type_index type, int end_offset) {
