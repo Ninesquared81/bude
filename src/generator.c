@@ -20,7 +20,9 @@
  *     = rsp: stack pointer
  *     = rbx: auxiliary stack base pointer
  *     = rsi: auxiliary stack pointer
- *     = rax, rdx, rcx: temporary value storage
+ *     = rdi: loop counter
+ *     = rax, rdx: top two stack slots
+ *     = rcx: temporary value storage
  */
 
 
@@ -586,12 +588,6 @@ static void generate_function_return(struct generator *generator) {
 }
 
 static void generate_function(struct generator *generator, int func_index) {
-#define BIN_OP(OP)                                                      \
-    do {                                                                \
-        asm_write_inst1c(assembly, "pop", "rdx", "RHS.");               \
-        asm_write_inst2c(assembly, OP, "[rsp]", "rdx", "LHS left on stack."); \
-    } while (0)
-
     generator->loop_level = 0;
     struct asm_block *assembly = generator->assembly;
     struct function *function = get_function(&generator->module->functions, func_index);
@@ -620,296 +616,281 @@ static void generate_function(struct generator *generator, int func_index) {
         case W_OP_PUSH8: {
             uint8_t value = read_u8(block, ip + 1);
             ip += 1;
-            asm_write_inst1f(assembly, "push", "%"PRIu8, value);
+            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRIu8, value);
             break;
         }
         case W_OP_PUSH16: {
             uint16_t value = read_u16(block, ip + 1);
             ip += 2;
-            asm_write_inst1f(assembly, "push", "%"PRIu16, value);
+            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRIu16, value);
             break;
         }
         case W_OP_PUSH32: {
             uint32_t value = read_u32(block, ip + 1);
             ip += 4;
-            asm_write_inst1f(assembly, "push", "%"PRIu32, value);
+            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRIu32, value);
             break;
         }
         case W_OP_PUSH64: {
             uint64_t value = read_u64(block, ip + 1);
             ip += 8;
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRIu64, value);
             asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "rdx", "%"PRIu64, value);
             break;
         }
         case W_OP_PUSH_INT8: {
-            ++ip;
-            int8_t value = read_s8(block, ip);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRId8, value);
+            int8_t value = read_s8(block, ip + 1);
+            ip += 1;
             asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRId8, value);
             break;
         }
         case W_OP_PUSH_INT16: {
+            int16_t value = read_s16(block, ip + 1);
             ip += 2;
-            int16_t value = read_s16(block, ip - 1);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRId16, value);
             asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRId16, value);
             break;
         }
         case W_OP_PUSH_INT32: {
+            int32_t value = read_s32(block, ip + 1);
             ip += 4;
-            int32_t value = read_s32(block, ip - 3);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRId32, value);
             asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRId32, value);
             break;
         }
         case W_OP_PUSH_INT64: {
+            int64_t value = read_s64(block, ip + 1);
             ip += 8;
-            int64_t value = read_s64(block, ip - 7);
-            asm_write_inst2f(assembly, "mov", "rax", "%"PRId64, value);
             asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "rdx", "%"PRId64, value);
             break;
         }
         case W_OP_PUSH_FLOAT32: {
+            uint32_t value = read_u32(block, ip + 1);
             ip += 4;
-            uint32_t bits = read_u32(block, ip - 3);
-            float value = u32_to_f32(bits);
-            asm_write_inst2f(assembly, "mov", "eax", "dword %#g", value);
-            asm_write_inst2(assembly, "mov", "eax", "eax");
             asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRIu32, value);
             break;
         }
         case W_OP_PUSH_FLOAT64: {
+            uint64_t value = read_u64(block, ip + 1);
             ip += 8;
-            uint64_t bits = read_u64(block, ip - 7);
-            double value = u64_to_f64(bits);
-            asm_write_inst2f(assembly, "mov", "rax", "qword %#g", value);
             asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "rdx", "%"PRIu64, value);
             break;
         }
         case W_OP_PUSH_CHAR8: {
             uint8_t codepoint = read_u8(block, ip + 1);
             ip += 1;
             uint32_t bytes = encode_utf8_u32(codepoint);
-            asm_write_inst1f(assembly, "push", "%"PRIu32, bytes);
+            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "edx", "%"PRIu32, bytes);
             break;
         }
         case W_OP_PUSH_CHAR16: {
             uint16_t codepoint = read_u16(block, ip + 1);
             ip += 2;
             uint32_t bytes = encode_utf8_u32(codepoint);
-            asm_write_inst1f(assembly, "push", "%"PRIu32, bytes);
+            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "eax", "%"PRIu32, bytes);
             break;
         }
         case W_OP_PUSH_CHAR32: {
             uint32_t codepoint = read_u32(block, ip + 1);
             ip += 4;
             uint32_t bytes = encode_utf8_u32(codepoint);
-            asm_write_inst1f(assembly, "push", "%"PRIu32, bytes);
+            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
+            asm_write_inst2f(assembly, "mov", "eax", "%"PRIu32, bytes);
             break;
         }
         case W_OP_LOAD_STRING8: {
             ++ip;
             uint8_t index = read_u8(block, ip);
             struct string_view *string = read_string(generator->module, index);
-            asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu8"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%zu", string->length);
+            asm_write_inst1(assembly, "push", "rdx");
+            asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu8"]", index);
+            asm_write_inst2f(assembly, "mov", "edx", "%d", string->length);
             break;
         }
         case W_OP_LOAD_STRING16: {
             ip += 2;
             uint16_t index = read_u16(block, ip - 1);
             struct string_view *string = read_string(generator->module, index);
-            asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%zu", string->length);
+            asm_write_inst1(assembly, "push", "rdx");
+            asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu16"]", index);
+            asm_write_inst2f(assembly, "mov", "edx", "%d", string->length);
             break;
         }
         case W_OP_LOAD_STRING32: {
             ip += 4;
             uint32_t index = read_u32(block, ip - 3);
             struct string_view *string = read_string(generator->module, index);
-            asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
             asm_write_inst1(assembly, "push", "rax");
-            asm_write_inst1f(assembly, "push", "%zu", string->length);
+            asm_write_inst1(assembly, "push", "rdx");
+            asm_write_inst2f(assembly, "lea", "rax", "[str%"PRIu32"]", index);
+            asm_write_inst2f(assembly, "mov", "edx", "%d", string->length);
             break;
         }
         case W_OP_POP:
-            asm_write_inst1(assembly, "pop", "rax");
+            generate_popn(generator, 1);
             break;
         case W_OP_POPN8: {
             int8_t n = read_s8(block, ip + 1);
             ip += 1;
-            asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * n);
+            generate_popn(generator, n);
             break;
         }
         case W_OP_POPN16: {
             int16_t n = read_s16(block, ip + 1);
             ip += 2;
-            asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * n);
+            generate_popn(generator, n);
             break;
         }
         case W_OP_POPN32: {
             int32_t n = read_s32(block, ip + 1);
             ip += 4;
-            asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * n);
+            generate_popn(generator, n);
             break;
         }
         case W_OP_ADD:
-            BIN_OP("add");
+            // Addition is commutative.
+            asm_write_inst2(assembly, "add", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_ADDF32:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movd", "xmm1", "eax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "addss", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movd", "eax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movd", "edx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_ADDF64:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movq", "xmm1", "rax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "addsd", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movq", "rax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_AND:
-            asm_write_inst1c(assembly, "pop", "rdx", "'Then' value.");
-            asm_write_inst2c(assembly, "mov", "rax", "[rsp]", "'Else' value.");
             asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst2(assembly, "cmovnz", "rax", "rdx");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "cmovz", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_DEREF:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movzx", "rdx", "byte [rax]");
-            asm_write_inst1(assembly, "push", "rdx");
+            asm_write_inst2(assembly, "movzx", "edx", "byte [rdx]");
             break;
         case W_OP_DIVF32:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movd", "xmm1", "eax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "divss", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movd", "eax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movd", "edx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_DIVF64:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movq", "xmm1", "rax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "divsd", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movq", "rax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_DIVMOD:
-            asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
-            asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
-            asm_write_inst2c(assembly, "xor", "rdx", "rdx", "Zero out extra bytes in dividend.");
+            asm_write_inst2(assembly, "mov", "rcx", "rdx");
+            asm_write_inst2(assembly, "xor", "rdx", "rdx");
             asm_write_inst1(assembly, "div", "rcx");
-            asm_write_inst1c(assembly, "push", "rax", "Quotient.");
-            asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
             break;
         case W_OP_IDIVMOD:
-            asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
-            asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
+            asm_write_inst2(assembly, "mov", "rcx", "rdx");
             asm_write_inst0(assembly, "cqo");
             asm_write_inst1(assembly, "idiv", "rcx");
-            asm_write_inst1c(assembly, "push", "rax", "Quotient.");
-            asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
             break;
         case W_OP_EDIVMOD:
-            asm_write_inst1c(assembly, "pop", "rcx", "Divisor.");
-            asm_write_inst1c(assembly, "pop", "rax", "Dividend.");
-            asm_write_inst2c(assembly, "mov", "r8", "rcx", "Save divisor.");
+            // Algorithm:
+            // if a > 0, then edivmod(a, b) = idivmod(a, b).
+            // otherwise, edivmod(a, b) = q, r, where
+            //   q', r' = idivmod(a, b)
+            //   q = q' - sign(b)
+            //   r = r' + abs(b)
+            asm_write_inst2(assembly, "mov", "rcx", "rdx");
+            asm_write_inst2(assembly, "mov", "r8", "rcx");
             asm_write_inst1(assembly, "neg", "r8");
-            asm_write_inst2c(assembly, "cmovs", "r8", "rcx", "r8 = abs(b)");
+            asm_write_inst2(assembly, "cmovs", "r8", "rcx");  // r8 = abs(b).
+            asm_write_inst1(assembly, "setg", "r9b");
+            asm_write_inst2(assembly, "movzx", "r9", "r9b");
+            asm_write_inst1(assembly, "setl", "r10b");
+            asm_write_inst2(assembly, "movzx", "r10", "r10b");
+            asm_write_inst2(assembly, "sub", "r10", "r9");  // r10 = -sign(b).
             asm_write_inst0(assembly, "cqo");
-            asm_write_inst2(assembly, "xor", "r9", "r9");
-            asm_write_inst2(assembly, "xor", "r10", "r10");
-            asm_write_inst2(assembly, "test", "rcx", "rcx");
-            asm_write_inst1(assembly, "sets", "r9b");
-            asm_write_inst1(assembly, "setg", "r10b");
-            asm_write_inst1(assembly, "neg", "r10");
-            asm_write_inst2c(assembly, "xor", "r9", "r10", "r9 = sgn(b)");
             asm_write_inst1(assembly, "idiv", "rcx");
-            asm_write_inst2c(assembly, "add", "r9", "rax", "q - sign(b)");
-            asm_write_inst2c(assembly, "add", "r8", "rdx", "r + abs(b)");
-            asm_write_inst2c(assembly, "test", "rdx", "rdx",
-                             "Ensure r >= 0 and adjust q accordingly.");
-            asm_write_inst2(assembly, "cmovs", "rax", "r9");
+            asm_write_inst2(assembly, "add", "r10", "rax");  // r10 = q' - sign(b)
+            asm_write_inst2(assembly, "add", "r8", "rdx");   // r8 = r' + abs(b)
+            asm_write_inst2(assembly, "test", "rdx", "rdx");    // This will set/clear the sign flag based on the sign bit of rdx.
+            asm_write_inst2(assembly, "cmovs", "rax", "r10");  // Only replace q and r if r < 0.
             asm_write_inst2(assembly, "cmovs", "rdx", "r8");
-            asm_write_inst1c(assembly, "push", "rax", "Quotient.");
-            asm_write_inst1c(assembly, "push", "rdx", "Remainder.");
             break;
         case W_OP_DUPE:
-            asm_write_inst1(assembly, "push", "qword [rsp]");
+            generate_dupen(generator, 1);
             break;
         case W_OP_DUPEN8: {
             int8_t n = read_s8(block, ip + 1);
             ip += 1;
-            for (int i = 0; i < n; ++i) {
-                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * i);
-                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", 8 * (n - i));
-            }
-            asm_write_inst2f(assembly, "sub", "rsp", "%d", 8 * n);
+            generate_dupen(generator, n);
             break;
         }
         case W_OP_DUPEN16: {
             int16_t n = read_s16(block, ip + 1);
             ip += 2;
-            for (int i = 0; i < n; ++i) {
-                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * i);
-                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", 8 * (n - i));
-            }
-            asm_write_inst2f(assembly, "sub", "rsp", "%d", 8 * n);
+            generate_dupen(generator, n);
             break;
         }
         case W_OP_DUPEN32: {
             int32_t n = read_s32(block, ip + 1);
             ip += 4;
-            for (int i = 0; i < n; ++i) {
-                asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * i);
-                asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", 8 * (n - i));
-            }
-            asm_write_inst2f(assembly, "sub", "rsp", "%d", 8 * n);
+            generate_dupen(generator, n);
             break;
         }
         case W_OP_EQUALS:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "sete", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_EQUALS_F32:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
             asm_write_inst1(assembly, "sete", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_EQUALS_F64:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "sete", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_EXIT:
-            asm_write_inst1c(assembly, "pop", "rcx", "Exit code.");
+            asm_write_inst2(assembly, "mov", "rcx", "rdx");
             asm_write_inst1(assembly, "call", "[ExitProcess]");
             break;
         case W_OP_FOR_DEC_START: {
@@ -917,11 +898,13 @@ static void generate_function(struct generator *generator, int func_index) {
             int16_t skip_jump = read_s16(block, ip - 1);
             int skip_jump_addr = ip - 1 + skip_jump;
             int old_offset = 8 * ++generator->loop_level;  // +1 for previous aux base pointer.
-            asm_write_inst1c(assembly, "pop", "rax", "Loop counter.");
-            asm_write_inst2(assembly, "cmp", "rax", "0");
+            asm_write_inst2(assembly, "mov", "rcx", "rdx");  // rcx = loop_counter.
+            asm_write_inst2(assembly, "mov", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "cmp", "rcx", "0");
             asm_write_inst1f(assembly, "jle", ".addr_%d", skip_jump_addr);
             asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdi", old_offset);
-            asm_write_inst2c(assembly, "mov", "rdi", "rax", "Load loop counter.");
+            asm_write_inst2c(assembly, "mov", "rdi", "rcx", "Load loop counter.");
             break;
         }
         case W_OP_FOR_DEC: {
@@ -943,12 +926,14 @@ static void generate_function(struct generator *generator, int func_index) {
             int old_offset = (generator->loop_level + 1)*8;  // +1 for previous aux base pointer.
             generator->loop_level += 2;  // +2 to allow space for loop target.
             int target_offset = 8 * generator->loop_level;  // -1 for counter, +1 for base ptr.
-            asm_write_inst1c(assembly, "pop", "rax", "Load loop target.");
-            asm_write_inst2(assembly, "cmp", "rax", "0");
+            asm_write_inst2(assembly, "mov", "rcx", "rdx");  // rcx = loop_target.
+            asm_write_inst2(assembly, "mov", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "cmp", "rcx", "0");
             asm_write_inst1f(assembly, "jle", ".addr_%d", skip_jump_addr);
-            asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rax", target_offset);
+            asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rcx", target_offset);
             asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdi", old_offset);
-            asm_write_inst2c(assembly, "xor", "rdi", "rdi", "Zero out loop counter.");
+            asm_write_inst2(assembly, "xor", "rdi", "rdi");  // Zero out loop counter.
             break;
         }
         case W_OP_FOR_INC: {
@@ -969,89 +954,74 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             assert(generator->loop_level > 0);
             uint16_t offset = read_u16(block, ip - 1);  // Offset from top of loop stack.
+            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "mov", "rax", "rdx");
             if (offset == 0) {
                 // Current loop.
-                asm_write_inst1(assembly, "push", "rdi");
+                asm_write_inst2(assembly, "mov", "rdx", "rdi");
             }
             else {
                 // Outer loop.
                 int base_offset = generator->loop_level - offset + 1;  // +1 for base ptr.
-                asm_write_inst2f(assembly, "mov", "rax", "[rbx+%d]", 8 * base_offset);
-                asm_write_inst1(assembly, "push", "rax");
+                asm_write_inst2f(assembly, "mov", "rdx", "[rbx+%d]", 8 * base_offset);
             }
             break;
         }
         case W_OP_GREATER_EQUALS:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setge", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_GREATER_EQUALS_F32:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setae", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_GREATER_EQUALS_F64:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setae", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_GREATER_THAN:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setg", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_GREATER_THAN_F32:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
             asm_write_inst1(assembly, "seta", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_GREATER_THAN_F64:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "seta", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_HIGHER_SAME:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setae", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_HIGHER_THAN:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "seta", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_JUMP: {
             ip += 2;
@@ -1064,8 +1034,9 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip - 1 + jump;
-            asm_write_inst1c(assembly, "pop", "rax", "Condition.");
-            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "test", "rcx", "rcx");
+            asm_write_inst2(assembly, "mov", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst1f(assembly, "jnz", ".addr_%d", jump_addr);
             break;
         }
@@ -1073,211 +1044,207 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip -1 + jump;
-            asm_write_inst1c(assembly, "pop", "rax", "Condition.");
             asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "mov", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst1f(assembly, "jz", ".addr_%d", jump_addr);
             break;
         }
         case W_OP_LESS_EQUALS:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setle", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_LESS_EQUALS_F32:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setbe", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_LESS_EQUALS_F64:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setbe", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_LESS_THAN:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setl", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_LESS_THAN_F32:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setb", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_LESS_THAN_F64:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setb", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_LOCAL_GET: {
             ip += 2;
             int index = read_u16(block, ip - 1);
             struct local *local = &function->locals.items[index];
-            for (int i = 0; i < local->size; ++i) {
-                int offset = 1 + function->max_for_loop_level + local->offset + i;
-                asm_write_inst1f(assembly, "push", "qword [rbx+%d]", 8*offset);
+            int word_count = local->size;
+            assert(word_count > 0);
+            asm_write_inst1(assembly, "push", "rax");
+            if (word_count == 1) {
+                asm_write_inst2(assembly, "mov", "rax", "rdx");
             }
+            else {
+                asm_write_inst1(assembly, "push", "rdx");
+            }
+            int offset = 1 + function->max_for_loop_level + local->offset;
+            for (int i = 0; i < word_count - 2; ++i, ++offset) {
+                asm_write_inst1f(assembly, "push", "qword [rbx+%d]", 8 * offset);
+            }
+            if (word_count >= 2) {
+                asm_write_inst2f(assembly, "mov", "rax", "[rbx+%d]", 8 * offset++);
+            }
+            asm_write_inst2f(assembly, "mov", "rdx", "[rbx+%d]", 8 * offset);
             break;
         }
         case W_OP_LOCAL_SET: {
             ip += 2;
             int index = read_u16(block, ip - 1);
             struct local *local = &function->locals.items[index];
-            for (int i = local->size - 1; i >= 0; --i) {
-                int offset = 1 + function->max_for_loop_level + local->offset + i;
-                asm_write_inst1f(assembly, "pop", "qword [rbx+%d]", 8*offset);
+            int word_count = local->size;
+            assert(word_count > 0);
+            int offset = 1 + function->max_for_loop_level + local->offset + word_count - 1;
+            asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdx", 8 * offset--);
+            if (word_count >= 2) {
+                asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdx", 8 * offset--);
             }
+            for (int i = 0; i < word_count - 2; ++i, --offset) {
+                asm_write_inst1f(assembly, "pop", "qword [rbx+%d]", 8 * offset);
+            }
+            if (word_count == 1) {
+                asm_write_inst2(assembly, "mov", "rdx", "rax");
+            }
+            else {
+                asm_write_inst1(assembly, "pop", "rdx");
+            }
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         }
         case W_OP_LOWER_SAME:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setbe", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_LOWER_THAN:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setb", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_MULT:
+            asm_write_inst2(assembly, "imul", "rdx", "rax");  // Multiplication is commutative.
             asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2c(assembly, "imul", "rax", "[rsp]", "Multiplication is commutative.");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
             break;
         case W_OP_MULTF32:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movd", "xmm1", "eax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "mulss", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movd", "eax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movd", "edx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_MULTF64:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movq", "xmm1", "rax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "mulsd", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movq", "rax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_NEG:
-            asm_write_inst1(assembly, "neg", "qword [rsp]");
+            asm_write_inst1(assembly, "neg", "rdx");
             break;
         case W_OP_NEGF32:
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "mov", "rcx", "8000'0000h");
-            asm_write_inst2(assembly, "xor", "rax", "rcx");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "xor", "rdx", "rcx");
             break;
         case W_OP_NEGF64:
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "mov", "rcx", "8000'0000'0000'0000h");
-            asm_write_inst2(assembly, "xor", "rax", "rcx");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "xor", "rdx", "rcx");
             break;
         case W_OP_NOT:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2c(assembly, "xor", "edx", "edx", "Zero out rdx.");
-            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "test", "rdx", "rdx");
             asm_write_inst1(assembly, "setz", "dl");
-            asm_write_inst1(assembly, "push", "rdx");
+            asm_write_inst2(assembly, "movzx", "edx", "dl");
             break;
         case W_OP_NOT_EQUALS:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "cmp", "rax", "rdx");
             asm_write_inst1(assembly, "setne", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_NOT_EQUALS_F32:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setne", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_NOT_EQUALS_F64:
-            asm_write_inst1(assembly, "pop", "rdx");  // RHS.
-            asm_write_inst1(assembly, "pop", "rax");  // LHS.
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
             asm_write_inst1(assembly, "setne", "al");
-            asm_write_inst2(assembly, "movzx", "eax", "al");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_OR:
-            asm_write_inst1c(assembly, "pop", "rdx", "'Else' value.");
-            asm_write_inst2c(assembly, "mov", "rax", "[rsp]", "'Then' value.");
             asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst2(assembly, "cmovz", "rax", "rdx");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "cmovnz", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_PRINT:
-            asm_write_inst1c(assembly, "pop", "rdx", "Value to be printed.");
-            asm_write_inst2c(assembly, "lea", "rcx", "[fmt_u64]", "Format string.");
-            asm_write_inst2c(assembly, "mov", "rbp", "rsp",
-                            "Save rsp for later (rbp is non-volatile in MS x64)");
-            asm_write_inst2c(assembly, "and", "spl", "0F0h", "Align stack.");
-            asm_write_inst2c(assembly, "sub", "rsp", "32\t", "Shadow space.");
+            asm_write_inst2(assembly, "mov", "r12", "rax");
+            // NOTE: rdx already holds word to be printed (2nd printf arg).
+            asm_write_inst2(assembly, "lea", "rcx", "[fmt_u64]");
+            asm_write_inst2(assembly, "mov", "rbp", "rsp");
+            asm_write_inst2(assembly, "and", "spl", "0F0h");
+            asm_write_inst2(assembly, "sub", "rsp", "32\t");
             asm_write_inst1(assembly, "call", "[printf]");
-            asm_write_inst2c(assembly, "mov", "rsp", "rbp", "Restore cached version of rsp.");
+            asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            asm_write_inst2(assembly, "mov", "rdx", "r12");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_PRINT_BOOL:
-            asm_write_inst1(assembly, "pop", "rax");
+            asm_write_inst2(assembly, "mov", "r12", "rax");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_bool_false]");
-            asm_write_inst2(assembly, "lea", "rdx", "[fmt_bool_true]");
-            asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst2(assembly, "cmovnz", "rcx", "rdx");
+            asm_write_inst2(assembly, "lea", "rax", "[fmt_bool_true]");
+            asm_write_inst2(assembly, "test", "rdx", "rdx");
+            asm_write_inst2(assembly, "cmovnz", "rcx", "rax");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
             asm_write_inst2(assembly, "and", "spl", "0F0h");
             asm_write_inst2(assembly, "sub", "rsp", "32");
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            asm_write_inst2(assembly, "mov", "rdx", "r12");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_PRINT_CHAR:
             // NOTE: We treat a 'char' as an array of 4 bytes and print it as a string.
             // We get the null terminator for free since the upper 4 bytes will be zero,
             // as will any unused bytes in the UTF-8 encoding.
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "mov", "[char_print_buf]", "rax");
+            asm_write_inst2(assembly, "mov", "r12", "rax");
+            asm_write_inst2(assembly, "mov", "[char_print_buf]", "rdx");
             asm_write_inst2(assembly, "lea", "rdx", "[char_print_buf]");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_char]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
@@ -1285,19 +1252,23 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "sub", "rsp", "32");
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            asm_write_inst2(assembly, "mov", "rdx", "r12");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_PRINT_STRING:
-            asm_write_inst1f(assembly, "pop", "rdx", "Length.");
-            asm_write_inst1f(assembly, "pop", "r8", "Start pointer.");
+            // Length field already in rdx.
+            asm_write_inst2(assembly, "mov", "r8", "rax");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_string]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
             asm_write_inst2(assembly, "and", "spl", "0F0h");
             asm_write_inst2(assembly, "sub", "rsp", "32");
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            asm_write_inst1(assembly, "pop", "rdx");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_PRINT_FLOAT:
-            asm_write_inst1(assembly, "pop", "rdx");
+            asm_write_inst2(assembly, "mov", "r12", "rax");
             asm_write_inst2(assembly, "movq", "xmm1", "rdx");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_f64]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
@@ -1305,42 +1276,43 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "sub", "rsp", "32");
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            asm_write_inst2(assembly, "mov", "rdx", "r12");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_PRINT_INT:
-            asm_write_inst1(assembly, "pop", "rdx");
+            asm_write_inst2(assembly, "mov", "r12", "rax");
             asm_write_inst2(assembly, "lea", "rcx", "[fmt_s64]");
             asm_write_inst2(assembly, "mov", "rbp", "rsp");
             asm_write_inst2(assembly, "and", "spl", "0F0h");
             asm_write_inst2(assembly, "sub", "rsp", "32");
             asm_write_inst1(assembly, "call", "[printf]");
             asm_write_inst2(assembly, "mov", "rsp", "rbp");
+            asm_write_inst2(assembly, "mov", "rdx", "r12");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_SUB:
-            BIN_OP("sub");
+            // NOTE: we do a + (-b) instead of straight a - b.
+            asm_write_inst1(assembly, "neg", "rdx");
+            asm_write_inst2(assembly, "add", "rdx", "rax");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_SUBF32:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movd", "xmm1", "eax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
+            asm_write_inst2(assembly, "movd", "xmm1", "edx");
             asm_write_inst2(assembly, "subss", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movd", "eax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movd", "edx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_SUBF64:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movq", "xmm1", "rax");
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
+            asm_write_inst2(assembly, "movq", "xmm1", "rax");
             asm_write_inst2(assembly, "subsd", "xmm0", "xmm1");
-            asm_write_inst2(assembly, "movq", "rax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm0");
+            asm_write_inst1(assembly, "pop", "rax");
             break;
         case W_OP_SWAP:
-            asm_write_inst2(assembly, "mov", "rax", "[rsp]");
-            asm_write_inst2(assembly, "mov", "rdx", "[rsp+8]");
-            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rdx");
+            // This could be replaced by 3 movs.
+            asm_write_inst2(assembly, "xchg", "rdx", "rax");
             break;
         case W_OP_SWAP_COMPS8: {
             int lhs_size = read_s8(block, ip + 1);
@@ -1364,150 +1336,109 @@ static void generate_function(struct generator *generator, int func_index) {
             break;
         }
         case W_OP_SX8:
-            asm_write_inst2(assembly, "movsx", "rax", "byte [rsp]");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "movsx", "rdx", "dl");
             break;
         case W_OP_SX8L:
-            asm_write_inst2(assembly, "movsx", "rax", "byte [rsp+8]");
-            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            asm_write_inst2(assembly, "movsx", "rax", "al");
             break;
         case W_OP_SX16:
-            asm_write_inst2(assembly, "movsx", "rax", "word [rsp]");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "movsx", "rdx", "dx");
             break;
         case W_OP_SX16L:
-            asm_write_inst2(assembly, "movsx", "rax", "word [rsp+8]");
-            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            asm_write_inst2(assembly, "movsx", "rax", "ax");
             break;
         case W_OP_SX32:
-            asm_write_inst2(assembly, "movsxd", "rax", "dword [rsp]");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "movsxd", "rdx", "edx");
             break;
         case W_OP_SX32L:
-            asm_write_inst2(assembly, "movsxd", "rax", "dword [rsp+8]");
-            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            asm_write_inst2(assembly, "movsxd", "rax", "eax");
             break;
         case W_OP_ZX8:
-            asm_write_inst2(assembly, "movzx", "eax", "byte [rsp]");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "dl");
             break;
         case W_OP_ZX8L:
-            asm_write_inst2(assembly, "movzx", "eax", "byte [rsp+8]");
-            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            asm_write_inst2(assembly, "movzx", "eax", "al");
             break;
         case W_OP_ZX16:
-            asm_write_inst2(assembly, "movzx", "eax", "word [rsp]");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "movzx", "edx", "dx");
             break;
         case W_OP_ZX16L:
-            asm_write_inst2(assembly, "movzx", "eax", "word [rsp+8]");
-            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            asm_write_inst2(assembly, "movzx", "eax", "ax");
             break;
         case W_OP_ZX32:
-            asm_write_inst2(assembly, "mov", "eax", "[rsp]");
-            asm_write_inst2(assembly, "mov", "[rsp]", "rax");
+            asm_write_inst2(assembly, "mov", "edx", "edx");
             break;
         case W_OP_ZX32L:
-            asm_write_inst2(assembly, "mov", "eax", "[rsp+8]");
-            asm_write_inst2(assembly, "mov", "[rsp+8]", "rax");
+            asm_write_inst2(assembly, "mov", "eax", "eax");
             break;
         case W_OP_FPROM:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movd", "xmm2", "eax");
+            asm_write_inst2(assembly, "movd", "xmm2", "edx");
             asm_write_inst2(assembly, "cvtss2sd", "xmm1", "xmm2");
-            asm_write_inst2(assembly, "movq", "rax", "xmm1");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm1");
             break;
         case W_OP_FPROML:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst1(assembly, "pop", "rcx");
-            asm_write_inst2(assembly, "movd", "xmm2", "ecx");
+            asm_write_inst2(assembly, "movd", "xmm2", "edx");
             asm_write_inst2(assembly, "cvtss2sd", "xmm1", "xmm2");
-            asm_write_inst2(assembly, "movq", "rcx", "xmm1");
-            asm_write_inst1(assembly, "push", "rcx");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm1");
             break;
         case W_OP_FDEM:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movq", "xmm2", "rax");
+            asm_write_inst2(assembly, "movq", "xmm2", "rdx");
             asm_write_inst2(assembly, "cvtsd2ss", "xmm1", "xmm2");
-            asm_write_inst2(assembly, "movd", "eax", "xmm1");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movd", "edx", "xmm1");
             break;
         case W_OP_ICONVF32:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "cvtsi2ss", "xmm0", "rax");
-            asm_write_inst2(assembly, "movd", "eax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "cvtsi2ss", "xmm0", "rdx");
+            asm_write_inst2(assembly, "movd", "edx", "xmm0");
             break;
         case W_OP_ICONVF32L:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst1(assembly, "pop", "rcx");
             asm_write_inst2(assembly, "cvtsi2ss", "xmm0", "rcx");
             asm_write_inst2(assembly, "movd", "ecx", "xmm0");
-            asm_write_inst1(assembly, "push", "rcx");
-            asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_ICONVF64:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rax");
-            asm_write_inst2(assembly, "movq", "rax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rdx");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm0");
             break;
         case W_OP_ICONVF64L:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst1(assembly, "pop", "rcx");
             asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rcx");
             asm_write_inst2(assembly, "movd", "rcx", "xmm0");
-            asm_write_inst1(assembly, "push", "rcx");
-            asm_write_inst1(assembly, "push", "rax");
             break;
         case W_OP_FCONVI32:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movd", "xmm0", "eax");
-            asm_write_inst2(assembly, "cvtss2si", "rax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movd", "xmm0", "edx");
+            asm_write_inst2(assembly, "cvtss2si", "rdx", "xmm0");
             break;
         case W_OP_FCONVI64:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "movq", "xmm0", "rax");
-            asm_write_inst2(assembly, "cvtsd2si", "rax", "xmm0");
-            asm_write_inst1(assembly, "push", "rax");
+            asm_write_inst2(assembly, "movq", "xmm0", "rdx");
+            asm_write_inst2(assembly, "cvtsd2si", "rdx", "xmm0");
             break;
         case W_OP_ICONVB:
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2(assembly, "xor", "ecx", "ecx");
-            asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst1(assembly, "setnz", "cl");
-            asm_write_inst1(assembly, "push", "rcx");
+            asm_write_inst2(assembly, "test", "rdx", "rdx");
+            asm_write_inst1(assembly, "setnz", "dl");
+            asm_write_inst2(assembly, "movzx", "edx", "dl");
             break;
         case W_OP_FCONVB32:
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "xor", "ecx", "ecx");  // 0f32.
             asm_write_inst2(assembly, "movd", "xmm0", "eax");
             asm_write_inst2(assembly, "movd", "xmm1", "ecx");
             asm_write_inst2(assembly, "ucomiss", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setne", "cl");  // Also handles unordered case.
-            asm_write_inst1(assembly, "push", "rcx");
+            asm_write_inst1(assembly, "setne", "dl");  // Also handles unordered case.
+            asm_write_inst2(assembly, "movzx", "edx", "dl");
             break;
         case W_OP_FCONVB64:
-            asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst2(assembly, "xor", "ecx", "ecx");  // 0f64.
             asm_write_inst2(assembly, "movq", "xmm0", "rax");
             asm_write_inst2(assembly, "movq", "xmm1", "rcx");
             asm_write_inst2(assembly, "ucomisd", "xmm0", "xmm1");
-            asm_write_inst1(assembly, "setne", "cl");  // Also handles unordered case.
-            asm_write_inst1(assembly, "push", "rcx");
+            asm_write_inst1(assembly, "setne", "dl");  // Also handles unordered case.
+            asm_write_inst2(assembly, "movzx", "edx", "dl");
             break;
         case W_OP_ICONVC32:
-            asm_write_inst1(assembly, "pop", "rax");
+            // 10ffffh is the highest Unicode codepoint
             asm_write_inst2(assembly, "xor", "ecx", "ecx");
-            asm_write_inst2(assembly, "mov", "rdx", "10ffffh");
-            asm_write_inst2(assembly, "test", "rax", "rax");
-            asm_write_inst2(assembly, "cmovns", "rcx", "rax");
-            asm_write_inst2(assembly, "cmp", "rax", "rdx");
-            asm_write_inst2(assembly, "cmovg", "rcx", "rdx");
-            asm_write_inst1(assembly, "push", "rcx");
+            asm_write_inst2(assembly, "test", "rdx", "rdx");
+            asm_write_inst2(assembly, "cmovs", "edx", "ecx");
+            asm_write_inst2(assembly, "mov", "rcx", "10ffffh");
+            asm_write_inst2(assembly, "cmp", "edx", "ecx");
+            asm_write_inst2(assembly, "cmova", "rdx", "rcx");
             break;
         case W_OP_CHAR_8CONV32:
             // NOTE: We use the Bude calling convention here since this is an internal function.
@@ -1707,19 +1638,19 @@ static void generate_function(struct generator *generator, int func_index) {
         case W_OP_COMP_FIELD_GET8: {
             int offset = read_s8(block, ip + 1);
             ip += 1;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
+            generate_comp_field_get(generator, offset);
             break;
         }
         case W_OP_COMP_FIELD_GET16: {
             int offset = read_s16(block, ip + 1);
             ip += 2;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
+            generate_comp_field_get(generator, offset);
             break;
         }
         case W_OP_COMP_FIELD_GET32: {
             int offset = read_s32(block, ip + 1);
             ip += 4;
-            asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
+            generate_comp_field_get(generator, offset);
             break;
         }
         case W_OP_PACK_FIELD_SET: {
@@ -1732,76 +1663,61 @@ static void generate_function(struct generator *generator, int func_index) {
         case W_OP_COMP_FIELD_SET8: {
             int offset = read_s8(block, ip + 1);
             ip += 1;
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (offset - 1));
+            generate_comp_field_set(generator, offset);
             break;
         }
         case W_OP_COMP_FIELD_SET16: {
             int offset = read_s16(block, ip + 1);
             ip += 2;
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (offset - 1));
+            generate_comp_field_set(generator, offset);
             break;
         }
         case W_OP_COMP_FIELD_SET32: {
             int offset = read_s32(block, ip + 1);
             ip += 4;
-            asm_write_inst1(assembly, "pop", "rax");
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (offset - 1));
+            generate_comp_field_set(generator, offset);
             break;
         }
         case W_OP_COMP_SUBCOMP_GET8: {
             int offset = read_s8(block, ip + 1);
             int size = read_s8(block, ip + 2);
             ip += 2;
-            for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
-            }
+            generate_subcomp_get(generator, offset, size);
             break;
         }
         case W_OP_COMP_SUBCOMP_GET16: {
             int offset = read_s16(block, ip + 1);
             int size = read_s16(block, ip + 3);
             ip += 4;
-            for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
-            }
+            generate_subcomp_get(generator, offset, size);
             break;
         }
         case W_OP_COMP_SUBCOMP_GET32: {
             int offset = read_s32(block, ip + 1);
             int size = read_s32(block, ip + 5);
             ip += 8;
-            for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
-            }
+            generate_subcomp_get(generator, offset, size);
             break;
         }
         case W_OP_COMP_SUBCOMP_SET8: {
             int offset = read_s8(block, ip + 1);
             int size = read_s8(block, ip + 2);
             ip += 2;
-            for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
-            }
+            generate_subcomp_set(generator, offset, size);
             break;
         }
         case W_OP_COMP_SUBCOMP_SET16: {
             int offset = read_s16(block, ip + 1);
             int size = read_s16(block, ip + 3);
             ip += 4;
-            for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
-            }
+            generate_subcomp_set(generator, offset, size);
             break;
         }
         case W_OP_COMP_SUBCOMP_SET32: {
             int offset = read_s32(block, ip + 1);
             int size = read_s32(block, ip + 5);
             ip += 8;
-            for (int i = 0; i < size; ++i) {
-                asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 1));
-            }
+            generate_subcomp_set(generator, offset, size);
             break;
         }
         case W_OP_ARRAY_GET8: {
@@ -1893,8 +1809,6 @@ static void generate_function(struct generator *generator, int func_index) {
             break;
         }
     }
-
-#undef BIN_OP
 }
 
 static void generate_decode_utf8(struct generator *generator) {
