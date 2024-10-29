@@ -170,25 +170,71 @@ static void generate_swap_comps(struct generator *generator, int lhs_size, int r
     }
 }
 
+static bool is_power_of_two(unsigned n) {
+    return (n & (n-1)) == 0 && n != 0;
+}
+
+static int get_power_of_two(unsigned n) {
+    assert(is_power_of_two(n));
+    int power = 0;
+    for (n -= 1; n != 0; ++power) {
+        n &= n - 1;
+    }
+    return power;
+}
+
 static void generate_array_get(struct generator *generator, int element_count, int word_count) {
     struct asm_block *assembly = generator->assembly;
-    asm_write_inst1(assembly, "pop", "rax");  // Index.
     // TODO: Add optional bounds checking.
-    asm_write_inst1(assembly, "neg", "rax");
-    asm_write_inst2f(assembly, "add", "rax", "%d", element_count - 1);  // Offset - 1.
-    for (int i = 0; i < word_count; ++i) {
-        asm_write_inst1(assembly, "push", "qword [rsp+8*rax]");
+    if (word_count > 1) {
+        if (is_power_of_two(word_count)) {
+            // Use left bitshift for powers of two.
+            asm_write_inst2f(assembly, "shl", "rdx", "%d", get_power_of_two(word_count));
+        }
+        else {
+            asm_write_inst2f(assembly, "mul", "rdx", "%d", word_count);
+        }
+    }
+    asm_write_inst1(assembly, "neg", "rdx");  // Index.
+    // [(5 42 2 -17) (-7 31 69 0) (77 19 33 -9)] 2
+    // [_2 _1 _0 5 42 2 -17 -7 31 69 0 77 19 33 -8 77 19< _0 _1 _2 _3 _4 _5 _6 _7<] rax:33 rdx:-9
+    // rcx:------------------------------------^
+    asm_write_inst2f(assembly, "lea", "rcx", "[rsp+rdx*8+%d]", (element_count - 1) * word_count * 8);
+    asm_write_inst2(assembly, "test", "rcx", "rsp");
+    asm_write_inst2(assembly, "cmovz", "rdx", "rax");
+    asm_write_inst2(assembly, "cmovnz", "rdx", "[rcx-8]");
+    if (word_count <= 1) return;
+    asm_write_inst1(assembly, "push", "rax");
+    asm_write_inst2(assembly, "mov", "rax", "[rcx]");
+    for (int i = word_count - 2; i >= 1; --i) {
+        asm_write_inst1f(assembly, "push", "qword [rcx+%d]", 8 * i);
     }
 }
 
 static void generate_array_set(struct generator *generator, int element_count, int word_count) {
     struct asm_block *assembly = generator->assembly;
-    asm_write_inst1(assembly, "pop", "rax");  // Index.
-    asm_write_inst1(assembly, "neg", "rax");
-    asm_write_inst2f(assembly, "add", "rax", "%d", element_count - 1);  // Offset - 1.
-    for (int i = 0; i < word_count; ++i) {
-        asm_write_inst1(assembly, "pop", "qword [rsp+8*rax]");
+    if (word_count > 1) {
+        if (is_power_of_two(word_count)) {
+            // Use left bitshift for powers of two.
+            asm_write_inst2f(assembly, "shl", "rdx", "%d", get_power_of_two(word_count));
+        }
+        else {
+            asm_write_inst2f(assembly, "mul", "rdx", "%d", word_count);
+        }
     }
+    // [(5 42 -7) (1 2 3)] (11 54 9) 1
+    // [5 42 -7 11< 54 9 11 54 _0 _1 _2] rax:54 rdx:9
+    // rcx:-------------^
+    // mov [rcx], rax
+    // pop rax
+    asm_write_inst1(assembly, "neg", "rdx");  // Index.
+    asm_write_inst2f(assembly, "lea", "rcx", "[rsp+rdx*8+%d]", (element_count * word_count - 1) * 8);
+    asm_write_inst2(assembly, "mov", "[rcx]", "rax");
+    for (int i = 1; i < word_count; ++i) {
+        asm_write_inst1f(assembly, "pop", "qword [rcx+%d]", 8 * i);
+    }
+    asm_write_inst1(assembly, "pop", "rdx");
+    asm_write_inst1(assembly, "pop", "rax");
 }
 
 static void generate_external_call_bude(struct generator *generator,
