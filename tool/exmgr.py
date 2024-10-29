@@ -115,7 +115,7 @@ def build_handler(args: argparse.Namespace) -> None:
                                    f"({fasm_exit_status}):")
                     log_with_level(0, fasm_proc.stderr.decode())
             else:
-                log_with_level(-1, "File {filename!r} failed to produce assembly" \
+                log_with_level(-1, f"File {filename.name!r} failed to produce assembly" \
                                f" ({bude_exit_status}):")
                 log_with_level(0, bude_proc.stderr.decode())
     if error_level == 0:
