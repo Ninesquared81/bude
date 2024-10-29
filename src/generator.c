@@ -1752,15 +1752,20 @@ static void generate_decode_utf8(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "decode_utf8");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
-    asm_write_inst1(assembly, "pop", "rax");
-    asm_write_inst2c(assembly, "xor", "edx", "edx", "UTF-32 result.");
-    asm_write_inst2(assembly, "mov", "dl", "al");
-    asm_write_inst2(assembly, "shr", "eax", "8");
+    asm_write_inst2(assembly, "mov", "r8", "rdx");
+    asm_write_inst2(assembly, "shr", "r8", "8");
+    asm_write_inst2(assembly, "movzx", "edx", "dl");
     asm_write_inst2(assembly, "test", "dl", "dl");
     // 1 byte: jump to end.
     asm_write_inst1(assembly, "jns", ".func_end");
     // 2+ bytes.
     asm_write_inst2c(assembly, "mov", "ecx", "1", "Number of continuation bytes.");
+    // CF is set/cleared based on the last bit shifted.
+    // For multibyte UTF-8, the first byte has a prefix of at least 3 bits
+    // (110, 1110, 11110 for 1, 2, and 3 continuation bytes).
+    // By left-shifting dl by 3 bits, we can see if there is one continuation
+    // byte (CF=0) or more (CF=1). If we had more continuation bytes, we keep left-shifting
+    // by 1 until CF is cleared. We assume the UTF-8 bytes are well-formed for this.
     asm_write_inst2(assembly, "shl", "dl", "3");
     // 2 bytes: handle continuation bytes.
     asm_write_inst1(assembly, "jnc", ".start_cont_bytes");
@@ -1774,16 +1779,16 @@ static void generate_decode_utf8(struct generator *generator) {
     asm_label(assembly, ".start_cont_bytes");
     asm_write_inst2(assembly, "shr", "dl", "cl");
     asm_write_inst2(assembly, "shr", "dl", "2");
+    asm_write_inst2(assembly, "movzx", "edx", "dl");  // Avoid partial register stall.
     asm_label(assembly, ".cont_bytes");
-    asm_write_inst2(assembly, "shl", "edx", "8");
-    asm_write_inst2(assembly, "mov", "dl", "al");
-    asm_write_inst2(assembly, "shr", "eax", "8");
-    asm_write_inst2(assembly, "shl", "dl", "2");
-    asm_write_inst2(assembly, "shr", "edx", "2");
+    asm_write_inst2(assembly, "shl", "edx", "6");
+    asm_write_inst2(assembly, "mov", "r9", "r8");
+    asm_write_inst2(assembly, "and", "r9", "3fh");  // Keep only the last 6 bits.
+    asm_write_inst2(assembly, "xor", "edx", "r9d");
+    asm_write_inst2(assembly, "shr", "r8", "8");
     asm_write_inst1(assembly, "dec", "ecx");
     asm_write_inst1(assembly, "jnz", ".cont_bytes");
     asm_label(assembly, ".func_end");
-    asm_write_inst1(assembly, "push", "rdx");
     asm_write_inst1(assembly, "push", "rbp");
     asm_write_inst0(assembly, "ret");
 }
@@ -1792,36 +1797,36 @@ static void generate_encode_utf8(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "encode_utf8");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
-    asm_write_inst1(assembly, "pop", "rax");
-    asm_write_inst2c(assembly, "xor", "edx", "edx", "UTF-8 result.");
-    asm_write_inst2(assembly, "mov", "dl", "al");
-    asm_write_inst2(assembly, "cmp", "eax", "80h");
+    asm_write_inst2(assembly, "mov", "r8", "rdx");
+    asm_write_inst2(assembly, "movzx", "edx", "dl");
+    asm_write_inst2(assembly, "cmp", "r8", "80h");
     asm_write_inst1(assembly, "jl", ".func_end");
     asm_write_inst2c(assembly, "mov", "ecx", "1", "Number of continuation bytes.");
-    asm_write_inst2c(assembly, "mov", "r8b", "1fh", "First byte prefix mask.");
-    asm_write_inst2(assembly, "cmp", "eax", "800h");
+    asm_write_inst2c(assembly, "mov", "r9", "-0e1h", "First byte prefix mask.");
+    asm_write_inst2(assembly, "cmp", "r8", "800h");
     asm_write_inst1(assembly, "jl", ".cont_bytes");
     asm_write_inst1(assembly, "inc", "ecx");
-    asm_write_inst2(assembly, "shr", "r8b", "1");
-    asm_write_inst2(assembly, "cmp", "eax", "10000h");
+    asm_write_inst2(assembly, "shr", "r9", "1");
+    asm_write_inst2(assembly, "cmp", "r8", "10000h");
     asm_write_inst1(assembly, "jl", ".cont_bytes");
     asm_write_inst1(assembly, "inc", "ecx");
-    asm_write_inst2(assembly, "shr", "r8b", "1");
+    asm_write_inst2(assembly, "shr", "r9", "1");
     asm_label(assembly, ".cont_bytes");
-    asm_write_inst2(assembly, "and", "dl", "3fh");  // Mask off first two bits.
-    asm_write_inst2(assembly, "or", "dl", "80h");   // Set first 2 bits to '10'.
+    asm_write_inst2(assembly, "and", "edx", "-0c1h");  // Mask off first two bits (-0c1h = 11...100111111b).
+    asm_write_inst2(assembly, "xor", "edx", "80h");   // Set first 2 bits to '10'.
     asm_write_inst2(assembly, "shl", "edx", "8");
-    asm_write_inst2(assembly, "shr", "eax", "6");
-    asm_write_inst2(assembly, "mov", "dl", "al");
+    asm_write_inst2(assembly, "shr", "r8", "6");
+    asm_write_inst2(assembly, "movzx", "r10", "r8b");
+    asm_write_inst2(assembly, "xor", "rdx", "r10");  // Move next byte into rdx.
     asm_write_inst1(assembly, "dec", "ecx");
     asm_write_inst1(assembly, "jnz", ".cont_bytes");
     // Add prefix to first byte.
-    asm_write_inst2(assembly, "and", "dl", "r8b");
-    asm_write_inst1(assembly, "not", "r8b");
-    asm_write_inst2(assembly, "shl", "r8b", "1");
-    asm_write_inst2(assembly, "or", "dl", "r8b");
+    asm_write_inst2(assembly, "and", "rdx", "r9");
+    asm_write_inst1(assembly, "not", "r9");
+    asm_write_inst2(assembly, "shl", "r9", "1");
+    asm_write_inst2(assembly, "movzx", "r9", "r9b");  // Clear upper bits of r9.
+    asm_write_inst2(assembly, "xor", "rdx", "r9");
     asm_label(assembly, ".func_end");
-    asm_write_inst1(assembly, "push", "rdx");
     asm_write_inst1(assembly, "push", "rbp");
     asm_write_inst0(assembly, "ret");
 }
@@ -1830,23 +1835,20 @@ static void generate_decode_utf16(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "decode_utf16");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
-    asm_write_inst1(assembly, "pop", "rax");
-    asm_write_inst2c(assembly, "xor", "edx", "edx", "UTF-32 result.");
-    asm_write_inst2(assembly, "mov", "dx", "ax");
-    asm_write_inst2(assembly, "and", "ax", "0fc00h");
-    asm_write_inst2(assembly, "cmp", "ax", "0d800h");
+    asm_write_inst2(assembly, "mov", "r8", "rdx");
+    asm_write_inst2(assembly, "movzx", "edx", "dx");
+    asm_write_inst2(assembly, "and", "r8", "-400h");
+    asm_write_inst2(assembly, "cmp", "r8w", "0d800h");
     asm_write_inst1(assembly, "jne", ".func_end");
     // Surrogate pairs.
-    asm_write_inst2(assembly, "shr", "eax", "16");
-    asm_write_inst2(assembly, "sub", "dx", "0d800h");
-    asm_write_inst2(assembly, "shl", "edx", "16");
-    asm_write_inst2(assembly, "mov", "dx", "ax");
+    asm_write_inst2(assembly, "sub", "edx", "0d800h");
+    asm_write_inst2(assembly, "shl", "edx", "10");
+    asm_write_inst2(assembly, "shr", "r8", "16");
     // NOTE: We don't check to make sure the second unit is a low surrogate.
-    asm_write_inst2(assembly, "shl", "dx", "6");
-    asm_write_inst2(assembly, "shr", "edx", "6");
+    asm_write_inst2(assembly, "and", "r8", "3ffh");
+    asm_write_inst2(assembly, "xor", "rdx", "r8");
     asm_write_inst2(assembly, "add", "edx", "10000h");  // Convert complement to codepoint.
     asm_label(assembly, ".func_end");
-    asm_write_inst1(assembly, "push", "rdx");
     asm_write_inst1(assembly, "push", "rbp");
     asm_write_inst0(assembly, "ret");
 }
@@ -1855,21 +1857,19 @@ static void generate_encode_utf16(struct generator *generator) {
     struct asm_block *assembly = generator->assembly;
     asm_label(assembly, "encode_utf16");
     asm_write_inst1c(assembly, "pop", "rbp", "Return address.");
-    asm_write_inst1(assembly, "pop", "rax");
-    asm_write_inst2c(assembly, "mov", "edx", "eax", "UTF-16 result.");
-    asm_write_inst2(assembly, "sub", "eax", "10000h");
+    asm_write_inst2(assembly, "mov", "r8", "rdx");
+    asm_write_inst2(assembly, "sub", "r8", "10000h");
     asm_write_inst1(assembly, "jl", ".func_end");
     // Need surrogate pairs.
     // eax now contains the complement.
-    asm_write_inst2(assembly, "mov", "dx", "ax");
+    asm_write_inst2(assembly, "movzx", "edx", "r8w");
     asm_write_inst2(assembly, "and", "edx", "3ffh");  // Clear high bits of edx (not just dx).
-    asm_write_inst2(assembly, "or", "dx", "0dc00h");  // Low surrogate.
+    asm_write_inst2(assembly, "xor", "edx", "0dc00h");  // Low surrogate.
     asm_write_inst2(assembly, "shl", "edx", "16");
-    asm_write_inst2(assembly, "shr", "eax", "10");
-    asm_write_inst2(assembly, "or", "ax", "0d800h");  // High surrogate.
-    asm_write_inst2(assembly, "or", "edx", "eax");  // Combine surrogates.
+    asm_write_inst2(assembly, "shr", "r8", "10");
+    asm_write_inst2(assembly, "xor", "r8", "0d800h");  // High surrogate.
+    asm_write_inst2(assembly, "xor", "rdx", "r8");  // Combine surrogates.
     asm_label(assembly, ".func_end");
-    asm_write_inst1(assembly, "push", "rdx");
     asm_write_inst1(assembly, "push", "rbp");
     asm_write_inst0(assembly, "ret");
 }
