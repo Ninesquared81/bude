@@ -397,15 +397,15 @@ static void generate_external_call_bude(struct generator *generator,
     asm_write_inst1f(generator->assembly, "call", "[%"PRI_SV"]", SV_FMT(external->name));
 }
 
-static int move_comp_to_aux(struct generator *generator, type_index type, int end_offset) {
-    int word_count = type_word_count(&generator->module->types, type);
+// NOTE: In this function, the stack is referenced throguh `rbp`, including the top two elements.
+static void move_comp_to_aux(struct generator *generator, int word_count, int end_offset) {
     for (int i = 0; i < word_count; ++i) {
+        // NOTE: this function reverses the stack words of the comp, putting it in its canonical form on aux.
         int field_offset = end_offset + word_count - i + 1;
-        asm_write_inst2f(generator->assembly, "mov", "rax", "[rbp+%d]", 8 * field_offset);
-        asm_write_inst2f(generator->assembly, "mov", "[rsi+%d]", "rax", 8 * i);
+        asm_write_inst2f(generator->assembly, "mov", "rcx", "[rbp+%d]", 8 * field_offset);
+        asm_write_inst2f(generator->assembly, "mov", "[rsi+%d]", "rcx", 8 * i);
     }
     asm_write_inst2f(generator->assembly, "add", "rsi", "%d", 8 * word_count);
-    return word_count;
 }
 
 static void generate_external_call_ms_x64(struct generator *generator,
@@ -416,6 +416,8 @@ static void generate_external_call_ms_x64(struct generator *generator,
     struct asm_block *assembly = generator->assembly;
     type_index ret_type = (external->sig.ret_count > 0) ? external->sig.rets[0] : TYPE_ERROR;
     assert(param_count >= 0);
+    asm_write_inst1(assembly, "push", "rax");
+    asm_write_inst1(assembly, "push", "rdx");
     asm_write_inst2(assembly, "lea", "rbp", "[rsp]");
     asm_write_inst2(assembly, "and", "spl", "0F0h");
     if (param_count > 4 && param_count % 2 == 1) {
@@ -428,11 +430,13 @@ static void generate_external_call_ms_x64(struct generator *generator,
     bool overlong_ret = type_word_count(types, ret_type) > 1;
     for (; offset < param_count - 4 + overlong_ret; ++offset) {
         type_index type = params[offset + 4];
-        if (!is_comp(types, type)) {
+        int word_count = type_word_count(types, type);
+        assert(word_count > 0);
+        if (word_count == 1) {
             asm_write_inst1f(assembly, "push", "qword [rbp+%d]", 8 * offset);
         }
         else {
-            int word_count = move_comp_to_aux(generator, type, offset);
+            move_comp_to_aux(generator, type, offset);
             aux_alloc_count += word_count;
             asm_write_inst2f(assembly, "lea", "rax", "[rsi-%d]", 8 * word_count);
             asm_write_inst1(assembly, "push", "rax");  // Pointer to start of comp.
@@ -449,7 +453,7 @@ static void generate_external_call_ms_x64(struct generator *generator,
             asm_write_inst2f(assembly, "movd", floatreg, "dword [rbp+%d]", 8 * offset); \
         }                                                               \
         else if (type == TYPE_F64) {                                    \
-            asm_write_inst2f(assembly, "movq", floatreg, "qword [rbp+%d", 8 * offset); \
+            asm_write_inst2f(assembly, "movq", floatreg, "qword [rbp+%d]", 8 * offset); \
         }                                                               \
         else {                                                          \
             move_comp_to_aux(generator, type, offset);                  \
@@ -500,33 +504,40 @@ static void generate_external_call_ms_x64(struct generator *generator,
     asm_write_inst2f(assembly, "lea", "rsp", "[rbp+%d]", 8 * param_count);
     if (overlong_ret) {
         int word_count = type_word_count(types, ret_type);
-        for (int i = 0; i < word_count; ++i) {
+        assert(word_count >= 2);
+        for (int i = 0; i < word_count - 2; ++i) {
             asm_write_inst1f(assembly, "push", "qword [rax+%d]", 8 * i);
         }
+        asm_write_inst2f(assembly, "mov", "rdx", "[rax+%d]", 8 * (word_count - 1));
+        asm_write_inst2f(assembly, "mov", "rax", "[rax+%d]", 8 * (word_count - 2));
     }
     else if (external->sig.ret_count > 0) {
         // External functions have either 0 or 1 return value(s), no more.
         assert(external->sig.ret_count == 1);
         int ret_size = type_size(types, ret_type);
         if (ret_type == TYPE_F64) {
-            asm_write_inst2(assembly, "movq", "rax", "xmm0");
+            asm_write_inst2(assembly, "movq", "rdx", "xmm0");
         }
         else if (ret_type == TYPE_F32) {
-            asm_write_inst2(assembly, "movd", "eax", "xmm0");
+            asm_write_inst2(assembly, "movd", "edx", "xmm0");
         }
         else if (ret_size == 1) {
-            asm_write_inst2(assembly, "movzx", "eax", "al");
+            asm_write_inst2(assembly, "movzx", "edx", "al");
         }
         else if (ret_size == 2) {
-            asm_write_inst2(assembly, "movzx", "eax", "ax");
+            asm_write_inst2(assembly, "movzx", "edx", "ax");
         }
         else if (ret_size == 4) {
-            asm_write_inst2(assembly, "mov", "eax", "eax");
+            asm_write_inst2(assembly, "mov", "edx", "eax");
         }
         else {
             assert(ret_size == 8 && "Unaccounted-for return value size");
         }
-        asm_write_inst1(assembly, "push", "rax");
+        asm_write_inst1(assembly, "pop", "rax");
+    }
+    else {
+        asm_write_inst1(assembly, "pop", "rdx");
+        asm_write_inst1(assembly, "pop", "rax");
     }
     if (aux_alloc_count > 0) {
         asm_write_inst2f(assembly, "sub", "rsi", "%d", 8 * aux_alloc_count);
