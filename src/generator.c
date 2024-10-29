@@ -38,6 +38,39 @@ static void generate_header(struct generator *generator) {
     asm_write(assembly, "\n");
 }
 
+static void generate_popn(struct generator *generator, int n) {
+    assert(n > 0);
+    struct asm_block *assembly = generator->assembly;
+    if (n == 1) {
+        asm_write_inst2(assembly, "mov", "rdx", "rax");
+        asm_write_inst1(assembly, "pop", "rax");
+        return;
+    }
+    if (n >= 3) {
+        asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * (n - 2));
+    }
+    asm_write_inst1(assembly, "pop", "rdx");
+    asm_write_inst1(assembly, "pop", "rax");
+}
+
+static void generate_dupen(struct generator *generator, int n) {
+    assert(n > 0);
+    struct asm_block *assembly = generator->assembly;
+    if (n == 1) {
+        asm_write_inst1(assembly, "push", "rax");
+        asm_write_inst2(assembly, "mov", "rax", "rdx");
+        return;
+    }
+    // (42 5 -7)
+    // 42 rax:5 rdx:-7
+    // 42 5 -7 42 rax:5 rdx:-7
+    asm_write_inst1(assembly, "push", "rax");
+    asm_write_inst1(assembly, "push", "rdx");
+    for (int i = 0; i < n - 2; ++i) {
+        asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (n - 1));
+    }
+}
+
 static void generate_pack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
     assert(n > 0);
     struct asm_block *assembly = generator->assembly;
