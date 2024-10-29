@@ -125,6 +125,78 @@ static void generate_pack_field_set(struct generator *generator, int offset, int
     asm_write_inst1(assembly, "pop", "rax");
 }
 
+static void generate_comp_field_get(struct generator *generator, int offset) {
+    assert(offset > 0);
+    struct asm_block *assembly = generator->assembly;
+    asm_write_inst1(assembly, "push", "rax");
+    asm_write_inst2f(assembly, "mov", "rdx", "[rsp+%d]", 8 * (offset - 1));
+}
+
+static void generate_comp_field_set(struct generator *generator, int offset) {
+    assert(offset > 0);
+    struct asm_block *assembly = generator->assembly;
+    if (offset < 1) {
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rdx", 8 * (offset - 2));
+        asm_write_inst2(assembly, "mov", "rdx", "rax");
+    }
+    // If offset == 1, we are writing to the final word, which we leave in rdx.
+    asm_write_inst1(assembly, "pop", "rax");
+}
+
+static void generate_subcomp_get(struct generator *generator, int offset, int size) {
+    struct asm_block *assembly = generator->assembly;
+    assert(size > 0);
+    assert(offset > 0);
+    assert(offset >= size);
+    if (size == 1) {
+        generate_comp_field_get(generator, offset);
+        return;
+    }
+    asm_write_inst1(assembly, "push", "rax");
+    asm_write_inst1(assembly, "push", "rdx");
+    for (int i = 0; i < size - 2; ++i) {
+        asm_write_inst1f(assembly, "push", "qword [rsp+%d]", 8 * (offset - 1));
+    }
+    if (offset >= size + 2) {
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * (offset - 1));
+        asm_write_inst2f(assembly, "mov", "rdx", "[rsp+%d]", 8 * (offset - 2));
+    }
+    else if (offset == size + 1) {
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * (offset - 1));
+        // rdx remains with same contents.
+    }
+    // Else, offset == size, so rax and rdx already have the correct values.
+}
+
+static void generate_subcomp_set(struct generator *generator, int offset, int size) {
+    struct asm_block *assembly = generator->assembly;
+    assert(size > 0);
+    assert(offset > 0);
+    assert(offset >= size);
+    if (size == 1) {
+        generate_comp_field_set(generator, offset);
+        return;
+    }
+    // [ .. .. (x y z a b c d< (e f))] (E F)
+    // offset = 2
+    for (int i = 0; i < size - 2; ++i) {
+        asm_write_inst1f(assembly, "pop", "qword [rsp+%d]", 8 * (offset - 4));
+    }
+    if (offset >= size + 1) {
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rdx", 8 * (offset - (size - 2) - 2));
+        asm_write_inst1(assembly, "pop", "rdx");
+    }
+    else {
+        // rdx has the right contents already.
+        asm_write_inst1(assembly, "pop", "rcx");
+    }
+    if (offset >= size + 2) {
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (offset - (size - 2) - 1));
+        asm_write_inst1(assembly, "pop", "rax");
+    }
+    else {
+        // rax has the right contents already.
+        asm_write_inst1(assembly, "pop", "rcx");
     }
 }
 
