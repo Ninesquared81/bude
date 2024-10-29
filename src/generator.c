@@ -201,63 +201,113 @@ static void generate_subcomp_set(struct generator *generator, int offset, int si
 }
 
 static void shift_block_down(struct asm_block *assembly, int size, int count) {
-    for (int i = size - 1; i >= 0; --i) {
+    for (int i = size - 3; i >= 0; --i) {
         int read_offset = 8 * i;
         int write_offset = read_offset + 8 * count;
-        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
-        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
+        asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", write_offset);
+    }
+    if (size >= 2) {
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", 8 * (count - 1));
+    }
+    if (count >= 2) {
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rdx",  8 * (count - 2));
+    }
+    else {
+        asm_write_inst2(assembly, "mov", "rax", "rdx");
     }
 }
 
 static void shift_block_up(struct asm_block *assembly, int size, int count) {
-    for (int i = 0; i < size; ++i) {
+    if (count >= 2) {
+        asm_write_inst2f(assembly, "mov", "rdx", "[rsp+%d]", 8 * (count - 2));
+    }
+    else {
+        asm_write_inst2(assembly, "mov", "rdx", "rax");
+    }
+    if (size >= 2) {
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * (count - 1));
+    }
+    for (int i = 0; i < size - 2; ++i) {
         int write_offset = 8 * i;
         int read_offset = write_offset + 8 * count;
-        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
-        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
+        asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", write_offset);
     }
 }
 
 static void save_block(struct asm_block *assembly, int start_offset, int size) {
-    for (int i = 0; i < size; ++i) {
-        int read_offset = 8 * (start_offset + i);
+    int i = 0;
+    if (start_offset == 0) {
+        asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rdx", 8 * size);
+        ++i;
+    }
+    if (start_offset <= 1) {
+        asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", 8 * (size - 1 + start_offset));
+        ++i;
+    }
+    for (; i < size; ++i) {
+        int read_offset = 8 * (start_offset + i - 2);
         int write_offset = 8 * (size - i);
-        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", read_offset);
-        asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rax", write_offset);
+        asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp-%d]", "rcx", write_offset);
     }
 }
 
 static void restore_block(struct asm_block *assembly, int start_offset, int size) {
-    for (int i = 0; i < size; ++ i) {
+    int i = 0;
+    if (start_offset == 0) {
+        asm_write_inst2f(assembly, "mov", "rdx", "[rsp-%d]", 8 * size);
+        ++i;
+    }
+    if (start_offset <= 1) {
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp-%d]", 8 * (size - 1 + start_offset));
+        ++i;
+    }
+    for (; i < size; ++ i) {
         int read_offset = 8 * (size - i);
-        int write_offset = 8 * (start_offset + i);
-        asm_write_inst2f(assembly, "mov", "rax", "[rsp-%d]", read_offset);
-        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", write_offset);
+        int write_offset = 8 * (start_offset + i - 2);
+        asm_write_inst2f(assembly, "mov", "rcx", "[rsp-%d]", read_offset);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", write_offset);
     }
 }
 
 static void generate_swap_comps(struct generator *generator, int lhs_size, int rhs_size) {
     struct asm_block *assembly = generator->assembly;
-    if (lhs_size == 1) {
+    assert(lhs_size > 0 && rhs_size > 0);
+    if (lhs_size == 1 && rhs_size == 1) {
+        // Special case: word-size swap.
+        asm_write_inst2(assembly, "mov", "rcx", "rax");
+        asm_write_inst2(assembly, "mov", "rax", "rdx");
+        asm_write_inst2(assembly, "mov", "rdx", "rcx");
+    }
+    else if (lhs_size == 1) {
         // Special case: lhs fits in a register.
-        asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", 8 * rhs_size);
+        asm_write_inst2f(assembly, "mov", "r8", "[rsp+%d]", 8 * (rhs_size - 2));
         shift_block_down(assembly, rhs_size, 1);
-        asm_write_inst2(assembly, "mov", "[rsp]", "rcx");
+        asm_write_inst2(assembly, "mov", "rdx", "r8");
     }
     else if (rhs_size == 1) {
         // Special case: rhs fits in a register.
-        asm_write_inst2(assembly, "mov", "rcx", "[rsp]");
+        asm_write_inst2(assembly, "mov", "r8", "rdx");
         shift_block_up(assembly, lhs_size, 1);
-        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", 8 * lhs_size);
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "r8", 8 * (lhs_size - 2));
     }
     else if (lhs_size == rhs_size) {
         // Special case: lhs = rhs (i.e. non-overlapping).
-        for (int i = 0; i < rhs_size; ++i) {
-            int lhs_offset = 8 * (i + rhs_size);
-            int rhs_offset = 8 * i;
+        assert(rhs_size >= 2);
+        asm_write_inst2(assembly, "mov", "rcx", "rdx");
+        asm_write_inst2f(assembly, "mov", "rdx", "[rsp+%d]", 8 * (rhs_size - 2));
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", 8 * (rhs_size - 2));
+        asm_write_inst2(assembly, "mov", "rcx", "rax");
+        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * (rhs_size - 1));
+        asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", 8 * (rhs_size - 1));
+        for (int i = 2; i < rhs_size; ++i) {
+            int lhs_offset = 8 * (i + rhs_size - 2);
+            int rhs_offset = 8 * (i - 2);
             asm_write_inst2f(assembly, "mov", "rcx", "[rsp+%d]", rhs_offset);
-            asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", lhs_offset);
-            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", rhs_offset);
+            asm_write_inst2f(assembly, "mov", "r8", "[rsp+%d]", lhs_offset);
+            asm_write_inst2f(assembly, "mov", "[rsp+%d]", "r8", rhs_offset);
             asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rcx", lhs_offset);
         }
     }
