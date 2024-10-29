@@ -41,120 +41,57 @@ static void generate_header(struct generator *generator) {
 static void generate_pack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
     assert(n > 0);
     struct asm_block *assembly = generator->assembly;
-    int offset = 8 * (n - 1) + sizes[0];
-    for (int i = 1; i < n; ++i) {
-        asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", 8 * (n - i - 1));
-        int size = sizes[i];
-        switch (size) {
-        case 1:
-            asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
-            break;
-        case 2:
-            asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
-            break;
-        case 4:
-            asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
-            break;
-        case 8:
-            assert(0 && "unreachable");
-            break;
-        default:
-            assert(0 && "bad register size");
-        }
-        offset += size;
+    for (int i = n - 2; i >= 0; --i) {
+        asm_write_inst2f(assembly, "shl", "rdx", "%d", 8 * sizes[i]);
+        asm_write_inst2(assembly, "xor", "rdx", "rax");
+        asm_write_inst1(assembly, "pop", "rax");
     }
-    asm_write_inst2f(assembly, "add", "rsp", "%d", 8 * (n - 1));
 }
 
 static void generate_unpack_instruction(struct generator *generator, int n, uint8_t sizes[n]) {
-    if (n <= 1) return;  // Effective NOP.
+    assert(n > 0);
     struct asm_block *assembly = generator->assembly;
-    int offset = sizes[0];
-    for (int i = 1; i < n; ++i) {
+    for (int i = 0; i < n - 1; ++i) {
+        asm_write_inst1(assembly, "push", "rax");
         int size = sizes[i];
         switch (size) {
-        case 1:
-            asm_write_inst2f(assembly, "movzx", "eax", "byte [rsp+%d]", offset);
-            break;
-        case 2:
-            asm_write_inst2f(assembly, "movzx", "eax", "word [rsp+%d]", offset);
-            break;
-        case 4:
-            asm_write_inst2f(assembly, "mov", "eax", "dword [rsp+%d]", offset);
-            break;
-        case 8:
-            assert(0 && "unreachable");
-            break;
+        case 8: assert(0 && "Unreachable"); break;
+        case 4: asm_write_inst2(assembly, "mov", "eax", "edx"); break;
+        case 2: asm_write_inst2(assembly, "movzx", "eax", "dx"); break;
+        case 1: asm_write_inst2(assembly, "movzx", "eax", "dl"); break;
         default:
-            assert(0 && "bad register size");
+            assert(0 && "Bad register size");
         }
-        asm_write_inst1(assembly, "push", "rax");
-        offset += size + 8;
+        asm_write_inst2f(assembly, "shr", "rdx", "%d", 8 * size);
     }
-
-    // Clear higher bits of first field.
-    offset -= 8;
-    asm_write_inst2f(assembly, "mov", "rax", "[rsp+%d]", offset);
-    switch (sizes[0]) {
-    case 1:
-        asm_write_inst2f(assembly, "movzx", "eax", "al", offset);
-        break;
-    case 2:
-        asm_write_inst2f(assembly, "movzx", "eax", "ax", offset);
-        break;
-    case 4:
-        asm_write_inst2f(assembly, "mov", "eax", "eax", offset);
-        break;
-    case 8:
-        assert(0 && "unreachable");
-        break;
-    default:
-        assert(0 && "bad register size");
-    }
-    asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rax", offset);
 }
 
 static void generate_pack_field_get(struct generator *generator, int offset, int size) {
     struct asm_block *assembly = generator->assembly;
-    switch (size) {
-    case 1:
-        asm_write_inst2f(assembly, "movzx", "eax", "byte [rsp+%d]", offset);
-        break;
-    case 2:
-        asm_write_inst2f(assembly, "movzx", "eax", "word [rsp+%d]", offset);
-        break;
-    case 4:
-        asm_write_inst2f(assembly, "mov", "eax", "dword [rsp+%d]", offset);
-        break;
-    case 8:
-        assert(offset == 0);
-        asm_write_inst2(assembly, "mov", "rax", "[rsp]");
-        break;
-    default:
-        assert(0 && "bad register size");
-    }
     asm_write_inst1(assembly, "push", "rax");
+    asm_write_inst2(assembly, "mov", "rax", "rdx");
+    assert(offset >= 0);
+    if (offset == 1) return;  // Effectively a dupe; no more action needed.
+    asm_write_inst2f(assembly, "shr", "rdx", "%d", 8 * offset);
+    switch (size) {
+    case 8: break;  // Full-size field.
+    case 4: asm_write_inst2(assembly, "mov", "edx", "edx"); break;
+    case 2: asm_write_inst2(assembly, "movzx", "edx", "dx"); break;
+    case 1: asm_write_inst2(assembly, "movzx", "edx", "dl"); break;
+    default:
+        assert(0 && "Bad register size");
+    }
 }
 
 static void generate_pack_field_set(struct generator *generator, int offset, int size) {
     struct asm_block *assembly = generator->assembly;
+    int mask = ((1 << 8*size) - 1) << 8*offset;  // Bits of mask set in location of field within pack.
+    asm_write_inst2f(assembly, "shl", "rdx", "%d", 8 * offset);
+    asm_write_inst2f(assembly, "and", "rax", "%d", ~mask);  // Mask off old value of field.
+    asm_write_inst2(assembly, "xor", "rdx", "rax");
     asm_write_inst1(assembly, "pop", "rax");
-    switch (size) {
-    case 1:
-        asm_write_inst2f(assembly, "mov", "byte [rsp+%d]", "al", offset);
-        break;
-    case 2:
-        asm_write_inst2f(assembly, "mov", "word [rsp+%d]", "ax", offset);
-        break;
-    case 4:
-        asm_write_inst2f(assembly, "mov", "dword [rsp+%d]", "eax", offset);
-        break;
-    case 8:
-        assert(offset == 0);
-        asm_write_inst2(assembly, "mov", "[rsp]", "rax");
-        break;
-    default:
-        assert(0 && "bad register size");
+}
+
     }
 }
 
