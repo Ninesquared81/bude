@@ -130,19 +130,36 @@ static void generate_pack_field_set(struct generator *generator, int offset, int
 static void generate_comp_field_get(struct generator *generator, int offset) {
     assert(offset > 0);
     struct asm_block *assembly = generator->assembly;
+    // (600f32 400f32<>> 0 0.2_f32), offset=2
+    // [... 600f32 400f32 0<] rax:0.2_f32 rdx:0
     asm_write_inst1(assembly, "push", "rax");
-    asm_write_inst2f(assembly, "mov", "rdx", "[rsp+%d]", 8 * (offset - 1));
+    asm_write_inst2(assembly, "mov", "rax", "rdx");
+    if (offset > 1) {
+        asm_write_inst2f(assembly, "mov", "rdx", "[rsp+%d]", 8 * (offset - 2));
+    }
+    // If offset == 1, we leave the result in rdx.
 }
 
 static void generate_comp_field_set(struct generator *generator, int offset) {
+    // (600f32 400f32 0 0.2_f32), offset=2
+    // [... 600f32 400f32] rax:1 rdx:0.2_f32
     assert(offset > 0);
     struct asm_block *assembly = generator->assembly;
-    if (offset < 1) {
+    if (offset > 2) {
         asm_write_inst2f(assembly, "mov", "[rsp+%d]", "rdx", 8 * (offset - 2));
         asm_write_inst2(assembly, "mov", "rdx", "rax");
+        asm_write_inst1(assembly, "pop", "rax");
     }
-    // If offset == 1, we are writing to the final word, which we leave in rdx.
-    asm_write_inst1(assembly, "pop", "rax");
+    else if (offset == 2) {
+        // If offset == 2, the value in rdx will end up in rax, and the value in [rsp]
+        // is discarded (since it would end up in rax but is replaced by the new value).
+        asm_write_inst2(assembly, "xchg", "rax", "rdx");
+        asm_write_inst1(assembly, "pop", "rcx");  // Dummy pop.
+    }
+    else {
+        // If offset == 1, we are writing to the final word, which we leave in rdx.
+        asm_write_inst1(assembly, "pop", "rax");
+    }
 }
 
 static void generate_subcomp_get(struct generator *generator, int offset, int size) {
@@ -842,7 +859,7 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst1(assembly, "idiv", "rcx");
             asm_write_inst2(assembly, "add", "r10", "rax");  // r10 = q' - sign(b)
             asm_write_inst2(assembly, "add", "r8", "rdx");   // r8 = r' + abs(b)
-            asm_write_inst2(assembly, "test", "rdx", "rdx");    // This will set/clear the sign flag based on the sign bit of rdx.
+            asm_write_inst2(assembly, "test", "rdx", "rdx");   // This will set/clear the sign flag based on the sign bit of rdx.
             asm_write_inst2(assembly, "cmovs", "rax", "r10");  // Only replace q and r if r < 0.
             asm_write_inst2(assembly, "cmovs", "rdx", "r8");
             break;
@@ -1034,7 +1051,7 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip - 1 + jump;
-            asm_write_inst2(assembly, "test", "rcx", "rcx");
+            asm_write_inst2(assembly, "test", "rdx", "rdx");
             asm_write_inst2(assembly, "mov", "rdx", "rax");
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst1f(assembly, "jnz", ".addr_%d", jump_addr);
@@ -1044,7 +1061,7 @@ static void generate_function(struct generator *generator, int func_index) {
             ip += 2;
             int16_t jump = read_s16(block, ip - 1);
             int jump_addr = ip -1 + jump;
-            asm_write_inst2(assembly, "test", "rax", "rax");
+            asm_write_inst2(assembly, "test", "rdx", "rdx");
             asm_write_inst2(assembly, "mov", "rdx", "rax");
             asm_write_inst1(assembly, "pop", "rax");
             asm_write_inst1f(assembly, "jz", ".addr_%d", jump_addr);
@@ -1126,7 +1143,7 @@ static void generate_function(struct generator *generator, int func_index) {
             int offset = 1 + function->max_for_loop_level + local->offset + word_count - 1;
             asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdx", 8 * offset--);
             if (word_count >= 2) {
-                asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rdx", 8 * offset--);
+                asm_write_inst2f(assembly, "mov", "[rbx+%d]", "rax", 8 * offset--);
             }
             for (int i = 0; i < word_count - 2; ++i, --offset) {
                 asm_write_inst1f(assembly, "pop", "qword [rbx+%d]", 8 * offset);
@@ -1391,16 +1408,16 @@ static void generate_function(struct generator *generator, int func_index) {
             asm_write_inst2(assembly, "movd", "edx", "xmm0");
             break;
         case W_OP_ICONVF32L:
-            asm_write_inst2(assembly, "cvtsi2ss", "xmm0", "rcx");
-            asm_write_inst2(assembly, "movd", "ecx", "xmm0");
+            asm_write_inst2(assembly, "cvtsi2ss", "xmm0", "rax");
+            asm_write_inst2(assembly, "movd", "eax", "xmm0");
             break;
         case W_OP_ICONVF64:
             asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rdx");
             asm_write_inst2(assembly, "movq", "rdx", "xmm0");
             break;
         case W_OP_ICONVF64L:
-            asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rcx");
-            asm_write_inst2(assembly, "movd", "rcx", "xmm0");
+            asm_write_inst2(assembly, "cvtsi2sd", "xmm0", "rax");
+            asm_write_inst2(assembly, "movd", "rax", "xmm0");
             break;
         case W_OP_FCONVI32:
             asm_write_inst2(assembly, "movd", "xmm0", "edx");
