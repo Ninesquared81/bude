@@ -106,8 +106,9 @@ static void generate_pack_field_get(struct generator *generator, int offset, int
     asm_write_inst1(assembly, "push", "rax");
     asm_write_inst2(assembly, "mov", "rax", "rdx");
     assert(offset >= 0);
-    if (offset == 1) return;  // Effectively a dupe; no more action needed.
-    asm_write_inst2f(assembly, "shr", "rdx", "%d", 8 * offset);
+    if (offset > 0) {
+        asm_write_inst2f(assembly, "shr", "rdx", "%d", 8 * offset);
+    }
     switch (size) {
     case 8: break;  // Full-size field.
     case 4: asm_write_inst2(assembly, "mov", "edx", "edx"); break;
@@ -120,9 +121,19 @@ static void generate_pack_field_get(struct generator *generator, int offset, int
 
 static void generate_pack_field_set(struct generator *generator, int offset, int size) {
     struct asm_block *assembly = generator->assembly;
-    int mask = ((1 << 8*size) - 1) << 8*offset;  // Bits of mask set in location of field within pack.
-    asm_write_inst2f(assembly, "shl", "rdx", "%d", 8 * offset);
-    asm_write_inst2f(assembly, "and", "rax", "%d", ~mask);  // Mask off old value of field.
+    // offset = 0, size = 4.
+    // 00000000ffffffff
+    uint64_t mask = ~(((1ULL << 8*size) - 1) << 8*offset);  // Mask off old value of field.
+    if (offset > 0) {
+        asm_write_inst2f(assembly, "shl", "rdx", "%d", 8 * offset);
+    }
+    if (mask <= INT32_MAX) {
+        asm_write_inst2f(assembly, "and", "rax", "%d", mask);
+    }
+    else {
+        asm_write_inst2f(assembly, "mov", "rcx", "%"PRId64, mask);
+        asm_write_inst2(assembly, "and", "rax", "rcx");
+    }
     asm_write_inst2(assembly, "xor", "rdx", "rax");
     asm_write_inst1(assembly, "pop", "rax");
 }
