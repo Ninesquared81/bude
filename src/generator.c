@@ -385,9 +385,9 @@ static void generate_array_get(struct generator *generator, int element_count, i
     // [_2 _1 _0 5 42 2 -17 -7 31 69 0 77 19 33 -8 77 19< _0 _1 _2 _3 _4 _5 _6 _7<] rax:33 rdx:-9
     // rcx:------------------------------------^
     asm_write_inst2f(assembly, "lea", "rcx", "[rsp+rdx*8+%d]", (element_count - 1) * word_count * 8);
-    asm_write_inst2(assembly, "test", "rcx", "rsp");
-    asm_write_inst2(assembly, "cmovz", "rdx", "rax");
-    asm_write_inst2(assembly, "cmovnz", "rdx", "[rcx-8]");
+    asm_write_inst2(assembly, "cmp", "rcx", "rsp");
+    asm_write_inst2(assembly, "cmove", "rdx", "rax");
+    asm_write_inst2(assembly, "cmovne", "rdx", "[rcx-8]");
     if (word_count <= 1) return;
     asm_write_inst1(assembly, "push", "rax");
     asm_write_inst2(assembly, "mov", "rax", "[rcx]");
