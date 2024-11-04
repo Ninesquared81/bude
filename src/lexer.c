@@ -49,6 +49,13 @@ static bool check(struct lexer *lexer, char c) {
     return *lexer->current == c;
 }
 
+static bool check_any(struct lexer *lexer, const char *cs) {
+    for (; *cs != '\0'; ++cs ) {
+        if (check(lexer, *cs)) return true;
+    }
+    return false;
+}
+
 static char peek(struct lexer *lexer) {
     return *lexer->current;
 }
@@ -409,7 +416,7 @@ static int lex_binary(struct lexer *lexer) {
 }
 
 static bool lex_int_suffix(struct lexer *lexer) {
-    if (match_any(lexer, "us")) {
+    if (match_any(lexer, "UuSs")) {
         if (is_at_end(lexer)) return false;
 
         switch (advance(lexer)) {
@@ -420,13 +427,13 @@ static bool lex_int_suffix(struct lexer *lexer) {
         }
     }
     else {
-        match_any(lexer, "wt");
+        match_any(lexer, "WwTt");
     }
     return is_at_end(lexer) || !is_symbolic(peek(lexer));
 }
 
 static bool lex_float_suffix(struct lexer *lexer) {
-    if (match(lexer, 'f')) {
+    if (match_any(lexer, "Ff")) {
         switch (advance(lexer)) {
         case '3': if (!match(lexer, '2')) return false; break;
         case '6': if (!match(lexer, '4')) return false; break;
@@ -463,7 +470,7 @@ static struct token decimal_lit(struct lexer *lexer) {
         return make_token(lexer, TOKEN_FLOAT_LIT, false);
     }
 
-    if (check(lexer, 'f')) {
+    if (check_any(lexer, "Ff")) {
         // We allow floats to have no '.' or 'e' if followed by a suffix.
         // NOTE: if we lexed it as an integer, then we know we had a non-zero
         // number of digits in the mantissa.

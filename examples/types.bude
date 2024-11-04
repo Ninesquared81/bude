@@ -22,7 +22,7 @@ end
 println
 
 
-0xfft println
+0xffT println
 
 -128s8 println
 
