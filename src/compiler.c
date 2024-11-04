@@ -324,8 +324,11 @@ static enum floating_point_type parse_floating_point_suffix(struct string_view *
     if (value->length <= 3) return FLOAT_F64;
 
     const char *end = &value->start[value->length];
-    if (strncmp(end - 3, "f32", 3) == 0) return FLOAT_F32;
-    if (strncmp(end - 3, "f64", 3) == 0) return FLOAT_F64;
+    if (end[-3] == 'F' || end[-3] == 'f') {
+        if (strncmp(end - 2, "32", 2) == 0) return FLOAT_F32;
+        if (strncmp(end - 2, "64", 2) == 0) return FLOAT_F64;
+        assert(0 && "Invalid floating point suffix. Should not have been recognised by the lexer.");
+    }
     return FLOAT_F64;
 }
 

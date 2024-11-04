@@ -29,3 +29,5 @@ pop pop pop pop
 64.2 7 / println
 
 44f32 55f32 + println
+
+423.56_F64 0.1_F32 * println
