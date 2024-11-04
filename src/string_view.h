@@ -23,8 +23,12 @@ struct string_view {
 #define PRI_SV ".*s"
 
 char *view_to_string(struct string_view *view, struct region *region);
-bool sv_eq(const struct string_view *a, const struct string_view *b);
 struct string_view copy_view(struct string_view *view, void *buf);
 struct string_view copy_view_in_region(struct string_view *view, struct region *region);
+
+#define SV_SLICE_END INT_MAX
+
+bool sv_eq(const struct string_view *a, const struct string_view *b);
+struct string_view sv_slice(const struct string_view *super, int start, int stop);
 
 #endif
