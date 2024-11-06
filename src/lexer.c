@@ -532,6 +532,7 @@ static struct token character(struct lexer *lexer) {
         lex_error(lexer, "unterminated character literal.");
         exit(1);
     }
+    match_any(lexer, "Tt");  // Allow byte suffix on character literals.
 
     return make_token(lexer, TOKEN_CHAR_LIT, true);
 }

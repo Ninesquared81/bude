@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "unicode.h"
@@ -172,4 +174,19 @@ uint32_t decode_utf16(const char *start, const char **end) {
     }
     if (end != NULL) *end = start;
     return codepoint;
+}
+
+const char *escape_unicode(uint32_t codepoint) {
+    // 2 bytes for `\u` or `\U`, 4/8 for payload, 1 for `\0`.
+    static char buffer[11] = "";
+    if (codepoint <= 127 && isprint((char)codepoint)) {
+        snprintf(buffer, sizeof buffer, "%c", codepoint);
+    }
+    else if (codepoint <= UINT16_MAX) {
+        snprintf(buffer, sizeof buffer, "\\u%04x", codepoint);
+    }
+    else {
+        snprintf(buffer, sizeof buffer, "\\U%08x", codepoint);
+    }
+    return buffer;
 }

@@ -28,4 +28,6 @@ struct utf16 encode_utf16_codepoint(uint32_t codepoint);
 uint32_t encode_utf16_u32(uint32_t codepoint);
 uint32_t decode_utf16(const char *start, const char **end);
 
+const char *escape_unicode(uint32_t codepoint);
+
 #endif

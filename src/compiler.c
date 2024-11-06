@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -775,7 +776,20 @@ static void compile_character(struct compiler *compiler) {
         parse_error(compiler, "character literal contains multiple characters.\n");
         exit(1);
     }
-    emit_immediate_uv(compiler, T_OP_PUSH_CHAR8, codepoint);
+    if (tolower(SV_END(value)[-1]) != 't') {
+        // Char literal.
+        emit_immediate_uv(compiler, T_OP_PUSH_CHAR8, codepoint);
+    }
+    else {
+        // Byte character literal.
+        if (codepoint > 127) {
+            parse_error(compiler, "character value '%s' out of range for byte character literal",
+                        escape_unicode(codepoint));
+            exit(1);
+        }
+        emit_immediate_u8(compiler, T_OP_PUSH8, codepoint);
+        emit_simple(compiler, T_OP_AS_BYTE);
+    }
 }
 
 static struct parser swap_parsers(struct compiler *compiler, struct parser new_parser) {

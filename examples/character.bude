@@ -2,3 +2,8 @@
 'é' print-char
 '!' print-char
 '\n' print-char
+
+# 'é't println
+'é' to u32 println
+
+# '┌'t println
