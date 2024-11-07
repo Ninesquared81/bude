@@ -7,3 +7,5 @@
 'é' to u32 println
 
 # '┌'t println
+
+'\u1234' println

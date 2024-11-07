@@ -703,19 +703,55 @@ static void compile_loop(struct compiler *compiler) {
     expect_consume(compiler, TOKEN_END, "Expect `end` after `while` body.");
 }
 
-static int escape_character(char ch) {
-    switch (ch) {
-    case 'n': return '\n';
-    case 't': return '\t';
-    case 'r': return '\r';
+enum escape_error {
+    ESC_UNKNOWN = -1,
+    ESC_TOO_SHORT = -2,
+};
+
+void escape_error(struct compiler *compiler, enum escape_error error, const char *start, const char *c) {
+    switch (error) {
+    case ESC_UNKNOWN:
+        parse_error(compiler, "Unknown escape sequence '\\%c'.", c[-1]);
+        break;
+    case ESC_TOO_SHORT:
+        parse_error(compiler, "Escape sequence '\\%"PRI_SV"' too short.",
+                    SV_FMT(SV_BETWEEN(start, c)));
+        break;
+    }
+}
+
+static int32_t hex_escape(const char **cptr, const char *end, int hexit_count) {
+    static char buffer[9] = "";
+    assert(hexit_count > 0);
+    assert((size_t)hexit_count < sizeof buffer);  // Only allow up to 8 hexits.
+    if (end - *cptr < hexit_count) return ESC_TOO_SHORT;
+    memcpy(buffer, *cptr, hexit_count);
+    buffer[hexit_count] = '\0';
+    *cptr += hexit_count;
+    char *hex_end = buffer;
+    int32_t value = strtoul(buffer, &hex_end, 16);
+    return (hex_end - buffer == hexit_count) ? value : ESC_TOO_SHORT;
+}
+
+static int32_t escape_character(const char **cptr, const char *end) {
+    assert(*cptr < end);
+    int32_t value = ESC_UNKNOWN;
+    ++*cptr;
+    switch ((*cptr)[-1]) {
+    case 'n': value = '\n'; break;
+    case 't': value = '\t'; break;
+    case 'r': value = '\r'; break;
+    case 'x': value = hex_escape(cptr, end, 2); break;
+    case 'u': value = hex_escape(cptr, end, 4); break;
+    case 'U': value = hex_escape(cptr, end, 8); break;
     case '\\':
     case '"':
     case '\'':
-        return ch;
+        value = **cptr;
+        break;
     }
 
-    // `\{ch}` is not an escape sequence.
-    return -1;
+    return value;
 }
 
 static struct string_builder parse_string(struct compiler *compiler) {
@@ -723,16 +759,27 @@ static struct string_builder parse_string(struct compiler *compiler) {
     struct string_builder builder = {0};
     struct string_builder *current = &builder;
     const char *start = token.value.start + 1;
+    const char *end = SV_END(token.value) - 1;
+    assert(*end == '"');
     start_view(current, start, compiler->temp);
     for (const char *c = start; *c != '"'; ++c) {
         if (*c == '\\') {
-            int escaped = escape_character(c[1]);
-            if (escaped == -1) {
-                parse_error(compiler, "invalid escape sequence '\\%c'.\n", c[1]);
+            ++c;
+            const char *start = c;
+            int32_t escaped = escape_character(&c, end);
+            if (escaped < 0) {
+                escape_error(compiler, escaped, start, c);
                 exit(1);
             }
-            current = store_char(current, escaped, compiler->temp);
-            ++c;  // Consume the escaped character.
+            if (escaped <= 127) {
+                current = store_char(current, escaped, compiler->temp);
+            }
+            else {
+                struct utf8 utf8 = encode_utf8_codepoint(escaped);
+                for (int i = 0; i < utf8.n_bytes; ++i) {
+                    current = store_char(current, utf8.bytes[i], compiler->temp);
+                }
+            }
         }
         else {
             if (!SB_IS_VIEW(current)) {
@@ -756,18 +803,23 @@ static void compile_character(struct compiler *compiler) {
     struct string_view value = peek_previous(compiler).value;
     uint32_t codepoint = 0;
     const char *c = value.start + 1;
+    const char *end = SV_END(value) - 1;
+    bool byte_literal = tolower(*end) == 't';
+    if (byte_literal) --end;
+    assert(*end == '\'');
     if (*c != '\\') {
         // Normal character.
         codepoint = decode_utf8(c, &c);
         if (codepoint == UTF8_DECODE_ERROR) {
-            parse_error(compiler, "unable to decode UTF-8 character.\n");
+            parse_error(compiler, "unable to decode UTF-8 character.");
         }
     }
     else {
-        int escaped = escape_character(*++c);
         ++c;
-        if (escaped == -1) {
-            parse_error(compiler, "invalid escape sequence '\\%c'.\n", value.start[2]);
+        const char *start = c;
+        int32_t escaped = escape_character(&c, end);
+        if (escaped < 0) {
+            escape_error(compiler, escaped, start, c);
             exit(1);
         }
         codepoint = escaped;
@@ -776,7 +828,7 @@ static void compile_character(struct compiler *compiler) {
         parse_error(compiler, "character literal contains multiple characters.\n");
         exit(1);
     }
-    if (tolower(SV_END(value)[-1]) != 't') {
+    if (!byte_literal) {
         // Char literal.
         emit_immediate_uv(compiler, T_OP_PUSH_CHAR8, codepoint);
     }
