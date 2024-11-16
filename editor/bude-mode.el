@@ -70,11 +70,16 @@
   :type 'integer)
 
 (defun bude-smie-rules (method arg)
-  (pcase (list method arg)
-    (`(:before ,token) (if (member token '("else" "elif")) 0 bude-indent-offset))
-    (`(:after "end") (smie-rule-parent))
-    (`(:elem arg) 0)
-    (`(:elem basic) bude-indent-offset)))
+  (pcase (cons method arg)
+    (`(:before . ,(or "end" "else" "elif")) (smie-rule-parent))
+    (`(:before . ,(or "then" "def" "do"))
+     (if (smie-rule-hanging-p)
+         ;; Virtual indentation (when used as parent).
+         (smie-rule-parent)))
+    ;(`(:after . "end") 0)
+    (`(:after . ,(or "then" "def" "do" "var")) bude-indent-offset)
+    (`(:elem . arg) 0)
+    (`(:elem . basic) bude-indent-offset)))
 
 ;;;###autoload
 (define-derived-mode bude-mode prog-mode "bude"
