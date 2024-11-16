@@ -189,25 +189,25 @@ var player -> Player end
 screen-centre 0 0.2_f32 Player <- player
 
 func should-go-right -> bool def
-    'D' to s32 IsKeyDown
+    'D't to s32 IsKeyDown
     KEY_RIGHT IsKeyDown
     or
 end
 
 func should-go-left -> bool def
-    'A' to s32 IsKeyDown
+    'A't to s32 IsKeyDown
     KEY_LEFT IsKeyDown
     or
 end
 
 func should-go-down -> bool def
-    'S' to s32 IsKeyDown
+    'S't to s32 IsKeyDown
     KEY_DOWN IsKeyDown
     or
 end
 
 func should-go-up -> bool def
-    'W' to s32 IsKeyDown
+    'W't to s32 IsKeyDown
     KEY_UP IsKeyDown
     or
 end
@@ -236,7 +236,7 @@ while WindowShouldClose not do
     if should-go-down then
         player move-down <- player
     end
-    if ' ' to s32 IsKeyPressed then
+    if ' 't to s32 IsKeyPressed then
         player colour next-colour <- colour <- player
     end
 
