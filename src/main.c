@@ -84,18 +84,12 @@ static void print_version(FILE *file) {
     fprintf(file, "Bude version %s\n", version_number);
 }
 
-static void init_cmdopts(struct cmdopts *opts) {
-    opts->filename = NULL;
-    opts->output_filename = NULL;
-    opts->dump_ir = false;
-    opts->optimise = false;
-    opts->interpret = true;
-    opts->generate_asm = false;
-    opts->generate_bytecode = false;
-    opts->from_bytecode = false;
-    opts->_had_i = false;
-    opts->_had_a = false;
-    opts->_default_linking = LINK_DYNAMIC;
+static struct cmdopts new_cmdopts() {
+    return (struct cmdopts) {
+        .interpret = true,
+        ._default_linking = LINK_DYNAMIC,
+        // All other fields set to zero.
+    };
 }
 
 static void handle_positional_arg(const char *restrict name, struct cmdopts *opts,
@@ -172,9 +166,9 @@ static enum link_type parse_link_type(const char *rest, const char *name, const 
     exit(1);
 }
 
-static void parse_args(int argc, char *argv[], struct cmdopts *opts,
-                       struct symbol_dictionary *symbols, struct module *module) {
-    init_cmdopts(opts);
+static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionary *symbols,
+                                 struct module *module) {
+    struct cmdopts opts = new_cmdopts();
     const char *name = argv[0];
 
     for (int i = 1; i < argc; ++i) {
@@ -192,7 +186,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts,
             case 'O':
             case 't':
             case 'v':
-                parse_short_opt(name, arg, opts);
+                parse_short_opt(name, arg, &opts);
                 break;
             case 'o': {
                 const char *filename = NULL;
@@ -207,7 +201,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts,
                     fprintf(stderr, "'%s' option missing required argument 'file'.\n", arg);
                     exit(1);
                 }
-                opts->output_filename = filename;
+                opts.output_filename = filename;
                 break;
             }
             case '-':
@@ -215,34 +209,34 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts,
                     // End of options.
                     while (++i < argc) {
                         arg = argv[i];
-                        handle_positional_arg(name, opts, arg);
+                        handle_positional_arg(name, &opts, arg);
                     }
                     // Note: goto needed due to switch statement.
                     goto check_filename;
                 }
                 // Long options.
                 if (strcmp(&arg[2], "dump") == 0) {
-                    opts->dump_ir = true;
-                    opts->interpret = opts->_had_i;
-                    opts->generate_asm = opts->_had_a;
+                    opts.dump_ir = true;
+                    opts.interpret = opts._had_i;
+                    opts.generate_asm = opts._had_a;
                 }
                 else if (strcmp(&arg[2], "help") == 0) {
                     print_help(stderr, name);
                     exit(0);
                 }
                 else if (strcmp(&arg[2], "interpret") == 0) {
-                    opts->interpret = true;
-                    opts->_had_i = true;
+                    opts.interpret = true;
+                    opts._had_i = true;
                 }
                 else if (strcmp(&arg[2], "lib-type:") == 0) {
                     // NOTE: this must come BEFORE the check for `--lib`.
                     const char *rest = &arg[2 + sizeof "lib-type:" - 1];
-                    opts->_default_linking = parse_link_type(rest, name, arg);
+                    opts._default_linking = parse_link_type(rest, name, arg);
                 }
                 else if (strncmp(&arg[2], "lib", 3) == 0) {
                     // NOTE: this must come AFTER the check for `--lib-type`.
                     const char *rest = &arg[2 + 3];
-                    enum link_type linking = opts->_default_linking;
+                    enum link_type linking = opts._default_linking;
                     if (*rest == ':') {
                         ++rest;
                         linking = parse_link_type(rest, name, arg);
@@ -270,7 +264,7 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts,
                     });
                 }
                 else if (strcmp(&arg[2], "optimise") == 0) {
-                    opts->optimise = true;
+                    opts.optimise = true;
                 }
                 else if (strcmp(&arg[2], "version") == 0) {
                     print_version(stderr);
@@ -287,17 +281,18 @@ static void parse_args(int argc, char *argv[], struct cmdopts *opts,
             }
             break;
         default:
-            handle_positional_arg(name, opts, arg);
+            handle_positional_arg(name, &opts, arg);
             break;
         }
     }
 
 check_filename:
-    if (opts->filename == NULL) {
+    if (opts.filename == NULL) {
         fprintf(stderr, "Error: missing positional argument 'file'.\n");
         print_usage(stderr, name);
         exit(1);
     }
+    return opts;
 }
 
 #undef BAD_OPTION
@@ -326,12 +321,11 @@ void load_source(const char *restrict filename, char *restrict inbuf) {
 }
 
 int main(int argc, char *argv[]) {
-    struct cmdopts opts;
     struct symbol_dictionary symbols;
     struct module module = {0};
     init_symbol_dictionary(&symbols);
     init_module(&module, NULL);
-    parse_args(argc, argv, &opts, &symbols, &module);
+    struct cmdopts opts = parse_args(argc, argv, &symbols, &module);
     if (!opts.from_bytecode) {
         char *inbuf = calloc(INPUT_BUFFER_SIZE, sizeof *inbuf);
         CHECK_ALLOCATION(inbuf);
