@@ -762,13 +762,13 @@ static struct string_builder parse_string(struct compiler *compiler) {
     const char *end = SV_END(token.value) - 1;
     assert(*end == '"');
     start_view(current, start, compiler->temp);
-    for (const char *c = start; *c != '"'; ++c) {
+    for (const char *c = start; c < end; ++c) {
         if (*c == '\\') {
             ++c;
-            const char *start = c;
+            const char *esc_start = c;
             int32_t escaped = escape_character(&c, end);
             if (escaped < 0) {
-                escape_error(compiler, escaped, start, c);
+                escape_error(compiler, escaped, esc_start, c);
                 exit(1);
             }
             if (escaped <= 127) {
