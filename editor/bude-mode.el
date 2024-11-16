@@ -76,9 +76,7 @@
      (if (smie-rule-hanging-p)
          ;; Virtual indentation (when used as parent).
          (smie-rule-parent)))
-    ;(`(:after . "end") 0)
     (`(:after . ,(or "then" "def" "do" "var")) bude-indent-offset)
-    (`(:elem . arg) 0)
     (`(:elem . basic) bude-indent-offset)))
 
 ;;;###autoload
