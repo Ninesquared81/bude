@@ -72,7 +72,7 @@
 (defun bude-smie-rules (method arg)
   (pcase (cons method arg)
     (`(:before . ,(or "end" "else" "elif")) (smie-rule-parent))
-    (`(:before . ,(or "then" "def" "do"))
+    (`(:before . ,(or "then" "def" "do" "var"))
      (if (smie-rule-hanging-p)
          ;; Virtual indentation (when used as parent).
          (smie-rule-parent)))
