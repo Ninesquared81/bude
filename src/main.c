@@ -50,7 +50,12 @@ static void print_usage(FILE *file, const char *name) {
     fprintf(file, "Usage: %s [options] <file>\n", name);
 }
 
+static void print_summary(FILE *file) {
+    fprintf(file, "bude -- the Bude language compiler\n\n");
+}
+
 static void print_help(FILE *file, const char *name) {
+    print_summary(file);
     print_usage(file, name);
     fprintf(file,
             "Positional arguments:\n"
