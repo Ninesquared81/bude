@@ -183,9 +183,22 @@ static enum link_type parse_link_type(const char *rest, const char *name, const 
     return opts->_default_linking;
 }
 
+enum filetype {FILE_FILE, FILE_STDSTREAM};
+
+enum filetype get_filetype(const char *restrict filename) {
+    return (filename != NULL && strcmp(filename, "-") != 0) ? FILE_FILE : FILE_STDSTREAM;
+}
+
 static void fixup_outfile(struct cmdopts *opts, struct module *module) {
     if (opts->output_filename != NULL) return;
     assert(opts->filename != NULL);
+    enum filetype filetype = get_filetype(opts->filename);
+    if (filetype == FILE_STDSTREAM) {
+        // If we read from stdin, write to stdout.
+        opts->output_filename = "-";
+        return;
+    }
+    assert(filetype == FILE_FILE);  // Any other filetype not covered.
     size_t required_length = strlen(opts->filename);
     const char *ext = strrchr(opts->filename, '.');
     if (ext != NULL && strcmp(ext, ".bude") == 0) {
@@ -355,12 +368,6 @@ check_filename:
 #undef BAD_OPTION
 #undef DEFER_EXIT
 
-
-enum filetype {FILE_FILE, FILE_STDSTREAM};
-
-enum filetype get_filetype(const char *restrict filename) {
-    return (filename != NULL && strcmp(filename, "-") != 0) ? FILE_FILE : FILE_STDSTREAM;
-}
 
 void load_source(const char *restrict filename, char *restrict inbuf) {
     enum filetype filetype = get_filetype(filename);
