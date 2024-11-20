@@ -183,6 +183,33 @@ static enum link_type parse_link_type(const char *rest, const char *name, const 
     return opts->_default_linking;
 }
 
+static void fixup_outfile(struct cmdopts *opts, struct module *module) {
+    if (opts->output_filename != NULL) return;
+    assert(opts->filename != NULL);
+    size_t required_length = strlen(opts->filename);
+    const char *ext = strrchr(opts->filename, '.');
+    if (ext != NULL && strcmp(ext, ".bude") == 0) {
+        required_length -= 5;  // Length of `.bude` extension.
+    }
+    size_t original_length = required_length;
+    char *filename = NULL;
+    if (opts->generate_asm) {
+        required_length += 4;  // "`.asm` extension."
+        filename = region_alloc(module->region, required_length + 1);
+        memcpy(filename, opts->filename, original_length);
+        char *new_ext = filename + original_length;
+        strcpy(new_ext, ".asm");
+    }
+    else if (opts->generate_bytecode) {
+        required_length += 5;  // "`.bbwf` extension."
+        filename = region_alloc(module->region, required_length + 1);
+        memcpy(filename, opts->filename, original_length);
+        char *new_ext = filename + original_length;
+        strcpy(new_ext, ".bbwf");
+    }
+    opts->output_filename = filename;
+}
+
 static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionary *symbols,
                                  struct module *module) {
     assert(argc >= 1);
@@ -321,6 +348,7 @@ check_filename:
         print_usage(stderr, name);
         DEFER_EXIT(opts, 1);
     }
+    if (!opts._should_exit) fixup_outfile(&opts, module);
     return opts;
 }
 
