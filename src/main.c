@@ -185,6 +185,12 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
     struct cmdopts opts = new_cmdopts();
     const char *name = argv[0];
 
+    if (argc == 1) {
+        // Print help message when no arguments passed.
+        print_help(stderr, name);
+        DEFER_EXIT(opts, 0);
+    }
+
     for (int i = 1; i < argc && !opts._should_exit; ++i) {
         const char *arg = argv[i];
         switch (arg[0]) {
