@@ -202,6 +202,10 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
         case '-':
             // Options.
             switch (arg[1]) {
+            case '\0':
+                // '-' refers to stdin/out.
+                handle_positional_arg(name, &opts, arg);
+                break;
             case 'a':
             case 'b':
             case 'B':
@@ -324,8 +328,15 @@ check_filename:
 #undef DEFER_EXIT
 
 
+enum filetype {FILE_FILE, FILE_STDSTREAM};
+
+enum filetype get_filetype(const char *restrict filename) {
+    return (filename != NULL && strcmp(filename, "-") != 0) ? FILE_FILE : FILE_STDSTREAM;
+}
+
 void load_source(const char *restrict filename, char *restrict inbuf) {
-    FILE *file = fopen(filename, "r");
+    enum filetype filetype = get_filetype(filename);
+    FILE *file = (filetype == FILE_FILE) ? fopen(filename, "r") : stdin;
     if (file == NULL) {
         fprintf(stderr, "Could not open input file '%s': %s.\n", filename, strerror(errno));
         exit(1);
@@ -340,7 +351,7 @@ void load_source(const char *restrict filename, char *restrict inbuf) {
         exit(1);
     }
     inbuf[length] = '\0';  // Set null byte.
-    if (fclose(file) != 0) {
+    if (filetype == FILE_FILE && fclose(file) != 0) {
         fprintf(stderr, "Failed to close input file '%s': %s.\n", filename, strerror(errno));
         exit(1);
     }
@@ -417,17 +428,15 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Failed to write assembly code.\n");
             exit(1);
         }
-        FILE *outfile = stdout;
-        if (opts.output_filename != NULL) {
-            outfile = fopen(opts.output_filename, "w");
-            if (outfile == NULL) {
-                fprintf(stderr, "Failed to open output file '%s': %s.\n",
-                        opts.output_filename, strerror(errno));
-                exit(1);
-            }
+        enum filetype filetype = get_filetype(opts.output_filename);
+        FILE *outfile = (filetype == FILE_FILE) ? fopen(opts.output_filename, "w") : stdout;
+        if (outfile == NULL) {
+            fprintf(stderr, "Failed to open output file '%s': %s.\n",
+                    opts.output_filename, strerror(errno));
+            exit(1);
         }
         fprintf(outfile, "%s", assembly->code);
-        if (fclose(outfile) != 0) {
+        if (filetype == FILE_FILE && fclose(outfile) != 0) {
             fprintf(stderr, "Failed to close output file '%s': %s.\n",
                     opts.output_filename, strerror(errno));
             exit(1);
@@ -436,7 +445,9 @@ int main(int argc, char *argv[]) {
     }
     if (opts.generate_bytecode) {
         assert(!opts.generate_asm);
-        if (opts.output_filename != NULL) {
+        enum filetype filetype = get_filetype(opts.output_filename);
+        if (filetype == FILE_FILE) {
+            assert(opts.output_filename != NULL);
             FILE *outfile = fopen(opts.output_filename, "wb");
             if (outfile == NULL) {
                 fprintf(stderr, "Failed to open output file '%s': '%s.\n",
