@@ -180,6 +180,8 @@ static enum link_type parse_link_type(const char *rest, const char *name, const 
 
 static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionary *symbols,
                                  struct module *module) {
+    assert(argc >= 1);
+
     struct cmdopts opts = new_cmdopts();
     const char *name = argv[0];
 
