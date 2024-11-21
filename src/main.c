@@ -110,9 +110,8 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
     }
 }
 
-#define BAD_OPTION(name, arg) do {                      \
+#define BAD_OPTION(arg) do {                            \
         fprintf(stderr, "Unknown option '%s'.\n", arg); \
-        print_usage(stderr, name);                      \
     } while (0)
 
 #define DEFER_EXIT(opts, exit_code) do {        \
@@ -163,14 +162,14 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
             DEFER_EXIT(*opts, 0);
             return;
         default:
-            BAD_OPTION(name, arg);
+            BAD_OPTION(arg);
             DEFER_EXIT(*opts, 1);
             return;
         }
     }
 }
 
-static enum link_type parse_link_type(const char *rest, const char *name, const char *arg,
+static enum link_type parse_link_type(const char *rest, const char *arg,
                                       struct cmdopts *opts) {
     if (strcmp(rest, "st")) {
         return LINK_STATIC;
@@ -178,7 +177,7 @@ static enum link_type parse_link_type(const char *rest, const char *name, const 
     if (strcmp(rest, "dy")) {
         return LINK_DYNAMIC;
     }
-    BAD_OPTION(name, arg);
+    BAD_OPTION(arg);
     DEFER_EXIT(*opts, 1);
     return opts->_default_linking;
 }
@@ -300,7 +299,7 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                 else if (strcmp(&arg[2], "lib-type:") == 0) {
                     // NOTE: this must come BEFORE the check for `--lib`.
                     const char *rest = &arg[2 + sizeof "lib-type:" - 1];
-                    opts._default_linking = parse_link_type(rest, name, arg, &opts);
+                    opts._default_linking = parse_link_type(rest, arg, &opts);
                 }
                 else if (strncmp(&arg[2], "lib", 3) == 0) {
                     // NOTE: this must come AFTER the check for `--lib-type`.
@@ -308,13 +307,13 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                     enum link_type linking = opts._default_linking;
                     if (*rest == ':') {
                         ++rest;
-                        linking = parse_link_type(rest, name, arg, &opts);
+                        linking = parse_link_type(rest, arg, &opts);
                     }
                     arg = argv[++i];
                     int sep = 0;
                     while (arg[sep] != '=') {
                         if (arg[sep] == '\0') {
-                            BAD_OPTION(name, arg);
+                            BAD_OPTION(arg);
                             DEFER_EXIT(opts, 1);
                         }
                         ++sep;
@@ -340,12 +339,12 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                     DEFER_EXIT(opts, 0);
                 }
                 else {
-                    BAD_OPTION(name, arg);
+                    BAD_OPTION(arg);
                     DEFER_EXIT(opts, 1);
                 }
                 break;
             default:
-                BAD_OPTION(name, arg);
+                BAD_OPTION(arg);
                 DEFER_EXIT(opts, 1);
             }
             break;
@@ -399,6 +398,9 @@ int main(int argc, char *argv[]) {
     init_module(&module, NULL);
     struct cmdopts opts = parse_args(argc, argv, &symbols, &module);
     if (opts._should_exit) {
+        if (opts._exit_code != 0) {
+            print_usage(stderr, argv[0]);
+        }
         exit(opts._exit_code);
     }
     if (!opts.from_bytecode) {
