@@ -54,12 +54,49 @@ static void print_summary(FILE *file) {
     fprintf(file, "bude -- the Bude language compiler\n\n");
 }
 
+static void print_description(FILE *file, const char *name) {
+    print_summary(file);
+    print_usage(file, name);
+    fprintf(file,
+            "Common arguments/options:\n"
+            "  file         name of the source code file\n"
+            "  -a           generate assembly code\n"
+            "  -i           interpret ir code (enabled by default)\n"
+            "  -o <file>    write the output to the specified file. This option can be omitted,\n"
+            "               in which case, the filename is based on the input filename.\n"
+            "  -h, --help   display help message and exit\n"
+            "\n"
+            "NOTE: Whenever a file is required for input/output, you can use `-` to specify stdin/stdout.\n"
+            "\n"
+            "Example invocations:\n"
+            "\n"
+            "  Compile `hello_world.bude` to assembly and save it in the default output file\n"
+            "\n"
+            "    bude hello_world.bude -a\n"
+            "\n"
+            "  Interpret `hello_world.bude`\n"
+            "\n"
+            "    bude hello_world.bude -i\n"
+            "\n"
+            "  Compile `hello_world.bude` to assembly and save it in another directoy\n"
+            "\n"
+            "    bude hello_world.bude -a -o output/hello_world.asm\n"
+            "\n"
+            "  Compile and assemble `hello_world.bude` (using FASM)\n"
+            "\n"
+            "    bude hello_word.bude -a\n"
+            "    fasm hello_world.asm\n"
+            "\n"
+            "For more information on options, use `bude --help`.\n"
+        );
+}
+
 static void print_help(FILE *file, const char *name) {
     print_summary(file);
     print_usage(file, name);
     fprintf(file,
             "Positional arguments:\n"
-            "  file              name of the source code file\n"
+            "  file              name of the source code file. Use `-` for stdin.\n"
             "Options:\n"
             "  -a                generate assembly code\n"
             "  -b                generate bytecode only\n"
@@ -67,7 +104,9 @@ static void print_help(FILE *file, const char *name) {
                                        "a Bude source code file.\n"
             "  -d, --dump        dump the generated ir code and exit "
                                        "unless -i or -a are specified\n"
-            "  -o <file>         write the output to the specified file\n"
+            "  -o <file>         write the output to the specified file. This option can be omitted,\n"
+            "                    in which case, the filename is based on the input filename. "
+                                       "Use `-` for stdout.\n"
             "  -h, -?, --help    display this help message and exit\n"
             "  -i, --interpret   interpret ir code (enabled by default)\n"
             "  --lib[:st|:dy] <libname>=<path> link with a STatic or DYnamic library. "
@@ -231,7 +270,7 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
 
     if (argc == 1) {
         // Print help message when no arguments passed.
-        print_help(stderr, name);
+        print_description(stderr, name);
         DEFER_EXIT(opts, 0);
     }
 
