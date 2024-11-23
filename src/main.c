@@ -88,7 +88,7 @@ static void print_description(FILE *file, const char *name) {
             "    fasm hello_world.asm\n"
             "\n"
             "For more information on options, use `bude --help`.\n"
-            "For more information on a specific command, use `bude <filename> [options] --explain`.\n"
+            "For more information on a specific command, use `bude [options] <file> --explain`.\n"
         );
 }
 
@@ -153,7 +153,7 @@ static void print_explanation(FILE *file, struct cmdopts *opts, struct module *m
     else {
         fprintf(file,
                 "Specify a file to compile.\n"
-                "For more information on arguments, use `bude --help`.\n"
+                "For more information on options, use `bude --help`.\n"
             );
         return;
     }
@@ -175,7 +175,7 @@ static void print_explanation(FILE *file, struct cmdopts *opts, struct module *m
     else if (opts->generate_bytecode) {
         print_output_file(file, opts, "IR code (in BudeBWF format)", module);
     }
-    fprintf(file, " and %s.\n\nFor more information on arguments, use `bude --help`.\n",
+    fprintf(file, " and %s.\n\nFor more information on options, use `bude --help`.\n",
             (opts->interpret) ? "interpret it" : "exit");
 }
 
