@@ -247,9 +247,11 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
         fprintf(stderr, "Unknown option '%s'.\n", arg); \
     } while (0)
 
-#define DEFER_EXIT(opts, exit_code) do {        \
-        (opts)._should_exit = true;             \
-        (opts)._exit_code = exit_code;          \
+#define DEFER_EXIT(opts, exit_code) do {                \
+        if (!(opts)._should_exit || exit_code == 0) {   \
+            (opts)._exit_code = exit_code;              \
+        }                                               \
+        (opts)._should_exit = true;                     \
     } while (0)
 
 static void parse_short_opt(const char *name, const char *arg, struct cmdopts *opts) {
@@ -334,7 +336,7 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
         DEFER_EXIT(opts, 0);
     }
 
-    for (int i = 1; i < argc && !opts._should_exit; ++i) {
+    for (int i = 1; i < argc; ++i) {
         const char *arg = argv[i];
         switch (arg[0]) {
         case '-':
