@@ -148,15 +148,22 @@ static void print_output_file(FILE* file, struct cmdopts *opts, const char *rest
     }
 }
 
+static void print_help_prompt(FILE *file, struct cmdopts *opts) {
+    fprintf(file, "For more information on options, ");
+    if (!opts->_should_help) {
+        fprintf(file, "use `bude --help`.\n");
+    }
+    else {
+        fprintf(file, "see the help message above (specified by the `--help` option).\n");
+    }
+}
+
 static void print_explanation(FILE *file, struct cmdopts *opts, struct module *module) {
     if (opts->filename != NULL) {
         fprintf(file, "Explanation of command entered:\n\n");
     }
     else {
-        fprintf(file,
-                "Specify a file to compile.\n"
-                "For more information on options, use `bude --help`.\n"
-            );
+        fprintf(file, "Specify a file to compile.\n");
         return;
     }
     const char *input_filename = opts->filename;
@@ -183,7 +190,8 @@ static void print_explanation(FILE *file, struct cmdopts *opts, struct module *m
         const char *linking_adverb = (library->link_type == LINK_STATIC) ? "statically" : "dynamically";
         fprintf(file, "  Link %s with library %"PRI_SV".\n", linking_adverb, SV_FMT(library->filename));
     }
-    fprintf(file, "\nFor more information on options, use `bude --help`.\n");
+    fprintf(file, "\n");
+    print_help_prompt(file, opts);
 }
 
 static void print_help(FILE *file, const char *name) {
