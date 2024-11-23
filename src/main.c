@@ -154,7 +154,10 @@ static void print_help_prompt(FILE *file, struct cmdopts *opts) {
         fprintf(file, "use `bude --help`.\n");
     }
     else {
-        fprintf(file, "see the help message above (specified by the `--help` option).\n");
+        fprintf(file,
+                "see the help message above,\n"
+                "which was specified by the `--help` option (aka `-h`, `-?`).\n"
+            );
     }
 }
 
