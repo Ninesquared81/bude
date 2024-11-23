@@ -148,7 +148,7 @@ static void print_output_file(FILE* file, struct cmdopts *opts, const char *rest
 
 static void print_explanation(FILE *file, struct cmdopts *opts, struct module *module) {
     if (opts->filename != NULL) {
-        fprintf(file, "Explanation of command entered:\n\n  ");
+        fprintf(file, "Explanation of command entered:\n\n");
     }
     else {
         fprintf(file,
@@ -160,7 +160,7 @@ static void print_explanation(FILE *file, struct cmdopts *opts, struct module *m
     const char *input_filename = opts->filename;
     if (get_filetype(input_filename) == FILE_STDSTREAM) input_filename = "text from stdin";
     if (!opts->show_tokens) {
-        fprintf(file, "Compile %s to IR code", input_filename);
+        fprintf(file, "  Compile %s to IR code", input_filename);
     }
     else {
         fprintf(file, "Lex %s, print the tokens to stdout, compile it to IR code", input_filename);
@@ -175,8 +175,13 @@ static void print_explanation(FILE *file, struct cmdopts *opts, struct module *m
     else if (opts->generate_bytecode) {
         print_output_file(file, opts, "IR code (in BudeBWF format)", module);
     }
-    fprintf(file, " and %s.\n\nFor more information on options, use `bude --help`.\n",
-            (opts->interpret) ? "interpret it" : "exit");
+    fprintf(file, " and %s.\n", (opts->interpret) ? "interpret it" : "exit");
+    for (int i = 0; i < module->ext_libraries.count; ++i) {
+        struct ext_library *library = &module->ext_libraries.items[i];
+        const char *linking_adverb = (library->link_type == LINK_STATIC) ? "statically" : "dynamically";
+        fprintf(file, "  Link %s with library %"PRI_SV".\n", linking_adverb, SV_FMT(library->filename));
+    }
+    fprintf(file, "\nFor more information on options, use `bude --help`.\n");
 }
 
 static void print_help(FILE *file, const char *name) {
