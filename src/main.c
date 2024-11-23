@@ -42,6 +42,8 @@ struct cmdopts {
     bool _had_i;
     bool _had_a;
     bool _should_exit;
+    bool _should_help;
+    bool _should_explain;
     int _exit_code;
     enum link_type _default_linking;
 };
@@ -256,7 +258,7 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
         (opts)._should_exit = true;                     \
     } while (0)
 
-static void parse_short_opt(const char *name, const char *arg, struct cmdopts *opts) {
+static void parse_short_opt(const char *arg, struct cmdopts *opts) {
     for (const char *opt = &arg[1]; *opt != '\0'; ++opt) {
         switch (*opt) {
         case 'a':
@@ -285,7 +287,7 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
             opts->generate_asm = opts->_had_a;
             break;
         case 'h': case '?':
-            print_help(stderr, name);
+            opts->_should_help = true;
             DEFER_EXIT(*opts, 0);
             return;
         case 'i':
@@ -357,7 +359,7 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
             case 'O':
             case 't':
             case 'v':
-                parse_short_opt(name, arg, &opts);
+                parse_short_opt(arg, &opts);
                 break;
             case 'o': {
                 const char *filename = NULL;
@@ -392,11 +394,11 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                     opts.generate_asm = opts._had_a;
                 }
                 else if (strcmp(&arg[2], "help") == 0) {
-                    print_help(stderr, name);
+                    opts._should_help = true;
                     DEFER_EXIT(opts, 0);
                 }
                 else if (strcmp(&arg[2], "explain") == 0) {
-                    print_explanation(stderr, &opts, module);
+                    opts._should_explain = true;
                     DEFER_EXIT(opts, 0);
                 }
                 else if (strcmp(&arg[2], "interpret") == 0) {
@@ -508,6 +510,12 @@ int main(int argc, char *argv[]) {
     init_symbol_dictionary(&symbols);
     init_module(&module, NULL);
     struct cmdopts opts = parse_args(argc, argv, &symbols, &module);
+    if (opts._should_help) {
+        print_help(stderr, argv[0]);
+    }
+    if (opts._should_explain) {
+        print_explanation(stderr, &opts, &module);
+    }
     if (opts._should_exit) {
         if (opts._exit_code != 0) {
             print_usage(stderr, argv[0]);
