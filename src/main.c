@@ -243,8 +243,10 @@ static void handle_positional_arg(const char *restrict name, struct cmdopts *opt
     }
 }
 
-#define BAD_OPTION(arg) do {                            \
-        fprintf(stderr, "Unknown option '%s'.\n", arg); \
+#define BAD_OPTION(opts, arg) do {                              \
+        if (!(opts)._should_exit || (opts)._exit_code != 0) {   \
+            fprintf(stderr, "Unknown option '%s'.\n", arg);     \
+        }                                                       \
     } while (0)
 
 #define DEFER_EXIT(opts, exit_code) do {                \
@@ -303,7 +305,7 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
             DEFER_EXIT(*opts, 0);
             return;
         default:
-            BAD_OPTION(arg);
+            BAD_OPTION(*opts, arg);
             DEFER_EXIT(*opts, 1);
             return;
         }
@@ -318,7 +320,7 @@ static enum link_type parse_link_type(const char *rest, const char *arg,
     if (strcmp(rest, "dy") == 0) {
         return LINK_DYNAMIC;
     }
-    BAD_OPTION(arg);
+    BAD_OPTION(*opts, arg);
     DEFER_EXIT(*opts, 1);
     return opts->_default_linking;
 }
@@ -415,14 +417,14 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                         linking = parse_link_type(rest, arg, &opts);
                     }
                     else if (*rest != '\0') {
-                        BAD_OPTION(arg);
+                        BAD_OPTION(opts, arg);
                         DEFER_EXIT(opts, 1);
                     }
                     arg = argv[++i];
                     int sep = 0;
                     while (arg[sep] != '=') {
                         if (arg[sep] == '\0') {
-                            BAD_OPTION(arg);
+                            BAD_OPTION(opts, arg);
                             DEFER_EXIT(opts, 1);
                         }
                         ++sep;
@@ -448,12 +450,12 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                     DEFER_EXIT(opts, 0);
                 }
                 else {
-                    BAD_OPTION(arg);
+                    BAD_OPTION(opts, arg);
                     DEFER_EXIT(opts, 1);
                 }
                 break;
             default:
-                BAD_OPTION(arg);
+                BAD_OPTION(opts, arg);
                 DEFER_EXIT(opts, 1);
             }
             break;
