@@ -88,7 +88,95 @@ static void print_description(FILE *file, const char *name) {
             "    fasm hello_world.asm\n"
             "\n"
             "For more information on options, use `bude --help`.\n"
+            "For more information on a specific command, use `bude <filename> [options] --explain`.\n"
         );
+}
+
+enum filetype {FILE_FILE, FILE_STDSTREAM};
+
+enum filetype get_filetype(const char *restrict filename) {
+    return (filename != NULL && strcmp(filename, "-") != 0) ? FILE_FILE : FILE_STDSTREAM;
+}
+
+static enum filetype fixup_outfile(struct cmdopts *opts, struct module *module) {
+    if (opts->output_filename != NULL) {
+        return get_filetype(opts->output_filename);
+    }
+    assert(opts->filename != NULL);
+    enum filetype filetype = get_filetype(opts->filename);
+    if (filetype == FILE_STDSTREAM) {
+        // If we read from stdin, write to stdout.
+        opts->output_filename = "-";
+        return FILE_STDSTREAM;
+    }
+    assert(filetype == FILE_FILE);  // Any other filetype not covered.
+    size_t required_length = strlen(opts->filename);
+    const char *ext = strrchr(opts->filename, '.');
+    if (ext != NULL && strcmp(ext, ".bude") == 0) {
+        required_length -= 5;  // Length of `.bude` extension.
+    }
+    size_t original_length = required_length;
+    char *filename = NULL;
+    if (opts->generate_asm) {
+        required_length += 4;  // "`.asm` extension."
+        filename = region_alloc(module->region, required_length + 1);
+        memcpy(filename, opts->filename, original_length);
+        char *new_ext = filename + original_length;
+        strcpy(new_ext, ".asm");
+    }
+    else if (opts->generate_bytecode) {
+        required_length += 5;  // "`.bbwf` extension."
+        filename = region_alloc(module->region, required_length + 1);
+        memcpy(filename, opts->filename, original_length);
+        char *new_ext = filename + original_length;
+        strcpy(new_ext, ".bbwf");
+    }
+    opts->output_filename = filename;
+    return FILE_FILE;
+}
+
+static void print_output_file(FILE* file, struct cmdopts *opts, const char *restrict output_type,
+                              struct module *module) {
+    enum filetype filetype = fixup_outfile(opts, module);
+    if (filetype == FILE_FILE) {
+        fprintf(file, ", save the %s to %s,", output_type, opts->output_filename);
+    }
+    else {
+        fprintf(file, ", print the %s to stdout,", output_type);
+    }
+}
+
+static void print_explanation(FILE *file, struct cmdopts *opts, struct module *module) {
+    if (opts->filename != NULL) {
+        fprintf(file, "Explanation of command entered:\n\n  ");
+    }
+    else {
+        fprintf(file,
+                "Specify a file to compile.\n"
+                "For more information on arguments, use `bude --help`.\n"
+            );
+        return;
+    }
+    const char *input_filename = opts->filename;
+    if (get_filetype(input_filename) == FILE_STDSTREAM) input_filename = "text from stdin";
+    if (!opts->show_tokens) {
+        fprintf(file, "Compile %s to IR code", input_filename);
+    }
+    else {
+        fprintf(file, "Lex %s, print the tokens to stdout, compile it to IR code", input_filename);
+    }
+    if (opts->dump_ir) {
+        fprintf(file, ", print the IR code to stdout");
+    }
+    if (opts->generate_asm) {
+        fprintf(file, ", assemble the IR code");
+        print_output_file(file, opts, "assembly", module);
+    }
+    else if (opts->generate_bytecode) {
+        print_output_file(file, opts, "IR code (in BudeBWF format)", module);
+    }
+    fprintf(file, " and %s.\n\nFor more information on arguments, use `bude --help`.\n",
+            (opts->interpret) ? "interpret it" : "exit");
 }
 
 static void print_help(FILE *file, const char *name) {
@@ -108,6 +196,7 @@ static void print_help(FILE *file, const char *name) {
             "                    in which case, the filename is based on the input filename. "
                                        "Use `-` for stdout.\n"
             "  -h, -?, --help    display this help message and exit\n"
+            "  --explain         explain the meaning of the arguments parsed up until `--explain` is used\n"
             "  -i, --interpret   interpret ir code (enabled by default)\n"
             "  --lib[:st|:dy] <libname>=<path> link with a STatic or DYnamic library. "
                                        "If neither :st nor :dy\n"
@@ -221,46 +310,6 @@ static enum link_type parse_link_type(const char *rest, const char *arg,
     return opts->_default_linking;
 }
 
-enum filetype {FILE_FILE, FILE_STDSTREAM};
-
-enum filetype get_filetype(const char *restrict filename) {
-    return (filename != NULL && strcmp(filename, "-") != 0) ? FILE_FILE : FILE_STDSTREAM;
-}
-
-static void fixup_outfile(struct cmdopts *opts, struct module *module) {
-    if (opts->output_filename != NULL) return;
-    assert(opts->filename != NULL);
-    enum filetype filetype = get_filetype(opts->filename);
-    if (filetype == FILE_STDSTREAM) {
-        // If we read from stdin, write to stdout.
-        opts->output_filename = "-";
-        return;
-    }
-    assert(filetype == FILE_FILE);  // Any other filetype not covered.
-    size_t required_length = strlen(opts->filename);
-    const char *ext = strrchr(opts->filename, '.');
-    if (ext != NULL && strcmp(ext, ".bude") == 0) {
-        required_length -= 5;  // Length of `.bude` extension.
-    }
-    size_t original_length = required_length;
-    char *filename = NULL;
-    if (opts->generate_asm) {
-        required_length += 4;  // "`.asm` extension."
-        filename = region_alloc(module->region, required_length + 1);
-        memcpy(filename, opts->filename, original_length);
-        char *new_ext = filename + original_length;
-        strcpy(new_ext, ".asm");
-    }
-    else if (opts->generate_bytecode) {
-        required_length += 5;  // "`.bbwf` extension."
-        filename = region_alloc(module->region, required_length + 1);
-        memcpy(filename, opts->filename, original_length);
-        char *new_ext = filename + original_length;
-        strcpy(new_ext, ".bbwf");
-    }
-    opts->output_filename = filename;
-}
-
 static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionary *symbols,
                                  struct module *module) {
     assert(argc >= 1);
@@ -329,6 +378,10 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                 }
                 else if (strcmp(&arg[2], "help") == 0) {
                     print_help(stderr, name);
+                    DEFER_EXIT(opts, 0);
+                }
+                else if (strcmp(&arg[2], "explain") == 0) {
+                    print_explanation(stderr, &opts, module);
                     DEFER_EXIT(opts, 0);
                 }
                 else if (strcmp(&arg[2], "interpret") == 0) {
