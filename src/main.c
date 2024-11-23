@@ -305,10 +305,10 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
 
 static enum link_type parse_link_type(const char *rest, const char *arg,
                                       struct cmdopts *opts) {
-    if (strcmp(rest, "st")) {
+    if (strcmp(rest, "st") == 0) {
         return LINK_STATIC;
     }
-    if (strcmp(rest, "dy")) {
+    if (strcmp(rest, "dy") == 0) {
         return LINK_DYNAMIC;
     }
     BAD_OPTION(arg);
