@@ -412,6 +412,10 @@ static struct cmdopts parse_args(int argc, char *argv[], struct symbol_dictionar
                         ++rest;
                         linking = parse_link_type(rest, arg, &opts);
                     }
+                    else if (*rest != '\0') {
+                        BAD_OPTION(arg);
+                        DEFER_EXIT(opts, 1);
+                    }
                     arg = argv[++i];
                     int sep = 0;
                     while (arg[sep] != '=') {
