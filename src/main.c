@@ -253,12 +253,18 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
         case 'a':
             opts->generate_asm = true;
             opts->interpret = opts->_had_i;
+            if (opts->generate_bytecode) {
+                fprintf(stderr, "Warning: `-a` option takes precedence over previous usage of `-b`.\n");
+            }
             opts->generate_bytecode = false;
             opts->_had_a = true;
             break;
         case 'b':
             opts->generate_bytecode = true;
             opts->interpret = opts->_had_i;
+            if (opts->generate_asm) {
+                fprintf(stderr, "Warning: `-b` option takes precedence over previous usage of `-a`.\n");
+            }
             opts->generate_asm = false;
             break;
         case 'B':
