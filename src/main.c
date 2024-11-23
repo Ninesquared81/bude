@@ -252,13 +252,13 @@ static void parse_short_opt(const char *name, const char *arg, struct cmdopts *o
         switch (*opt) {
         case 'a':
             opts->generate_asm = true;
-            opts->interpret = false;
+            opts->interpret = opts->_had_i;
             opts->generate_bytecode = false;
             opts->_had_a = true;
             break;
         case 'b':
             opts->generate_bytecode = true;
-            opts->interpret = false;
+            opts->interpret = opts->_had_i;
             opts->generate_asm = false;
             break;
         case 'B':
