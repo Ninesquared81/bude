@@ -879,18 +879,20 @@ static type_index parse_type(struct compiler *compiler, struct token token) {
                     .element_type = element_type,
                 },
             };
+            // Copy temporary allocation to permanent allocation.
+            struct string_view symbol_sv = copy_view_in_region(&token_sv, compiler->module->region);
             init_type(&compiler->module->types, array_type, &info);
             symbol = &(struct symbol) {
-                .name = token_sv,
+                .name = symbol_sv,
                 .type = SYM_ARRAY,
                 .array.index = array_type,
             };
             insert_symbol(compiler->symbols, symbol);
         }
         else {
-            restore_region(compiler->temp, temp_restore);
             array_type = symbol->array.index;
         }
+        restore_region(compiler->temp, temp_restore);
         assert(array_type != TYPE_ERROR);
         return array_type;
     }
