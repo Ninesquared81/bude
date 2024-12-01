@@ -1493,7 +1493,10 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                     : W_OP_EQUALS_F64;
             }
             else {
-                type_error(checker, "invalid types for `=`");
+                struct string_view lhs_name = type_name(&checker->module->types, lhs_type);
+                struct string_view rhs_name = type_name(&checker->module->types, rhs_type);
+                type_error(checker, "invalid types for `=`: %"PRI_SV" and %"PRI_SV,
+                           SV_FMT(lhs_name), SV_FMT(rhs_name));
             }
             emit_simple(checker, comparison);
             ts_push(checker, TYPE_BOOL);
