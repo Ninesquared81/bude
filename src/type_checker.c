@@ -56,6 +56,27 @@ static void type_error(struct type_checker *checker, const char *restrict messag
     fprintf(stderr, ".\n");
 }
 
+enum jmpdir {JMP_DEST, JMP_SRC};  // Whether the CURRENT type stack is at the jump source or destination.
+
+static void inconsistent_jump_error(struct type_checker *checker, int state_index, enum jmpdir direction) {
+    struct tstack_state *state = checker->states.states[state_index];
+    struct type_stack *tstack = checker->tstack;
+    struct string_view src_sv = {0};
+    struct string_view dest_sv = {0};
+    switch (direction) {
+    case JMP_DEST:
+        src_sv = type_array_to_sv(checker, state->count, state->types);
+        dest_sv = type_array_to_sv(checker, TSTACK_COUNT(tstack), tstack->types);
+        break;
+    case JMP_SRC:
+        src_sv = type_array_to_sv(checker, TSTACK_COUNT(tstack), tstack->types);
+        dest_sv = type_array_to_sv(checker, state->count, state->types);
+        break;
+    }
+    type_error(checker, "inconsistent stack after jump instruction: %"PRI_SV" -> %"PRI_SV,
+               SV_FMT(src_sv), SV_FMT(dest_sv));
+}
+
 static void expect_types_equal(struct type_checker *checker, type_index expected_type,
                           type_index actual_type) {
     if (actual_type != expected_type) {
@@ -921,8 +942,9 @@ static void check_unreachable(struct type_checker *checker) {
 static void check_jump_instruction(struct type_checker *checker) {
     int offset = read_s16(checker->in_block, checker->ip + 1);
     if (!save_jump(checker, offset)) {
-        type_error(checker, "inconsistent stack after jump instruction",
-                   checker->ip);
+        int dest = checker->ip + offset + 1;
+        size_t index = find_state(&checker->states, dest);
+        inconsistent_jump_error(checker, index, JMP_SRC);
     }
 }
 
@@ -1226,7 +1248,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             if (!save_state_with_index(checker, index)) {
                 // Previous state was saved here.
                 if (!check_state_with_index(checker, index)) {
-                    type_error(checker, "inconsistent stack after jump instruction");
+                    inconsistent_jump_error(checker, index, JMP_DEST);
                 }
                 struct src_list *wir_src_node = checker->states.wir_srcs[index];
                 assert(wir_src_node != NULL && "There must be at least one src saved.");
