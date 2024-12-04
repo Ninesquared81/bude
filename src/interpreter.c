@@ -46,6 +46,7 @@ bool init_interpreter(struct interpreter *interpreter, struct module *module) {
     struct function *main_func = get_function(&module->functions, 0);
     interpreter->current_function = 0;  // Function 0 is the entry point.
     interpreter->ip = 0;
+    interpreter->for_loop_level = 0;
     interpreter->block = &main_func->w_code;
     interpreter->main_stack = malloc(sizeof *interpreter->main_stack);
     interpreter->auxiliary_stack = malloc(sizeof *interpreter->auxiliary_stack);
@@ -158,6 +159,8 @@ static void array_set(struct interpreter *interpreter, int element_count, int wo
 static void call(struct interpreter *interpreter, int index) {
     struct pair32 retinfo = {interpreter->current_function, interpreter->ip};
     push(interpreter->call_stack, pair32_to_u64(retinfo));
+    push(interpreter->loop_stack, interpreter->for_loop_level);
+    interpreter->for_loop_level = 0;
     struct function *callee = get_function(&interpreter->module->functions, index);
     interpreter->block = &callee->w_code;
     interpreter->current_function = index;
@@ -169,6 +172,8 @@ static void call(struct interpreter *interpreter, int index) {
 static void ret(struct interpreter *interpreter) {
     restore(interpreter->auxiliary_stack, interpreter->locals);
     interpreter->locals = (stack_word *)pop(interpreter->auxiliary_stack);
+    popn(interpreter->loop_stack, interpreter->for_loop_level);
+    interpreter->for_loop_level = pop(interpreter->loop_stack);
     struct pair32 retinfo = u64_to_pair32(pop(interpreter->call_stack));
     int index = retinfo.a;
     interpreter->ip = retinfo.b;
@@ -401,6 +406,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             if (counter > 0) {
                 interpreter->ip += 2;
                 push(interpreter->loop_stack, counter);
+                interpreter->for_loop_level += 1;
             }
             else {
                 jump(interpreter, skip_jump);
@@ -416,6 +422,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             }
             else {
                 interpreter->ip += 2;
+                interpreter->for_loop_level -= 1;
             }
             break;
         }
@@ -427,6 +434,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
                 interpreter->ip += 2;
                 push(interpreter->loop_stack, target);
                 push(interpreter->loop_stack, counter);
+                interpreter->for_loop_level += 2;
             }
             else {
                 jump(interpreter, skip_jump);
@@ -444,6 +452,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             else {
                 pop(interpreter->loop_stack);
                 interpreter->ip += 2;
+                interpreter->for_loop_level -= 2;
             }
             break;
         }

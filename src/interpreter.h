@@ -22,6 +22,7 @@ struct interpreter {
     struct module *module;
     int current_function;
     int ip;
+    int for_loop_level;
 };
 
 bool init_interpreter(struct interpreter *interpreter, struct module *module);
