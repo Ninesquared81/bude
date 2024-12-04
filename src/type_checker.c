@@ -1536,7 +1536,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 struct arithm_conv conversion = convert(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
-                if (is_signed(conversion.result_type)) {
+                if (!is_signed(conversion.result_type)) {
                     comparison =  W_OP_HIGHER_SAME;
                 }
             }
@@ -1564,7 +1564,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 struct arithm_conv conversion = convert(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
-                if (is_signed(conversion.result_type)) {
+                if (!is_signed(conversion.result_type)) {
                     comparison =  W_OP_HIGHER_THAN;
                 }
             }
@@ -1592,7 +1592,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 struct arithm_conv conversion = convert(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
-                if (is_signed(conversion.result_type)) {
+                if (!is_signed(conversion.result_type)) {
                     comparison =  W_OP_LOWER_SAME;
                 }
             }
@@ -1620,7 +1620,7 @@ static void type_check_function(struct type_checker *checker, int func_index) {
                 struct arithm_conv conversion = convert(lhs_type, rhs_type);
                 emit_simple_nnop(checker, conversion.lhs_conv);
                 emit_simple_nnop(checker, conversion.rhs_conv);
-                if (is_signed(conversion.result_type)) {
+                if (!is_signed(conversion.result_type)) {
                     comparison =  W_OP_LOWER_SAME;
                 }
             }
