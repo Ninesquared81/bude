@@ -32,7 +32,8 @@ stack_word pop(struct stack *stack) {
 }
 
 void popn(struct stack *stack, int n) {
-    assert(n > 0);
+    assert(n >= 0);
+    if (n == 0) return;
     if (stack->top - stack->elements < n) {
         fprintf(stderr, "Stack underflow in popn()\n");
         exit(1);
