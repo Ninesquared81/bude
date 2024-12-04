@@ -21,6 +21,7 @@ struct interpreter {
     stack_word *locals;
     struct module *module;
     int current_function;
+    int ip;
 };
 
 bool init_interpreter(struct interpreter *interpreter, struct module *module);

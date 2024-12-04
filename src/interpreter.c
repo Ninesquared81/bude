@@ -45,6 +45,7 @@ bool init_interpreter(struct interpreter *interpreter, struct module *module) {
     interpreter->module = module;
     struct function *main_func = get_function(&module->functions, 0);
     interpreter->current_function = 0;  // Function 0 is the entry point.
+    interpreter->ip = 0;
     interpreter->block = &main_func->w_code;
     interpreter->main_stack = malloc(sizeof *interpreter->main_stack);
     interpreter->auxiliary_stack = malloc(sizeof *interpreter->auxiliary_stack);
@@ -78,11 +79,10 @@ void free_interpreter(struct interpreter *interpreter) {
     interpreter->locals = NULL;
 }
 
-static void jump(struct ir_block *block, int offset, int *ip) {
-    int new_address = *ip + offset;
+static void jump(struct interpreter *interpreter, int offset) {
+    interpreter->ip += offset;
     // Address -1 means to jump to the start.
-    assert(-1 <= new_address && new_address < block->count);
-    *ip = new_address;
+    assert(-1 <= interpreter->ip && interpreter->ip < interpreter->block->count);
 }
 
 static stack_word pack_fields(int count, stack_word fields[count], uint8_t sizes[count]) {
@@ -155,137 +155,137 @@ static void array_set(struct interpreter *interpreter, int element_count, int wo
     comp_set_subcomp(interpreter, offset, word_count);
 }
 
-static void call(struct interpreter *interpreter, int index, int *ip) {
-    struct pair32 retinfo = {interpreter->current_function, *ip};
+static void call(struct interpreter *interpreter, int index) {
+    struct pair32 retinfo = {interpreter->current_function, interpreter->ip};
     push(interpreter->call_stack, pair32_to_u64(retinfo));
     struct function *callee = get_function(&interpreter->module->functions, index);
     interpreter->block = &callee->w_code;
     interpreter->current_function = index;
     push(interpreter->auxiliary_stack, (stack_word)interpreter->locals);
     interpreter->locals = reserve(interpreter->auxiliary_stack, callee->locals_size);
-    *ip = -1;  // -1 since ip will be incremented.
+    interpreter->ip = -1;  // -1 since ip will be incremented.
 }
 
-static int ret(struct interpreter *interpreter) {
+static void ret(struct interpreter *interpreter) {
     restore(interpreter->auxiliary_stack, interpreter->locals);
     interpreter->locals = (stack_word *)pop(interpreter->auxiliary_stack);
     struct pair32 retinfo = u64_to_pair32(pop(interpreter->call_stack));
     int index = retinfo.a;
-    int ip = retinfo.b;
+    interpreter->ip = retinfo.b;
     struct function *caller = get_function(&interpreter->module->functions, index);
     interpreter->block = &caller->w_code;
     interpreter->current_function = index;
-    return ip;
 }
 
 enum interpret_result interpret(struct interpreter *interpreter) {
-    call(interpreter, 0, &(int){interpreter->block->count});
-    for (int ip = 0; ip < interpreter->block->count; ++ip) {
-        enum w_opcode instruction = interpreter->block->code[ip];
+    interpreter->ip = interpreter->block->count;  // For final return.
+    call(interpreter, 0);
+    for (interpreter->ip = 0; interpreter->ip < interpreter->block->count; ++interpreter->ip) {
+        enum w_opcode instruction = interpreter->block->code[interpreter->ip];
         switch (instruction) {
         case W_OP_NOP:
             // Do nothing.
             break;
         case W_OP_PUSH8: {
-            ++ip;
-            uint8_t value = read_u8(interpreter->block, ip);
+            ++interpreter->ip;
+            uint8_t value = read_u8(interpreter->block, interpreter->ip);
             push(interpreter->main_stack, value);
             break;
         }
         case W_OP_PUSH16: {
-            ip += 2;
-            uint16_t value = read_u16(interpreter->block, ip - 1);
+            interpreter->ip += 2;
+            uint16_t value = read_u16(interpreter->block, interpreter->ip - 1);
             push(interpreter->main_stack, value);
             break;
         }
         case W_OP_PUSH32: {
-            ip += 4;
-            uint32_t value = read_u32(interpreter->block, ip - 3);
+            interpreter->ip += 4;
+            uint32_t value = read_u32(interpreter->block, interpreter->ip - 3);
             push(interpreter->main_stack, value);
             break;
         }
         case W_OP_PUSH64: {
-            ip += 8;
-            uint64_t value = read_u64(interpreter->block, ip - 7);
+            interpreter->ip += 8;
+            uint64_t value = read_u64(interpreter->block, interpreter->ip - 7);
             push(interpreter->main_stack, value);
             break;
         }
         case W_OP_PUSH_INT8: {
-            ++ip;
-            int8_t value = read_s8(interpreter->block, ip);
+            ++interpreter->ip;
+            int8_t value = read_s8(interpreter->block, interpreter->ip);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
         case W_OP_PUSH_INT16: {
-            ip += 2;
-            int16_t value = read_s16(interpreter->block, ip - 1);
+            interpreter->ip += 2;
+            int16_t value = read_s16(interpreter->block, interpreter->ip - 1);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
         case W_OP_PUSH_INT32: {
-            ip += 4;
-            int32_t value = read_s32(interpreter->block, ip - 3);
+            interpreter->ip += 4;
+            int32_t value = read_s32(interpreter->block, interpreter->ip - 3);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
         case W_OP_PUSH_INT64: {
-            ip += 8;
-            int64_t value = read_s64(interpreter->block, ip - 7);
+            interpreter->ip += 8;
+            int64_t value = read_s64(interpreter->block, interpreter->ip - 7);
             push(interpreter->main_stack, s64_to_u64(value));
             break;
         }
         case W_OP_PUSH_FLOAT32: {
-            ip += 4;
-            uint32_t bits = read_u32(interpreter->block, ip - 3);
+            interpreter->ip += 4;
+            uint32_t bits = read_u32(interpreter->block, interpreter->ip - 3);
             push(interpreter->main_stack, bits);
             break;
         }
         case W_OP_PUSH_FLOAT64: {
-            ip += 8;
-            uint64_t bits = read_u64(interpreter->block, ip - 7);
+            interpreter->ip += 8;
+            uint64_t bits = read_u64(interpreter->block, interpreter->ip - 7);
             push(interpreter->main_stack, bits);
             break;
         }
         case W_OP_PUSH_CHAR8: {
-            uint8_t value = read_u8(interpreter->block, ip + 1);
-            ip += 1;
+            uint8_t value = read_u8(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 1;
             stack_word chr = encode_utf8_u32(value);
             push(interpreter->main_stack, chr);
             break;
         }
         case W_OP_PUSH_CHAR16: {
-            uint16_t value = read_u16(interpreter->block, ip + 1);
-            ip += 2;
+            uint16_t value = read_u16(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 2;
             stack_word chr = encode_utf8_u32(value);
             push(interpreter->main_stack, chr);
             break;
         }
         case W_OP_PUSH_CHAR32: {
-            uint32_t value = read_u32(interpreter->block, ip + 1);
-            ip += 4;
+            uint32_t value = read_u32(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 4;
             stack_word chr = encode_utf8_u32(value);
             push(interpreter->main_stack, chr);
             break;
         }
         case W_OP_LOAD_STRING8: {
-            ++ip;
-            uint8_t index = read_u8(interpreter->block, ip);
+            ++interpreter->ip;
+            uint8_t index = read_u8(interpreter->block, interpreter->ip);
             struct string_view *view = read_string(interpreter->module, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
             break;
         }
         case W_OP_LOAD_STRING16: {
-            ip += 2;
-            uint16_t index = read_u16(interpreter->block, ip - 1);
+            interpreter->ip += 2;
+            uint16_t index = read_u16(interpreter->block, interpreter->ip - 1);
             struct string_view *view = read_string(interpreter->module, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
             break;
         }
         case W_OP_LOAD_STRING32: {
-            ip += 4;
-            uint32_t index = read_u32(interpreter->block, ip - 3);
+            interpreter->ip += 4;
+            uint32_t index = read_u32(interpreter->block, interpreter->ip - 3);
             struct string_view *view = read_string(interpreter->module, index);
             push(interpreter->main_stack, (uintptr_t)view->start);
             push(interpreter->main_stack, view->length);
@@ -293,20 +293,20 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_POP: pop(interpreter->main_stack); break;
         case W_OP_POPN8: {
-            int8_t n = read_s8(interpreter->block, ip + 1);
-            ip += 1;
+            int8_t n = read_s8(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 1;
             popn(interpreter->main_stack, n);
             break;
         }
         case W_OP_POPN16: {
-            int16_t n = read_s16(interpreter->block, ip + 1);
-            ip += 2;
+            int16_t n = read_s16(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 2;
             popn(interpreter->main_stack, n);
             break;
         }
         case W_OP_POPN32: {
-            int32_t n = read_s32(interpreter->block, ip + 1);
-            ip += 4;
+            int32_t n = read_s32(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 4;
             popn(interpreter->main_stack, n);
             break;
         }
@@ -325,22 +325,22 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_DUPEN8: {
-            int8_t n = read_s8(interpreter->block, ip + 1);
-            ip += 1;
+            int8_t n = read_s8(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 1;
             const stack_word *words = peekn(interpreter->main_stack, n);
             push_all(interpreter->main_stack, n, words);
             break;
         }
         case W_OP_DUPEN16: {
-            int16_t n = read_s16(interpreter->block, ip + 1);
-            ip += 2;
+            int16_t n = read_s16(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 2;
             const stack_word *words = peekn(interpreter->main_stack, n);
             push_all(interpreter->main_stack, n, words);
             break;
         }
         case W_OP_DUPEN32: {
-            int32_t n = read_s32(interpreter->block, ip + 1);
-            ip += 4;
+            int32_t n = read_s32(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 4;
             const stack_word *words = peekn(interpreter->main_stack, n);
             push_all(interpreter->main_stack, n, words);
             break;
@@ -369,87 +369,87 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_JUMP: {
-            int offset = read_s16(interpreter->block, ip + 1);
-            jump(interpreter->block, offset, &ip);
+            int offset = read_s16(interpreter->block, interpreter->ip + 1);
+            jump(interpreter, offset);
             break;
         }
         case W_OP_JUMP_COND: {
-            int offset = read_s16(interpreter->block, ip + 1);
+            int offset = read_s16(interpreter->block, interpreter->ip + 1);
             bool condition = pop(interpreter->main_stack);
             if (condition) {
-                jump(interpreter->block, offset, &ip);
+                jump(interpreter, offset);
             }
             else {
-                ip += 2;  // Consume the operand.
+                interpreter->ip += 2;  // Consume the operand.
             }
             break;
         }
         case W_OP_JUMP_NCOND: {
-            int offset = read_s16(interpreter->block, ip + 1);
+            int offset = read_s16(interpreter->block, interpreter->ip + 1);
             bool condition = pop(interpreter->main_stack);
             if (!condition) {
-                jump(interpreter->block, offset, &ip);
+                jump(interpreter, offset);
             }
             else {
-                ip += 2;
+                interpreter->ip += 2;
             }
             break;
         }
         case W_OP_FOR_DEC_START: {
-            int skip_jump = read_s16(interpreter->block, ip + 1);
+            int skip_jump = read_s16(interpreter->block, interpreter->ip + 1);
             stack_word counter = pop(interpreter->main_stack);
             if (counter > 0) {
-                ip += 2;
+                interpreter->ip += 2;
                 push(interpreter->loop_stack, counter);
             }
             else {
-                jump(interpreter->block, skip_jump, &ip);
+                jump(interpreter, skip_jump);
             }
             break;
         }
         case W_OP_FOR_DEC: {
-            int loop_jump = read_s16(interpreter->block, ip + 1);
+            int loop_jump = read_s16(interpreter->block, interpreter->ip + 1);
             stack_word counter = pop(interpreter->loop_stack);
             if (--counter > 0) {
                 push(interpreter->loop_stack, counter);
-                jump(interpreter->block, loop_jump, &ip);
+                jump(interpreter, loop_jump);
             }
             else {
-                ip += 2;
+                interpreter->ip += 2;
             }
             break;
         }
         case W_OP_FOR_INC_START: {
-            int skip_jump = read_s16(interpreter->block, ip + 1);
+            int skip_jump = read_s16(interpreter->block, interpreter->ip + 1);
             stack_word target = pop(interpreter->main_stack);
             stack_word counter = 0;
             if (counter < target) {
-                ip += 2;
+                interpreter->ip += 2;
                 push(interpreter->loop_stack, target);
                 push(interpreter->loop_stack, counter);
             }
             else {
-                jump(interpreter->block, skip_jump, &ip);
+                jump(interpreter, skip_jump);
             }
             break;
         }
         case W_OP_FOR_INC: {
-            int loop_jump = read_s16(interpreter->block, ip + 1);
+            int loop_jump = read_s16(interpreter->block, interpreter->ip + 1);
             stack_word counter = pop(interpreter->loop_stack);
             stack_word target = peek(interpreter->loop_stack);
             if (++counter < target) {
                 push(interpreter->loop_stack, counter);
-                jump(interpreter->block, loop_jump, &ip);
+                jump(interpreter, loop_jump);
             }
             else {
                 pop(interpreter->loop_stack);
-                ip += 2;
+                interpreter->ip += 2;
             }
             break;
         }
         case W_OP_GET_LOOP_VAR: {
-            ip += 2;
-            uint16_t offset = read_u16(interpreter->block, ip - 1);
+            interpreter->ip += 2;
+            uint16_t offset = read_u16(interpreter->block, interpreter->ip - 1);
             stack_word loop_var = peek_nth(interpreter->loop_stack, offset);
             push(interpreter->main_stack, loop_var);
             break;
@@ -469,8 +469,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         case W_OP_LESS_THAN_F32: BINF32_OP(<, interpreter->main_stack); break;
         case W_OP_LESS_THAN_F64: BINF64_OP(<, interpreter->main_stack); break;
         case W_OP_LOCAL_GET: {
-            ip += 2;
-            uint16_t index = read_u16(interpreter->block, ip - 1);
+            interpreter->ip += 2;
+            uint16_t index = read_u16(interpreter->block, interpreter->ip - 1);
             struct function *function = \
                 get_function(&interpreter->module->functions, interpreter->current_function);
             struct local local = function->locals.items[index];
@@ -478,8 +478,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_LOCAL_SET: {
-            ip += 2;
-            uint16_t index = read_u16(interpreter->block, ip - 1);
+            interpreter->ip += 2;
+            uint16_t index = read_u16(interpreter->block, interpreter->ip - 1);
             struct function *function = \
                 get_function(&interpreter->module->functions, interpreter->current_function);
             struct local local = function->locals.items[index];
@@ -558,23 +558,23 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_SWAP_COMPS8: {
-            int lhs_size = read_s8(interpreter->block, ip + 1);
-            int rhs_size = read_s8(interpreter->block, ip + 2);
-            ip += 2;
+            int lhs_size = read_s8(interpreter->block, interpreter->ip + 1);
+            int rhs_size = read_s8(interpreter->block, interpreter->ip + 2);
+            interpreter->ip += 2;
             swap_comps(interpreter, lhs_size, rhs_size);
             break;
         }
         case W_OP_SWAP_COMPS16: {
-            int lhs_size = read_s16(interpreter->block, ip + 1);
-            int rhs_size = read_s16(interpreter->block, ip + 3);
-            ip += 4;
+            int lhs_size = read_s16(interpreter->block, interpreter->ip + 1);
+            int rhs_size = read_s16(interpreter->block, interpreter->ip + 3);
+            interpreter->ip += 4;
             swap_comps(interpreter, lhs_size, rhs_size);
             break;
         }
         case W_OP_SWAP_COMPS32: {
-            int lhs_size = read_s32(interpreter->block, ip + 1);
-            int rhs_size = read_s32(interpreter->block, ip + 5);
-            ip += 8;
+            int lhs_size = read_s32(interpreter->block, interpreter->ip + 1);
+            int rhs_size = read_s32(interpreter->block, interpreter->ip + 5);
+            interpreter->ip += 8;
             swap_comps(interpreter, lhs_size, rhs_size);
             break;
         }
@@ -816,16 +816,16 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_PACK1: {
-            ++ip;
+            ++interpreter->ip;
             // We don't need to actually do anything here.
             break;
         }
         case W_OP_PACK2: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
             };
-            ip += 2;
+            interpreter->ip += 2;
             stack_word fields[] = {
                 peek_nth(interpreter->main_stack, 1),
                 peek(interpreter->main_stack)
@@ -837,11 +837,11 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_PACK3: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
             };
-            ip += 3;
+            interpreter->ip += 3;
             stack_word fields[] = {
                 peek_nth(interpreter->main_stack, 2),
                 peek_nth(interpreter->main_stack, 1),
@@ -854,12 +854,12 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_PACK4: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
             };
-            ip += 4;
+            interpreter->ip += 4;
             stack_word fields[] = {
                 peek_nth(interpreter->main_stack, 3),
                 peek_nth(interpreter->main_stack, 2),
@@ -873,13 +873,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_PACK5: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
             };
-            ip += 5;
+            interpreter->ip += 5;
             stack_word fields[] = {
                 peek_nth(interpreter->main_stack, 4),
                 peek_nth(interpreter->main_stack, 3),
@@ -894,14 +894,14 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_PACK6: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
-                read_u8(interpreter->block, ip + 6),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 6),
             };
-            ip += 6;
+            interpreter->ip += 6;
             stack_word fields[] = {
                 peek_nth(interpreter->main_stack, 5),
                 peek_nth(interpreter->main_stack, 4),
@@ -917,15 +917,15 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_PACK7: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
-                read_u8(interpreter->block, ip + 6),
-                read_u8(interpreter->block, ip + 7),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 6),
+                read_u8(interpreter->block, interpreter->ip + 7),
             };
-            ip += 7;
+            interpreter->ip += 7;
             stack_word fields[] = {
                 peek_nth(interpreter->main_stack, 6),
                 peek_nth(interpreter->main_stack, 5),
@@ -942,16 +942,16 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_PACK8: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
-                read_u8(interpreter->block, ip + 6),
-                read_u8(interpreter->block, ip + 7),
-                read_u8(interpreter->block, ip + 8),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 6),
+                read_u8(interpreter->block, interpreter->ip + 7),
+                read_u8(interpreter->block, interpreter->ip + 8),
             };
-            ip += 8;
+            interpreter->ip += 8;
             stack_word fields[] = {
                 peek_nth(interpreter->main_stack, 7),
                 peek_nth(interpreter->main_stack, 6),
@@ -968,16 +968,16 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_UNPACK1: {
-            ++ip;
+            ++interpreter->ip;
             // We don't need to actually do anything here.
             break;
         }
         case W_OP_UNPACK2: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
             };
-            ip += 2;
+            interpreter->ip += 2;
             stack_word fields[2] = {0};
             stack_word pack = pop(interpreter->main_stack);
             unpack_fields(2, fields, sizes, pack);
@@ -986,11 +986,11 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_UNPACK3: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
             };
-            ip += 3;
+            interpreter->ip += 3;
             stack_word fields[3] = {0};
             stack_word pack = pop(interpreter->main_stack);
             unpack_fields(3, fields, sizes, pack);
@@ -999,12 +999,12 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_UNPACK4: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
             };
-            ip += 4;
+            interpreter->ip += 4;
             stack_word fields[4] = {0};
             stack_word pack = pop(interpreter->main_stack);
             unpack_fields(4, fields, sizes, pack);
@@ -1013,13 +1013,13 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_UNPACK5: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
             };
-            ip += 5;
+            interpreter->ip += 5;
             stack_word fields[5] = {0};
             stack_word pack = pop(interpreter->main_stack);
             unpack_fields(5, fields, sizes, pack);
@@ -1028,14 +1028,14 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_UNPACK6: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
-                read_u8(interpreter->block, ip + 6),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 6),
             };
-            ip += 6;
+            interpreter->ip += 6;
             stack_word fields[6] = {0};
             stack_word pack = pop(interpreter->main_stack);
             unpack_fields(6, fields, sizes, pack);
@@ -1044,15 +1044,15 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_UNPACK7: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
-                read_u8(interpreter->block, ip + 6),
-                read_u8(interpreter->block, ip + 7),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 6),
+                read_u8(interpreter->block, interpreter->ip + 7),
             };
-            ip += 7;
+            interpreter->ip += 7;
             stack_word fields[7] = {0};
             stack_word pack = pop(interpreter->main_stack);
             unpack_fields(7, fields, sizes, pack);
@@ -1061,16 +1061,16 @@ enum interpret_result interpret(struct interpreter *interpreter) {
         }
         case W_OP_UNPACK8: {
             uint8_t sizes[] = {
-                read_u8(interpreter->block, ip + 1),
-                read_u8(interpreter->block, ip + 2),
-                read_u8(interpreter->block, ip + 3),
-                read_u8(interpreter->block, ip + 4),
-                read_u8(interpreter->block, ip + 5),
-                read_u8(interpreter->block, ip + 6),
-                read_u8(interpreter->block, ip + 7),
-                read_u8(interpreter->block, ip + 8),
+                read_u8(interpreter->block, interpreter->ip + 1),
+                read_u8(interpreter->block, interpreter->ip + 2),
+                read_u8(interpreter->block, interpreter->ip + 3),
+                read_u8(interpreter->block, interpreter->ip + 4),
+                read_u8(interpreter->block, interpreter->ip + 5),
+                read_u8(interpreter->block, interpreter->ip + 6),
+                read_u8(interpreter->block, interpreter->ip + 7),
+                read_u8(interpreter->block, interpreter->ip + 8),
             };
-            ip += 8;
+            interpreter->ip += 8;
             stack_word fields[8] = {0};
             stack_word pack = pop(interpreter->main_stack);
             unpack_fields(8, fields, sizes, pack);
@@ -1078,8 +1078,8 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_PACK_FIELD_GET: {
-            uint8_t offset = read_u8(interpreter->block, ++ip);
-            uint8_t size = read_u8(interpreter->block, ++ip);
+            uint8_t offset = read_u8(interpreter->block, ++interpreter->ip);
+            uint8_t size = read_u8(interpreter->block, ++interpreter->ip);
             stack_word pack = peek(interpreter->main_stack);
             stack_word field = 0;
             memcpy(&field, (unsigned char *)&pack + offset, size);
@@ -1087,30 +1087,30 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_COMP_FIELD_GET8: {
-            uint8_t offset = read_u8(interpreter->block, ip + 1);
-            ip += 1;
+            uint8_t offset = read_u8(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 1;
             stack_word field = peek_nth(interpreter->main_stack, offset - 1);
             push(interpreter->main_stack, field);
             break;
         }
         case W_OP_COMP_FIELD_GET16: {
-            uint16_t offset = read_u16(interpreter->block, ip + 1);
-            ip += 2;
+            uint16_t offset = read_u16(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 2;
             stack_word field = peek_nth(interpreter->main_stack, offset - 1);
             push(interpreter->main_stack, field);
             break;
         }
         case W_OP_COMP_FIELD_GET32: {
-            uint32_t offset = read_u32(interpreter->block, ip + 1);
-            ip += 4;
+            uint32_t offset = read_u32(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 4;
             stack_word field = peek_nth(interpreter->main_stack, offset - 1);
             push(interpreter->main_stack, field);
             break;
         }
         case W_OP_PACK_FIELD_SET: {
-            int8_t offset = read_s8(interpreter->block, ip + 1);
-            int8_t size = read_s8(interpreter->block, ip + 2);
-            ip += 2;
+            int8_t offset = read_s8(interpreter->block, interpreter->ip + 1);
+            int8_t size = read_s8(interpreter->block, interpreter->ip + 2);
+            interpreter->ip += 2;
             stack_word field = pop(interpreter->main_stack);
             stack_word pack = pop(interpreter->main_stack);
             memcpy((unsigned char *)&pack + offset, &field, size);
@@ -1118,126 +1118,126 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             break;
         }
         case W_OP_COMP_FIELD_SET8: {
-            int8_t offset = read_s8(interpreter->block, ip + 1);
-            ip += 1;
+            int8_t offset = read_s8(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 1;
             stack_word field = pop(interpreter->main_stack);
             set_nth(interpreter->main_stack, offset - 1, field);
             break;
         }
         case W_OP_COMP_FIELD_SET16: {
-            int16_t offset = read_s16(interpreter->block, ip + 1);
-            ip += 2;
+            int16_t offset = read_s16(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 2;
             stack_word field = pop(interpreter->main_stack);
             set_nth(interpreter->main_stack, offset - 1, field);
             break;
         }
         case W_OP_COMP_FIELD_SET32: {
-            int32_t offset = read_s32(interpreter->block, ip + 1);
-            ip += 4;
+            int32_t offset = read_s32(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 4;
             stack_word field = pop(interpreter->main_stack);
             set_nth(interpreter->main_stack, offset - 1, field);
             break;
         }
         case W_OP_COMP_SUBCOMP_GET8: {
-            int8_t offset = read_s8(interpreter->block, ip + 1);
-            int8_t word_count = read_s8(interpreter->block, ip + 2);
-            ip += 2;
+            int8_t offset = read_s8(interpreter->block, interpreter->ip + 1);
+            int8_t word_count = read_s8(interpreter->block, interpreter->ip + 2);
+            interpreter->ip += 2;
             comp_get_subcomp(interpreter, offset, word_count);
             break;
         }
         case W_OP_COMP_SUBCOMP_GET16: {
-            int16_t offset = read_s16(interpreter->block, ip + 1);
-            int16_t word_count = read_s16(interpreter->block, ip + 3);
-            ip += 4;
+            int16_t offset = read_s16(interpreter->block, interpreter->ip + 1);
+            int16_t word_count = read_s16(interpreter->block, interpreter->ip + 3);
+            interpreter->ip += 4;
             comp_get_subcomp(interpreter, offset, word_count);
             break;
         }
         case W_OP_COMP_SUBCOMP_GET32: {
-            int32_t offset = read_s32(interpreter->block, ip + 1);
-            int32_t word_count = read_s32(interpreter->block, ip + 5);
-            ip += 8;
+            int32_t offset = read_s32(interpreter->block, interpreter->ip + 1);
+            int32_t word_count = read_s32(interpreter->block, interpreter->ip + 5);
+            interpreter->ip += 8;
             comp_get_subcomp(interpreter, offset, word_count);
             break;
         }
         case W_OP_COMP_SUBCOMP_SET8: {
-            int8_t offset = read_s8(interpreter->block, ip + 1);
-            int8_t word_count = read_s8(interpreter->block, ip + 2);
-            ip += 2;
+            int8_t offset = read_s8(interpreter->block, interpreter->ip + 1);
+            int8_t word_count = read_s8(interpreter->block, interpreter->ip + 2);
+            interpreter->ip += 2;
             comp_set_subcomp(interpreter, offset, word_count);
             break;
         }
         case W_OP_COMP_SUBCOMP_SET16: {
-            int16_t offset = read_s16(interpreter->block, ip + 1);
-            int16_t word_count = read_s16(interpreter->block, ip + 3);
-            ip += 4;
+            int16_t offset = read_s16(interpreter->block, interpreter->ip + 1);
+            int16_t word_count = read_s16(interpreter->block, interpreter->ip + 3);
+            interpreter->ip += 4;
             comp_set_subcomp(interpreter, offset, word_count);
             break;
         }
         case W_OP_COMP_SUBCOMP_SET32: {
-            int32_t offset = read_s32(interpreter->block, ip + 1);
-            int32_t word_count = read_s32(interpreter->block, ip + 5);
-            ip += 8;
+            int32_t offset = read_s32(interpreter->block, interpreter->ip + 1);
+            int32_t word_count = read_s32(interpreter->block, interpreter->ip + 5);
+            interpreter->ip += 8;
             comp_set_subcomp(interpreter, offset, word_count);
             break;
         }
         case W_OP_ARRAY_GET8: {
-            int element_count = read_u8(interpreter->block, ip + 1);
-            int word_count = read_u8(interpreter->block, ip + 2);
-            ip += 2;
+            int element_count = read_u8(interpreter->block, interpreter->ip + 1);
+            int word_count = read_u8(interpreter->block, interpreter->ip + 2);
+            interpreter->ip += 2;
             array_get(interpreter, element_count, word_count);
             break;
         }
         case W_OP_ARRAY_GET16: {
-            int element_count = read_u8(interpreter->block, ip + 1);
-            int word_count = read_u16(interpreter->block, ip + 3);
-            ip += 4;
+            int element_count = read_u8(interpreter->block, interpreter->ip + 1);
+            int word_count = read_u16(interpreter->block, interpreter->ip + 3);
+            interpreter->ip += 4;
             array_get(interpreter, element_count, word_count);
             break;
         }
         case W_OP_ARRAY_GET32: {
-            int element_count = read_u8(interpreter->block, ip + 1);
-            int word_count = read_u32(interpreter->block, ip + 5);
-            ip += 8;
+            int element_count = read_u8(interpreter->block, interpreter->ip + 1);
+            int word_count = read_u32(interpreter->block, interpreter->ip + 5);
+            interpreter->ip += 8;
             array_get(interpreter, element_count, word_count);
             break;
         }
         case W_OP_ARRAY_SET8: {
-            int element_count = read_u8(interpreter->block, ip + 1);
-            int word_count = read_u8(interpreter->block, ip + 2);
-            ip += 2;
+            int element_count = read_u8(interpreter->block, interpreter->ip + 1);
+            int word_count = read_u8(interpreter->block, interpreter->ip + 2);
+            interpreter->ip += 2;
             array_set(interpreter, element_count, word_count);
             break;
         }
         case W_OP_ARRAY_SET16: {
-            int element_count = read_u8(interpreter->block, ip + 1);
-            int word_count = read_u16(interpreter->block, ip + 3);
-            ip += 4;
+            int element_count = read_u8(interpreter->block, interpreter->ip + 1);
+            int word_count = read_u16(interpreter->block, interpreter->ip + 3);
+            interpreter->ip += 4;
             array_set(interpreter, element_count, word_count);
             break;
         }
         case W_OP_ARRAY_SET32: {
-            int element_count = read_u8(interpreter->block, ip + 1);
-            int word_count = read_u32(interpreter->block, ip + 5);
-            ip += 8;
+            int element_count = read_u8(interpreter->block, interpreter->ip + 1);
+            int word_count = read_u32(interpreter->block, interpreter->ip + 5);
+            interpreter->ip += 8;
             array_set(interpreter, element_count, word_count);
             break;
         }
         case W_OP_CALL8: {
-            uint8_t index = read_u8(interpreter->block, ip + 1);
-            ip += 1;
-            call(interpreter, index, &ip);
+            uint8_t index = read_u8(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 1;
+            call(interpreter, index);
             break;
         }
         case W_OP_CALL16: {
-            uint16_t index = read_u16(interpreter->block, ip + 1);
-            ip += 2;
-            call(interpreter, index, &ip);
+            uint16_t index = read_u16(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 2;
+            call(interpreter, index);
             break;
         }
         case W_OP_CALL32: {
-            uint32_t index = read_u32(interpreter->block, ip + 1);
-            ip += 4;
-            call(interpreter, index, &ip);
+            uint32_t index = read_u32(interpreter->block, interpreter->ip + 1);
+            interpreter->ip += 4;
+            call(interpreter, index);
             break;
         }
         case W_OP_EXTCALL8:
@@ -1246,7 +1246,7 @@ enum interpret_result interpret(struct interpreter *interpreter) {
             assert(false && "Not implemented");
             break;
         case W_OP_RET:
-            ip = ret(interpreter);
+            ret(interpreter);
             break;
         }
     }
