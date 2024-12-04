@@ -2198,7 +2198,8 @@ static void type_check_function(struct type_checker *checker, int func_index) {
         case T_OP_ARRAY_GET: {
             type_index index_type = ts_pop(checker);
             if (!is_integral(index_type)) {
-                type_error(checker, "Array index must be an integer.");
+                struct string_view index_name = type_name(&checker->module->types, index_type);
+                type_error(checker, "array index must be an integer, not %"PRI_SV, SV_FMT(index_name));
             }
             const struct type_info *info = expect_keep_kind(checker, KIND_ARRAY);
             assert(info && info->kind == KIND_ARRAY);
@@ -2210,7 +2211,8 @@ static void type_check_function(struct type_checker *checker, int func_index) {
             type_index index_type = ts_pop(checker);
             type_index element_type = ts_pop(checker);
             if (!is_integral(index_type)) {
-                type_error(checker, "Array index must be an integer.");
+                struct string_view index_name = type_name(&checker->module->types, index_type);
+                type_error(checker, "array index must be an integer, not %"PRI_SV, SV_FMT(index_name));
             }
             const struct type_info *info = expect_keep_kind(checker, KIND_ARRAY);
             assert(info && info->kind == KIND_ARRAY);
