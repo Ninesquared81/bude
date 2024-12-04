@@ -481,18 +481,16 @@ int64_t read_s64(struct ir_block *block, int index) {
 }
 
 static int binary_search(struct jump_info_table *jumps, int dest) {
-    int hi = jumps->count - 1;
+    int hi = jumps->count;
     int lo = 0;
-    while (hi > lo) {
+    while (lo < hi) {
+        // Want index of least element not less than dest.
         int mid = lo + (hi - lo) / 2;
-        if (jumps->items[mid] == dest) {
-            return mid;
-        }
         if (jumps->items[mid] < dest) {
             lo = mid + 1;
         }
         else {
-            hi = mid - 1;
+            hi = mid;
         }
     }
     return lo;
