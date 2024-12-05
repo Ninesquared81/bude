@@ -22,10 +22,12 @@ end
 println
 
 
-0xffT println
+0XffT println
 
 -128s8 println
 
 55 4 divmod println
 
 pop
+
+0o77 println

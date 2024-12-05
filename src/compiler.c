@@ -277,7 +277,7 @@ static void compile_symbol(struct compiler *compiler);
 
 struct integer_prefix {
     char sign;  // '\0', '-', '+'.
-    int base;   // 10, 16, 2.
+    int base;   // 10, 16, 2, 8.
 };
 
 enum floating_point_type {
@@ -289,6 +289,11 @@ enum integer_type {
     INT_S8, INT_S16, INT_S32,
     INT_U8, INT_U16, INT_U32,
 };
+
+static void remove_integer_prefix(struct string_view *value) {
+    value->start += 2;
+    value->length -= 2;
+}
 
 struct integer_prefix parse_integer_prefix(struct string_view *value) {
     // Start by assuming base 10 and no sign (e.g. `42`). This is the most common form.
@@ -306,14 +311,17 @@ struct integer_prefix parse_integer_prefix(struct string_view *value) {
         case 'B':
         case 'b':
             prefix.base = 2;
-            value->start += 2;
-            value->length -= 2;
+            remove_integer_prefix(value);
             break;
         case 'X':
         case 'x':
             prefix.base = 16;
-            value->start += 2;
-            value->length -= 2;
+            remove_integer_prefix(value);
+            break;
+        case 'O':
+        case 'o':
+            prefix.base = 8;
+            remove_integer_prefix(value);
             break;
         }
     }

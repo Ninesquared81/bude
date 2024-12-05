@@ -415,6 +415,23 @@ static int lex_binary(struct lexer *lexer) {
     return bit_count;
 }
 
+static int lex_octal(struct lexer *lexer) {
+    int oct_count = 0;
+    for (;;) {
+        char c = peek(lexer);
+        if (isdigit(c) && c < '8') {
+            // Only count actual octal digits.
+            ++oct_count;
+        }
+        else if (c != '_') {
+            // Underscores are the only non-octal-digit characters allowed.
+            break;
+        }
+        advance(lexer);
+    }
+    return oct_count;
+}
+
 static bool lex_int_suffix(struct lexer *lexer) {
     if (match_any(lexer, "UuSs")) {
         if (is_at_end(lexer)) return false;
@@ -496,16 +513,26 @@ static struct token binary_lit(struct lexer *lexer) {
     return make_token(lexer, TOKEN_INT_LIT, false);
 }
 
+static struct token octal_lit(struct lexer *lexer) {
+    if (!lex_octal(lexer) || !lex_int_suffix(lexer)) {
+        return symbol(lexer);
+    }
+    return make_token(lexer, TOKEN_INT_LIT, false);
+}
+
 static struct token number(struct lexer *lexer) {
     if (!match(lexer, '0')) {
         return decimal_lit(lexer);
     }
-    // Prefixes `0x`, `0b`.
-    if (match(lexer, 'x')) {
+    // Prefixes `0x`, `0b`, `0o`.
+    if (match_any(lexer, "Xx")) {
         return hexadecimal_lit(lexer);
     }
-    if (match(lexer, 'b')) {
+    if (match_any(lexer, "Bb")) {
         return binary_lit(lexer);
+    }
+    if (match_any(lexer, "Oo")) {
+        return octal_lit(lexer);
     }
     // Decimal integers can start with '0'.
     return decimal_lit(lexer);
