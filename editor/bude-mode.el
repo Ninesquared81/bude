@@ -76,7 +76,8 @@
      (if (smie-rule-hanging-p)
          ;; Virtual indentation (when used as parent).
          (smie-rule-parent)))
-    (`(:after . ,(or "then" "def" "do" "var")) bude-indent-offset)
+    (`(:after . ,(or "then" "def" "do" "var" "else")) bude-indent-offset)
+    (`(:after . "end") (smie-rule-parent))
     (`(:list-intro . ,(or "then" "def" "do" "var"))
      ;; SMIE thinks every line after the first in a block is in a list, so we indent based on this.
      bude-indent-offset)
