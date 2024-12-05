@@ -1,0 +1,31 @@
+func inner def
+    for j to 10 do
+        " j: " print j println
+        if j 5 = then ret end
+    end
+end
+
+for i to 3 do
+    "i: " print i println
+    inner
+end
+
+# interpreter:
+# loop_stack { FOR-INC {target counter}
+#              FOR-DEC {counter} }
+# []
+# [3 0]
+# enter inner loop
+# [3 0 10 0]
+# [3 0 10 1]
+# [3 0 10 2]
+# [3 0 10 3]
+# [3 0 10 4]
+# [3 0 10 5]
+# back to outer loop
+# [3 0 10 6]
+# FOR_INC 6 > 10 ? --> no, loop
+# [3 0 10 6]
+# enter inner loop
+# [3 0 10 6 10 0]
+# etc.
