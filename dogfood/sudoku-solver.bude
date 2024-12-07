@@ -188,7 +188,7 @@ func array[81 int] int solve -> array[81 int] bool def
     end
     # No digit 1-9 worked, so we need to backtrack.
     0 <- [i]  # Reset back to zero.
-    false ret
+    false
 end
 
 # Puzzle input; change as required:
