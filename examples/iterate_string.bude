@@ -1,0 +1,57 @@
+func int int << -> int def
+    for do
+        2 *
+    end
+end
+
+func int int >> -> int def
+    for do
+        2 /
+    end
+end
+
+func ptr consume-utf8 -> int char32 def
+    var p -> ptr end
+    dupe 1 + <- p
+    deref to int
+    if dupe 127 <= then to char32 1 swap ret end  # ASCII.
+    1 5 << divmod swap
+    if 0b110 = then
+        1  # Number of continuation bytes.
+    else # 3 =
+        1 4 << divmod swap
+        2 +
+    end
+    var len -> int end
+    dupe 1 + <- len
+    for do
+        6 <<  # Move accumulated result left to make space for new bits.
+        p dupe 1 + <- p deref 1 6 << %  # Get lower 6 bits.
+        +  # Effectively a bitwise OR to get new bits into place (relies on the other bits being zero).
+    end
+    to char32 len swap
+end
+
+func string next-char -> string char32 def
+    var c -> char32 end
+    if length not then 0 to char32 ret end
+    start consume-utf8 <- c
+    dupe ~ rot length rot + <- length
+    start rot + <- start
+    c
+end
+
+func main def
+    "Hi! おはよう！ Bonjour! Cześć! 𒀀"
+    while length do
+        next-char
+        '\'' print
+        dupe print
+        "' (" print
+        to int print
+        ")" println
+    end
+    pop
+end
+
+main
