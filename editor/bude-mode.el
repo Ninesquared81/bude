@@ -13,11 +13,11 @@
 
 (defconst bude-block-keywords
   '("comp" "def" "do" "elif" "else" "end" "for" "func" "from" "if" "import" "pack" "then"
-    "ret" "to" "var" "while" "with")
+    "ret" "to" "var" "while" "with"  "->" "<-")
   "Bude block-defining keywords")
 
 (defconst bude-builtins
-  '("+" "-" "*" "/" "%" "=" "/=" "<" "<=" "=>" ">" "->" "<-"
+  '("+" "-" "*" "/" "%" "=" "/=" "<" "<=" "=>" ">"
     "and" "as" "decomp" "deref" "divmod" "dupe" "edivmod" "exit" "false" "idivmod" "not"
     "or" "over" "pop" "print" "print-char" "rot" "swap" "true" "unpack")
   "Built-in Bude operations")
